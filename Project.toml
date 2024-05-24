@@ -3,5 +3,8 @@ uuid = "7e8ad7a6-05a9-45be-b784-576440ebc08e"
 authors = ["Siddhant Chaudhary <urssidd@gmail.com> and contributors"]
 version = "0.1.0"
 
+[deps]
+Transformers = "21ca0261-441d-5938-ace7-c90938fde4d4"
+
 [compat]
 julia = "1.10"

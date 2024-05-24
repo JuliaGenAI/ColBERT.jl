@@ -1,4 +1,4 @@
-struct ColBERT
+struct  BaseColBERT
     bert
     linear
     tokenizer
