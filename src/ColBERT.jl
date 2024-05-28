@@ -1,4 +1,5 @@
 module ColBERT
+using Transformers
 
 # datasets
 include("data/collection.jl")
@@ -14,7 +15,6 @@ export  RunSettings, TokenizerSettings, ResourceSettings,
 
 # models
 include("modelling/checkpoint.jl")
-include("modelling/colbert.jl")
 export BaseColBERT, Checkpoint
 
 end
