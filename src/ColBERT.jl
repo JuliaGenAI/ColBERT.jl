@@ -1,5 +1,7 @@
 module ColBERT
+using CSV
 using Transformers
+
 
 # datasets
 include("data/collection.jl")
