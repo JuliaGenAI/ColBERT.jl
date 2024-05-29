@@ -1,11 +1,11 @@
 struct BaseColBERT
-    bert
-    linear
+    bert::Any
+    linear::Any
     tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder
 end
 
 struct Checkpoint
     model::BaseColBERT
-    doc_tokenizer
-    colbert_config
+    doc_tokenizer::Any
+    colbert_config::Any
 end
