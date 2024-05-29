@@ -10,3 +10,7 @@ function Collection(path::String)
     @info "Loaded $(length(file.text)[1]) passages."
     Collection(path, file.text)
 end
+
+function get_chunksize(collection::Collection, nranks::Int)
+    min(25000, 1 + floor(length(collection.data) / nranks))
+end
