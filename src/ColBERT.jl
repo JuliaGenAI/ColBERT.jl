@@ -1,5 +1,6 @@
 module ColBERT
 using CSV
+using Logging
 using Transformers
 
 

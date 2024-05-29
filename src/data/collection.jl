@@ -7,5 +7,6 @@ end
 
 function Collection(path::String)
     file = CSV.File(path; delim='\t', header = [:pid, :text], types = Dict(:pid => Int, :text => String), debug=true, quoted=false)
+    @info "Loaded $(length(file.text)[1]) passages."
     Collection(path, file.text)
 end
