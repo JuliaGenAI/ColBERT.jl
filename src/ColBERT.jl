@@ -16,9 +16,10 @@ export RunSettings, TokenizerSettings, ResourceSettings,
        DocSettings, QuerySettings, IndexingSettings,
        SearchSettings, ColBERTConfig
 
-# models
+# models, document/query tokenizers
+include("modelling/tokenization/doc_tokenization.jl")
 include("modelling/checkpoint.jl")
-export BaseColBERT, Checkpoint
+export BaseColBERT, Checkpoint, DocTokenizer
 
 # indexer
 include("indexing.jl")

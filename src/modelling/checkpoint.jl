@@ -1,3 +1,5 @@
+using ..ColBERT: DocTokenizer, ColBERTConfig
+
 struct BaseColBERT
     bert::Any
     linear::Any
@@ -18,8 +20,7 @@ function BaseColBERT(checkpoint::String, config::ColBERTConfig)
 end
 
 struct Checkpoint
-
     model::BaseColBERT
-    doc_tokenizer::Any
-    colbert_config::Any
+    doc_tokenizer::DocTokenizer
+    colbert_config::ColBERTConfig
 end
