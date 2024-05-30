@@ -19,4 +19,8 @@ export RunSettings, TokenizerSettings, ResourceSettings,
 include("modelling/checkpoint.jl")
 export BaseColBERT, Checkpoint
 
+# indexer
+include("indexing.jl")
+export Indexer
+
 end
