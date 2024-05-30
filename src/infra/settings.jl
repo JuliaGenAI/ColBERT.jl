@@ -1,3 +1,5 @@
+using ..ColBERT: Collection
+
 Base.@kwdef struct RunSettings
     root::String = joinpath(pwd(), "experiments")
     experiment::String = "default"
@@ -16,7 +18,7 @@ end
 
 Base.@kwdef struct ResourceSettings
     checkpoint::Union{Nothing, String} = nothing
-    collection::Union{Nothing, String} = nothing
+    collection::Union{Nothing, Collection} = nothing
     queries::Union{Nothing, String} = nothing
     index_name::Union{Nothing, String} = nothing
 end

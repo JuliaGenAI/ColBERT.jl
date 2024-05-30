@@ -1,0 +1,2 @@
+struct CollectionIndexer
+end
