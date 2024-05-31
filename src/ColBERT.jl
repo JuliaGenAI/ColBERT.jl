@@ -2,6 +2,8 @@ module ColBERT
 using CSV
 using Dates
 using Logging
+using NeuralAttentionlib
+using TextEncodeBase
 using Transformers
 
 # datasets
