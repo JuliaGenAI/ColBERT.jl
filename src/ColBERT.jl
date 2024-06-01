@@ -1,6 +1,7 @@
 module ColBERT
 using CSV
 using Dates
+using LinearAlgebra
 using Logging
 using NeuralAttentionlib
 using TextEncodeBase

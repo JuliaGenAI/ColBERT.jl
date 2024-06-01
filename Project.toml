@@ -6,6 +6,7 @@ version = "0.1.0"
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 NeuralAttentionlib = "12afc1b8-fad6-47e1-9132-84abc478905f"
 TextEncodeBase = "f92c20c0-9f2a-4705-8116-881385faba05"
