@@ -13,16 +13,23 @@ function BaseColBERT(checkpoint::String, config::ColBERTConfig)
     bert_state_dict = HuggingFace.load_state_dict(checkpoint)
     bert_model = HuggingFace.load_model(:bert, checkpoint, :model, bert_state_dict; config = bert_config)
     linear = HuggingFace._load_dense(bert_state_dict, "linear", bert_config.hidden_size, config.doc_settings.dim, bert_config.initializer_range, true)
-
     tokenizer = Transformers.load_tokenizer(checkpoint)
-
-    return BaseColBERT(bert_model, linear, tokenizer)
+    BaseColBERT(bert_model, linear, tokenizer)
 end
 
 struct Checkpoint
     model::BaseColBERT
     doc_tokenizer::DocTokenizer
     colbert_config::ColBERTConfig
-    skiplist::String
+    skiplist::Union{Missing, Vector{Int}}
 end
 
+function Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer, colbert_config::ColBERTConfig)
+    if colbert_config.mask_punctuation
+        punctuation_list = string.(collect("!\"#\$%&\'()*+,-./:;<=>?@[\\]^_`{|}~"))
+        skiplist = [TextEncodeBase.lookup(model.tokenizer.vocab, punct) for punct in punctuation_list]
+    else
+        skiplist = missing
+    end
+    Checkpoint(model, doc_tokenizer, colbert_config, skiplist)
+end
