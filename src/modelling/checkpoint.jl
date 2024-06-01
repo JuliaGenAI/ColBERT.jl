@@ -25,7 +25,7 @@ struct Checkpoint
 end
 
 function Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer, colbert_config::ColBERTConfig)
-    if colbert_config.mask_punctuation
+    if colbert_config.doc_settings.mask_punctuation
         punctuation_list = string.(collect("!\"#\$%&\'()*+,-./:;<=>?@[\\]^_`{|}~"))
         skiplist = [TextEncodeBase.lookup(model.tokenizer.vocab, punct) for punct in punctuation_list]
     else

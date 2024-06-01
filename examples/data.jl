@@ -37,3 +37,7 @@ config = ColBERTConfig(
     ),
     SearchSettings(),
 )
+
+# trying to load the BaseColBERT
+base_colbert = BaseColBERT(checkpoint, config)
+checkPoint = Checkpoint(base_colbert, DocTokenizer(base_colbert.tokenizer, config), config)
