@@ -33,3 +33,24 @@ function Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer, colbert_con
     end
     Checkpoint(model, doc_tokenizer, colbert_config, skiplist)
 end
+
+function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, integer_ids::AbstractArray, skiplist::Union{Missing, Vector{Int}})
+    if !ismissing(skiplist)
+        filter = token_id -> !(token_id in skiplist) && token_id != TextEncodeBase.lookup(tokenizer.vocab, tokenizer.padsym)
+    else
+        filter = token_id -> true
+    end
+    filter.(integer_ids)
+end
+
+function doc(checkpoint::Checkpoint, integer_ids::AbstractArray, integer_mask::AbstractArray)
+    D = checkpoint.model.bert_model((token=integer_ids, attention_mask=NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
+    D = checkpoint.model.linear(D)
+
+    mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, checkpoint.skiplist)
+    mask = reshape(mask, (1, size(mask)...))                                        # equivalent of unsqueeze
+
+    D = D .* mask                                                                   # clear out embeddings of masked tokens
+    D = mapslices(v -> iszero(v) ? v : normalize(v), D, dims = 1)                   # normalize each embedding
+    return D, mask
+end
