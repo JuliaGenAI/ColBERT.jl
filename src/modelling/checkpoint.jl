@@ -1,8 +1,8 @@
 using ..ColBERT: DocTokenizer, ColBERTConfig
 
 struct BaseColBERT
-    bert::Any
-    linear::Any
+    bert::Transformers.HuggingFace.HGFBertModel
+    linear::Transformers.Layers.Dense
     tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder
 end
 
@@ -23,4 +23,6 @@ struct Checkpoint
     model::BaseColBERT
     doc_tokenizer::DocTokenizer
     colbert_config::ColBERTConfig
+    skiplist::String
 end
+
