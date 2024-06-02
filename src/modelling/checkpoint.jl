@@ -44,7 +44,7 @@ function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerT
 end
 
 function doc(checkpoint::Checkpoint, integer_ids::AbstractArray, integer_mask::AbstractArray)
-    D = checkpoint.model.bert_model((token=integer_ids, attention_mask=NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
+    D = checkpoint.model.bert((token=integer_ids, attention_mask=NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
     D = checkpoint.model.linear(D)
 
     mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, checkpoint.skiplist)
