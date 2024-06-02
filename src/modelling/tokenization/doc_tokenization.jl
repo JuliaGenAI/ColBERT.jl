@@ -27,6 +27,7 @@ function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEnco
     if ismissing(bsize)
         return integer_ids, integer_mask
     else
+        # we sort passages by length to do batch packing for more efficient use of the GPU
         integer_ids, integer_mask, reverse_indices = _sort_by_length(integer_ids, integer_mask, bsize)
         batches = _split_into_batches(integer_ids, integer_mask, bsize)
 
