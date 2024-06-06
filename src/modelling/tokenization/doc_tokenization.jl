@@ -25,13 +25,13 @@ function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEnco
     integer_ids[2, :] .= doc_tokenizer.D_marker_token_id
 
     if ismissing(bsize)
-        return integer_ids, integer_mask
+        integer_ids, integer_mask
     else
         # we sort passages by length to do batch packing for more efficient use of the GPU
         integer_ids, integer_mask, reverse_indices = _sort_by_length(integer_ids, integer_mask, bsize)
         batches = _split_into_batches(integer_ids, integer_mask, bsize)
 
-        return batches, reverse_indices
+        batches, reverse_indices
     end
 end
 
@@ -47,7 +47,7 @@ function _sort_by_length(integer_ids::AbstractMatrix, integer_mask::AbstractMatr
     batch_size = size(integer_ids)[2]
     if batch_size <= bsize
         # if the number of passages fits the batch size, do nothing
-        return integer_ids, integer_mask, Vector(1:batch_size)
+        integer_ids, integer_mask, Vector(1:batch_size)
     end
 
     lengths = vec(sum(integer_mask; dims = 1))              # number of attended tokens in each passage

@@ -52,7 +52,7 @@ function doc(checkpoint::Checkpoint, integer_ids::AbstractArray, integer_mask::A
 
     D = D .* mask                                                                   # clear out embeddings of masked tokens
     D = mapslices(v -> iszero(v) ? v : normalize(v), D, dims = 1)                   # normalize each embedding
-    return D, mask
+    D, mask
 end
 
 function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{Missing, Int})
