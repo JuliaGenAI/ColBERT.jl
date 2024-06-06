@@ -7,6 +7,9 @@ using NeuralAttentionlib
 using TextEncodeBase
 using Transformers
 
+# utils
+include("utils/utils.jl")
+
 # datasets
 include("data/collection.jl")
 include("data/queries.jl")
