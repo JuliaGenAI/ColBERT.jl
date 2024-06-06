@@ -46,10 +46,28 @@ function _sample_pids(indexer::CollectionIndexer)
     Set(sampled_pids)
 end
 
+function _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
+    # collect all passages with pids in sampled_pids
+    collection = indexer.config.resource_settings.collection
+    sorted_sampled_pids = sort(collect(sampled_pids))
+    local_sample = collection.data[sorted_sampled_pids]
+
+    local_sample_embs, local_sample_doclens = encode_passages(indexer.encoder, local_sample)
+    indexer.num_sample_embs = size(local_sample_embs)[2]
+    indexer.avg_doclen_est = length(local_sample_doclens) > 0 ? sum(local_sample_doclens) / length(local_sample_doclens) : 0
+
+    @info "avg_doclen_est = $(indexer.avg_doclen_est) \t length(local_sample) = $(length(local_sample))"
+    save(joinpath(indexer.config.indexing_settings.index_path, "sample.jld2"), Dict("local_sample_embs" => local_sample_embs))
+
+    avg_doclen_est
+end
+
 function setup(indexer::CollectionIndexer)
     collection = indexer.config.resource_settings.collection
-    indexer.num_chunks = Int(ceil(length(collection.data) / get_chunksize(collection, config.run_settings.nranks)))
+    indexer.num_chunks = Int(ceil(length(collection.data) / get_chunksize(collection, indexer.config.run_settings.nranks)))
 
     # sample passages for training centroids later
     # TODO: complete this!
+    sampled_pids = _sample_pids(indexer)
+    
 end
