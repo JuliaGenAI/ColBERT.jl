@@ -4,6 +4,7 @@ using Dates
 using LinearAlgebra
 using Logging
 using NeuralAttentionlib
+using StatsBase
 using TextEncodeBase
 using Transformers
 
