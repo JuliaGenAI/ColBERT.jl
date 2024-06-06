@@ -35,6 +35,21 @@ function CollectionIndexer(config::ColBERTConfig, encoder::CollectionEncoder, sa
     )
 end
 
+function _sample_pids(indexer::CollectionIndexer)
+    num_passages = length(indexer.config.resource_settings.collection.data)
+    typical_doclen = 120
+    num_sampled_pids = 16 * sqrt(typical_doclen * num_passages)
+    num_sampled_pids = Int(min(1 + floor(num_sampled_pids), num_passages))
+
+    sampled_pids = sample(1:num_passages, num_sampled_pids)
+    @info "# of sampled PIDs = $(length(sampled_pids))"
+    Set(sampled_pids)
+end
+
 function setup(indexer::CollectionIndexer)
-    
+    collection = indexer.config.resource_settings.collection
+    indexer.num_chunks = Int(ceil(length(collection.data) / get_chunksize(collection, config.run_settings.nranks)))
+
+    # sample passages for training centroids later
+    # TODO: complete this!
 end
