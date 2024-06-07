@@ -6,7 +6,7 @@ mutable struct CollectionIndexer
     saver::IndexSaver
     plan_path::String
     num_chunks::Int
-    num_embeddings_est::Int
+    num_embeddings_est::Float64
     num_partitions::Int
     num_sample_embs::Int
     avg_doclen_est::Float64
@@ -25,7 +25,7 @@ function CollectionIndexer(config::ColBERTConfig, encoder::CollectionEncoder, sa
         saver,
         plan_path,
         0,              # num_chunks
-        0,              # num_embeddings_est
+        0.0,              # num_embeddings_est
         0,              # num_partitions
         0,              # num_sample_embs
         0.0,            # avg_doclen_est
@@ -72,4 +72,12 @@ function setup(indexer::CollectionIndexer)
     # TODO: complete this!
     sampled_pids = _sample_pids(indexer)
     avg_doclen_est = _sample_embeddings(indexer, sampled_pids)
+
+    # computing the number of partitions, i.e clusters
+    num_passages = length(indexer.config.resource_settings.collection.data)
+    indexer.num_embeddings_est = num_passages * avg_doclen_est
+    indexer.num_partitions = Int(floor(2 ^ (floor(log2(16 * sqrt(indexer.num_embeddings_est))))))
+
+    @info "Creating $(indexer.num_partitions) clusters."
+    @info "Estimated $(indexer.num_embeddings_est) embeddings."
 end
