@@ -95,4 +95,6 @@ function setup(indexer::CollectionIndexer)
 
     @info "Creating $(indexer.num_partitions) clusters."
     @info "Estimated $(indexer.num_embeddings_est) embeddings."
+
+    _save_plan(indexer)
 end
