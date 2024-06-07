@@ -56,10 +56,12 @@ function _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
     indexer.num_sample_embs = size(local_sample_embs)[2]
     indexer.avg_doclen_est = length(local_sample_doclens) > 0 ? sum(local_sample_doclens) / length(local_sample_doclens) : 0
 
+    sample_path = joinpath(indexer.config.indexing_settings.index_path, "sample.jld2")
     @info "avg_doclen_est = $(indexer.avg_doclen_est) \t length(local_sample) = $(length(local_sample))"
-    save(joinpath(indexer.config.indexing_settings.index_path, "sample.jld2"), Dict("local_sample_embs" => local_sample_embs))
+    @info "Saving sampled embeddings to $(sample_path)."
+    save(sample_path, Dict("local_sample_embs" => local_sample_embs))
 
-    avg_doclen_est
+    indexer.avg_doclen_est
 end
 
 function setup(indexer::CollectionIndexer)
@@ -69,5 +71,5 @@ function setup(indexer::CollectionIndexer)
     # sample passages for training centroids later
     # TODO: complete this!
     sampled_pids = _sample_pids(indexer)
-    
+    avg_doclen_est = _sample_embeddings(indexer, sampled_pids)
 end
