@@ -64,12 +64,27 @@ function _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
     indexer.avg_doclen_est
 end
 
+function _save_plan(indexer::CollectionIndexer)
+    @info "Saving the index plan to $(indexer.plan_path)."
+    # TODO: export the config as json as well
+    open(indexer.plan_path, "w") do io
+        JSON.print(io,
+            Dict(
+                "num_chunks" => indexer.num_chunks,
+                "num_partitions" => indexer.num_partitions,
+                "num_embeddings_est" => indexer.num_embeddings_est,
+                "avg_doclen_est" => indexer.avg_doclen_est,
+            ),
+            4                                                               # indent
+        )
+    end
+end
+
 function setup(indexer::CollectionIndexer)
     collection = indexer.config.resource_settings.collection
     indexer.num_chunks = Int(ceil(length(collection.data) / get_chunksize(collection, indexer.config.run_settings.nranks)))
 
     # sample passages for training centroids later
-    # TODO: complete this!
     sampled_pids = _sample_pids(indexer)
     avg_doclen_est = _sample_embeddings(indexer, sampled_pids)
 
