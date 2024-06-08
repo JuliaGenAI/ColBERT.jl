@@ -41,9 +41,9 @@ function _sample_pids(indexer::CollectionIndexer)
     num_sampled_pids = 16 * sqrt(typical_doclen * num_passages)
     num_sampled_pids = Int(min(1 + floor(num_sampled_pids), num_passages))
 
-    sampled_pids = sample(1:num_passages, num_sampled_pids)
+    sampled_pids = Set(sample(1:num_passages, num_sampled_pids))
     @info "# of sampled PIDs = $(length(sampled_pids))"
-    Set(sampled_pids)
+    sampled_pids
 end
 
 function _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})

@@ -15,8 +15,8 @@ function encode_passages(encoder::CollectionEncoder, passages::Vector{String})
     embs, doclens = Vector{Matrix}(), Vector{Int}()
     # batching here to avoid storing intermediate embeddings on GPU
     # batching also occurs inside docFromText to do batch packing optimizations
-    for passages_batch in ColBERT.batch(passages, encoder.config.indexing_settings.index_bsize * 50)
-        embs_, doclens_ = ColBERT.docFromText(encoder.checkpoint, passages_batch, encoder.config.indexing_settings.index_bsize)
+    for passages_batch in batch(passages, encoder.config.indexing_settings.index_bsize * 50)
+        embs_, doclens_ = docFromText(encoder.checkpoint, passages_batch, encoder.config.indexing_settings.index_bsize)
         push!(embs, embs_)
         append!(doclens, vec(doclens_))
     end
