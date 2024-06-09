@@ -33,6 +33,7 @@ include("modelling/checkpoint.jl")
 export BaseColBERT, Checkpoint, DocTokenizer
 
 # indexer
+include("indexing/codecs/residual.jl")
 include("indexing.jl")
 include("indexing/collection_encoder.jl")
 include("indexing/index_saver.jl")

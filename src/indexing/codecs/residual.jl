@@ -1,0 +1,2 @@
+struct ResidualCodec
+end
