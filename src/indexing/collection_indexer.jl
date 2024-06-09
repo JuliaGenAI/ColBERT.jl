@@ -98,3 +98,23 @@ function setup(indexer::CollectionIndexer)
 
     _save_plan(indexer)
 end
+
+function _concatenate_and_split_sample(indexer::CollectionIndexer)
+    # load the sample embeddings
+    sample_path = joinpath(indexer.config.indexing_settings.index_path, "sample.jld2")
+    sample = load(sample_path, "local_sample_embs")
+
+    # randomly shuffle embeddings
+    num_local_sample_embs = size(sample)[2]
+    sample = sample[:, shuffle(1:num_local_sample_embs)]
+
+    # split the sample to get a heldout set
+    heldout_fraction = 0.05
+    heldout_size = Int(floor(min(50000, heldout_fraction * num_local_sample_embs)))
+    sample, sample_heldout = sample[:, 1:(num_local_sample_embs - heldout_size)], sample[:, num_local_sample_embs - heldout_size + 1:num_local_sample_embs]
+    sample, sample_heldout
+end
+
+function train(indexer::CollectionIndexer)
+    # TODO: complete this!
+end
