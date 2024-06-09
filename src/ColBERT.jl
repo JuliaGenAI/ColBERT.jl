@@ -6,6 +6,7 @@ using JSON
 using LinearAlgebra
 using Logging
 using NeuralAttentionlib
+using Random
 using StatsBase
 using TextEncodeBase
 using Transformers
