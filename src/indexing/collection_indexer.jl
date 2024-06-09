@@ -116,5 +116,7 @@ function _concatenate_and_split_sample(indexer::CollectionIndexer)
 end
 
 function train(indexer::CollectionIndexer)
+    sample, heldout = _concatenate_and_split_sample(indexer)
+    centroids = kmeans(sample, indexer.num_partitions, maxiter = indexer.config.indexing_settings.kmeans_niters, display = :iter).centers
     # TODO: complete this!
 end

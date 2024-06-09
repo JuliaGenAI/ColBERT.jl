@@ -1,4 +1,5 @@
 module ColBERT
+using Clustering
 using CSV
 using Dates
 using JLD2
