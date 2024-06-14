@@ -33,6 +33,7 @@ config = ColBERTConfig(
     QuerySettings(),
     IndexingSettings(
         index_path=index_path,
+        index_bsize=3,
         nbits=nbits,
         kmeans_niters=20,
     ),
@@ -52,3 +53,7 @@ new_D, new_doclens = ColBERT.docFromText(checkPoint, collection.data, bsize)
 
 @test isequal(D, new_D)
 @test isequal(doclens, new_doclens)
+
+encoder = ColBERT.CollectionEncoder(config, checkPoint)
+indexer = CollectionIndexer(config, encoder, ColBERT.IndexSaver())
+setup(indexer)
