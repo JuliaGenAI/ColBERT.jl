@@ -12,7 +12,7 @@ function encode_passages(encoder::CollectionEncoder, passages::Vector{String})
         error("The list of passages to encode is empty!")
     end
 
-    embs, doclens = Vector{Matrix}(), Vector{Int}()
+    embs, doclens = Vector{Matrix{Float64}}(), Vector{Int}()
     # batching here to avoid storing intermediate embeddings on GPU
     # batching also occurs inside docFromText to do batch packing optimizations
     for passages_batch in batch(passages, encoder.config.indexing_settings.index_bsize * 50)
