@@ -1,4 +1,4 @@
-using .ColBERT: ColBERTConfig, CollectionEncoder, ResidualCodec 
+using .ColBERT: ColBERTConfig, CollectionEncoder, ResidualCodec
 
 mutable struct CollectionIndexer
     config::ColBERTConfig
@@ -143,6 +143,6 @@ function train(indexer::CollectionIndexer)
     bucket_cutoffs, bucket_weights, avg_residual = _compute_avg_residuals(indexer, centroids, heldout)
     @info "avg_residual = $(avg_residual)"
 
-    codec = ResidualCodec(config, centroids, avg_residual, bucket_cutoffs, bucket_weights)
-    # TODO: complete this!
+    codec = ResidualCodec(indexer.config, centroids, avg_residual, bucket_cutoffs, bucket_weights)
+    save_codec(codec, indexer.config.indexing_settings.index_path)
 end
