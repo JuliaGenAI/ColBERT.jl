@@ -22,20 +22,3 @@ function compress_into_codes(codec::ResidualCodec, embs::Matrix{Float64})
 
     codes
 end
-
-function save_codec(codec::ResidualCodec, index_path::String)
-    centroids_path = joinpath(index_path, "centroids.jld2") 
-    avg_residual_path = joinpath(index_path, "avg_residual.jld2") 
-    buckets_path = joinpath(index_path, "buckets.jld2") 
-    @info "Saving codec to $(centroids_path), $(avg_residual_path) and $(buckets_path)"
-
-    save(centroids_path, Dict("centroids" => codec.centroids))
-    save(avg_residual_path, Dict("avg_residual" => codec.avg_residual))
-    save(
-        buckets_path, 
-        Dict(
-            "bucket_cutoffs" => codec.bucket_cutoffs,
-            "bucket_weights" => codec.bucket_weights,
-        )
-    )
-end

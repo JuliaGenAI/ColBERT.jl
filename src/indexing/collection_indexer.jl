@@ -144,5 +144,16 @@ function train(indexer::CollectionIndexer)
     @info "avg_residual = $(avg_residual)"
 
     codec = ResidualCodec(indexer.config, centroids, avg_residual, bucket_cutoffs, bucket_weights)
-    save_codec(codec, indexer.config.indexing_settings.index_path)
+    indexer.saver.codec = codec
+    save_codec(indexer.saver)
+end
+
+function index(indexer::CollectionIndexer)
+    batches = enumerate_batches(indexer.config.resource_settings.collection, nranks = indexer.config.run_settings.nranks)
+    for (chunk_idx, offset, passages) in batches
+        # TODO: add functionality to not re-write chunks if they already exist! 
+        # TODO: add multiprocessing to this step!
+        embs, doclens = encode_passages(indexer.encoder, passages)
+        @info "Saving chunk $(chunk_idx): \t $(length(passages)) passages and $(size(embs)[2]) embeddings. From offset #$(offset) onward."
+    end
 end
