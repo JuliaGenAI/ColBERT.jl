@@ -1,4 +1,4 @@
-using ..ColBERT: ColBERTConfig, CollectionEncoder, IndexSaver
+using .ColBERT: ColBERTConfig, CollectionEncoder, ResidualCodec 
 
 mutable struct CollectionIndexer
     config::ColBERTConfig
@@ -115,8 +115,34 @@ function _concatenate_and_split_sample(indexer::CollectionIndexer)
     sample, sample_heldout
 end
 
+function _compute_avg_residuals(indexer::CollectionIndexer, centroids::Matrix{Float64}, heldout::Matrix{Float64})
+    compressor = ResidualCodec(indexer.config, centroids, 0.0, Vector{Float64}(), Vector{Float64}()) 
+    codes = compress_into_codes(compressor, heldout)             # get centroid codes
+    heldout_reconstruct = compressor.centroids[:, codes]         # get corresponding centroids
+    heldout_avg_residual = heldout - heldout_reconstruct         # compute the residual
+    
+    avg_residual = mean(abs.(heldout_avg_residual), dims = 2)    # for each dimension, take mean of absolute values of residuals
+    
+    # computing bucket weights and cutoffs
+    num_options = 2 ^ indexer.config.indexing_settings.nbits
+    quantiles = Vector(0:num_options - 1) / num_options
+    bucket_cutoffs_quantiles, bucket_weights_quantiles = quantiles[2:end], quantiles .+ (0.5 / num_options)  
+
+    bucket_cutoffs = quantile(heldout_avg_residual, bucket_cutoffs_quantiles)
+    bucket_weights = quantile(heldout_avg_residual, bucket_weights_quantiles)
+
+    @info "Got bucket_cutoffs_quantiles = $(bucket_cutoffs_quantiles) and bucket_weights_quantiles = $(bucket_weights_quantiles)"
+    @info "Got bucket_cutoffs = $(bucket_cutoffs) and bucket_weights = $(bucket_weights)"
+
+    bucket_cutoffs, bucket_weights, mean(avg_residual)
+end
+
 function train(indexer::CollectionIndexer)
     sample, heldout = _concatenate_and_split_sample(indexer)
     centroids = kmeans(sample, indexer.num_partitions, maxiter = indexer.config.indexing_settings.kmeans_niters, display = :iter).centers
+    bucket_cutoffs, bucket_weights, avg_residual = _compute_avg_residuals(indexer, centroids, heldout)
+    @info "avg_residual = $(avg_residual)"
+
+    codec = ResidualCodec(config, centroids, avg_residual, bucket_cutoffs, bucket_weights)
     # TODO: complete this!
 end

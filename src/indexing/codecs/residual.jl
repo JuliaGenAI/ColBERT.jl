@@ -1,4 +1,4 @@
-using ..ColBERT: ColBERTConfig 
+using .ColBERT: ColBERTConfig 
 
 mutable struct ResidualCodec
     config::ColBERTConfig
@@ -22,4 +22,3 @@ function compress_into_codes(codec::ResidualCodec, embs::Matrix{Float64})
 
     codes
 end
-
