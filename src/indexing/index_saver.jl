@@ -1,6 +1,16 @@
+using .ColBERT: ResidualCodec
+
 Base.@kwdef mutable struct IndexSaver
     config::ColBERTConfig
     codec::Union{Missing, ResidualCodec} = missing
+end
+
+function load_codec!(saver::IndexSaver)
+    index_path = saver.config.indexing_settings.index_path
+    centroids = load(joinpath(index_path, "centroids.jld2"), "centroids")
+    avg_residual = load(joinpath(index_path, "avg_residual.jld2"), "avg_residual")
+    buckets = load(joinpath(index_path, "buckets.jld2"))
+    saver.codec = ResidualCodec(saver.config, centroids, avg_residual, buckets["bucket_cutoffs"], buckets["bucket_weights"]) 
 end
 
 function save_codec(saver::IndexSaver)
