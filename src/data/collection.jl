@@ -13,11 +13,11 @@ function Collection(path::String)
 end
 
 function get_chunksize(collection::Collection, nranks::Int)
-    min(25000, 1 + floor(length(collection.data) / nranks))
+    Int(min(25000, 1 + floor(length(collection.data) / nranks)))
 end
 
 function enumerate_batches(
-        collection::Collection, chunksize::Union{Int, Missing} = missing,
+        collection::Collection; chunksize::Union{Int, Missing} = missing,
         nranks::Union{Int, Missing} = missing)
     if ismissing(chunksize)
         if ismissing(nranks)
