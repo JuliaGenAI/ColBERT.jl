@@ -43,7 +43,7 @@ function binarize(codec::ResidualCodec, residuals::Matrix{Float64})
     bucket_indices = Int.(floor.(bucket_indices ./ positionbits))                        # divide by 2^bit for each bit position
     bucket_indices = bucket_indices .& 1                                                 # apply mod 1 to binarize
     residuals_packed = reinterpret(UInt8, BitArray(vec(bucket_indices)).chunks)          # flatten out the bits, and pack them into UInt8
-    residuals_packed = reshape(residuals_packed, (Int(dim / 8) * nbits, num_embeddings))# reshape back to get compressions for each embedding
+    residuals_packed = reshape(residuals_packed, (Int(dim / 8) * nbits, num_embeddings)) # reshape back to get compressions for each embedding
 end
 
 # function compress(codec::ResidualCodec, embs::Matrix{Float64})
