@@ -148,9 +148,9 @@ function train(indexer::CollectionIndexer)
     save_codec(indexer.saver)
 end
 
-function index(indexer::CollectionIndexer)
+function index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = missing)
     load_codec!(indexer.saver)                  # load the codec objects
-    batches = enumerate_batches(indexer.config.resource_settings.collection, nranks = indexer.config.run_settings.nranks)
+    batches = enumerate_batches(indexer.config.resource_settings.collection, chunksize = chunksize, nranks = indexer.config.run_settings.nranks)
     for (chunk_idx, offset, passages) in batches
         # TODO: add functionality to not re-write chunks if they already exist! 
         # TODO: add multiprocessing to this step!
