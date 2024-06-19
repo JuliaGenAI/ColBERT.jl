@@ -38,7 +38,6 @@ include("indexing.jl")
 include("indexing/collection_encoder.jl")
 include("indexing/index_saver.jl")
 include("indexing/collection_indexer.jl")
-
 export Indexer, CollectionIndexer
 
 end
