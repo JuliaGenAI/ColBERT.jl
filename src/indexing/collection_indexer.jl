@@ -149,11 +149,13 @@ function train(indexer::CollectionIndexer)
 end
 
 function index(indexer::CollectionIndexer)
+    load_codec!(indexer.saver)                  # load the codec objects
     batches = enumerate_batches(indexer.config.resource_settings.collection, nranks = indexer.config.run_settings.nranks)
     for (chunk_idx, offset, passages) in batches
         # TODO: add functionality to not re-write chunks if they already exist! 
         # TODO: add multiprocessing to this step!
         embs, doclens = encode_passages(indexer.encoder, passages)
-        @info "Saving chunk $(chunk_idx): \t $(length(passages)) passages and $(size(embs)[2]) embeddings. From offset #$(offset) onward."
+        @info "Saving chunk $(chunk_idx): \t $(length(passages)) passages and $(size(embs)[2]) embeddings. From offset #$(offset) onward." 
+        save_chunk(indexer.saver, chunk_idx, offset, embs, doclens)
     end
 end
