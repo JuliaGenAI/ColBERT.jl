@@ -51,13 +51,14 @@ function compress(codec::ResidualCodec, embs::Matrix{Float64})
 
     offset = 1
     bsize = 1 << 18
-    while (offset <= size(embs[2]))                # batch on second dimension
+    while (offset <= size(embs)[2])                # batch on second dimension
         batch = embs[:, offset:min(size(embs)[2], offset + bsize - 1)]
         codes_ = compress_into_codes(codec, batch) # get centroid codes
         centroids_ = codec.centroids[:, codes_]    # get corresponding centroids
         residuals_ = batch - centroids_ 
         append!(codes, codes_) 
         push!(residuals, binarize(codec, residuals_))
+        offset += bsize
     end
     residuals = cat(residuals..., dims = 2)
 
