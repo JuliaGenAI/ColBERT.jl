@@ -176,3 +176,30 @@ function _check_all_files_are_saved(indexer::CollectionIndexer)
     end
     @info "Found all files!"
 end
+
+function _collect_embedding_id_offset(indexer::CollectionIndexer)
+    passage_offset = 1
+    embedding_offset = 1
+
+    embeddings_offsets = Vector{Int}()
+    for chunk_idx in 1:indexer.num_chunks
+        metadata_path = joinpath(indexer.config.indexing_settings.index_path, "$(chunk_idx).metadata.json")
+        
+        chunk_metadata = open(metadata_path, "r") do io
+            chunk_metadata = JSON.parse(io) 
+        end
+
+        chunk_metadata["embedding_offset"] = embedding_offset
+        push!(embeddings_offsets, embedding_offset)
+
+        passage_offset += chunk_metadata["num_passages"]
+        embedding_offset += chunk_metadata["num_embeddings"]
+
+        open(metadata_path, "w") do io
+            JSON.print(io, chunk_metadata, 4)
+        end
+    end
+
+    indexer.num_embeddings = embedding_offset - 1
+    indexer.embeddings_offsets = embeddings_offsets
+end
