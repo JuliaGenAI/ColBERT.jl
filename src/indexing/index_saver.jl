@@ -61,3 +61,20 @@ function save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int, embs::Matrix
         )
     end
 end
+
+function check_chunk_exists(saver::IndexSaver, chunk_idx::Int)
+    index_path = saver.config.indexing_settings.index_path
+    path_prefix = joinpath(index_path, string(chunk_idx))
+    codes_path = "$(path_prefix).codes.jld2"
+    residuals_path = "$(path_prefix).residuals.jld2"
+    doclens_path = joinpath(index_path, "doclens.$(chunk_idx).jld2")
+    metadata_path = joinpath(index_path, "$(chunk_idx).metadata.json")
+
+    for file in [codes_path, residuals_path, doclens_path, metadata_path]
+        if !isfile(file)
+            return false
+        end
+    end
+
+    true
+end

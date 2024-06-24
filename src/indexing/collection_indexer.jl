@@ -159,3 +159,20 @@ function index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = miss
         save_chunk(indexer.saver, chunk_idx, offset, embs, doclens)
     end
 end
+
+# function finalize(indexer::CollectionIndexer)
+#     _check_all_files_are_saved(indexer)
+#     _collect_embedding_id_offset(indexer)
+#     _build_ivf(indexer)
+#     _update_metadata(indexer)
+# end
+
+function _check_all_files_are_saved(indexer::CollectionIndexer)
+    @info "Checking if all files are saved."
+    for chunk_idx in 1:indexer.num_chunks
+        if !(check_chunk_exists(indexer.saver, chunk_idx))
+            @error "Could not find chunk $(chunk_idx)!"
+        end
+    end
+    @info "Found all files!"
+end
