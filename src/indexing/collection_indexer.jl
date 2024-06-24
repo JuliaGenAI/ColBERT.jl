@@ -160,12 +160,12 @@ function index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = miss
     end
 end
 
-# function finalize(indexer::CollectionIndexer)
-#     _check_all_files_are_saved(indexer)
-#     _collect_embedding_id_offset(indexer)
-#     _build_ivf(indexer)
-#     _update_metadata(indexer)
-# end
+function finalize(indexer::CollectionIndexer)
+    _check_all_files_are_saved(indexer)
+    _collect_embedding_id_offset(indexer)
+    _build_ivf(indexer)
+    _update_metadata(indexer)
+end
 
 function _check_all_files_are_saved(indexer::CollectionIndexer)
     @info "Checking if all files are saved."
