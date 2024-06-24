@@ -64,3 +64,9 @@ function compress(codec::ResidualCodec, embs::Matrix{Float64})
 
     codes, residuals
 end
+
+function load_codes(codec::ResidualCodec, chunk_idx::Int)
+    codes_path = joinpath(codec.config.indexing_settings.index_path, "$(chunk_idx).codes.jld2")
+    codes = load(codes_path, "codes") 
+    codes
+end
