@@ -229,3 +229,21 @@ function _build_ivf(indexer::CollectionIndexer)
         "ivf_lengths" => ivf_lengths
     ))
 end
+
+function _update_metadata(indexer::CollectionIndexer)
+    @info "Saving the indexing metadata."
+    metadata_path = joinpath(indexer.config.indexing_settings.index_path, "metadata.json")
+    
+    open(metadata_path, "w") do io
+        JSON.print(io,
+            # TODO: export the config here as well!
+            Dict(
+                "num_chunks" => indexer.num_chunks,
+                "num_partitions" => indexer.num_partitions,
+                "num_embeddings" => indexer.num_embeddings,
+                "avg_doclen" => Int(floor(indexer.num_embeddings / length(indexer.config.resource_settings.collection.data)))
+            ),
+            4
+        )
+    end
+end
