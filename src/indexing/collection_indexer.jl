@@ -204,3 +204,28 @@ function _collect_embedding_id_offset(indexer::CollectionIndexer)
     indexer.num_embeddings = embedding_offset - 1
     indexer.embeddings_offsets = embeddings_offsets
 end
+
+function _build_ivf(indexer::CollectionIndexer)
+    @info "Building the centroid to embedding IVF." 
+    codes = Vector{Int}() 
+
+    @info "Loading codes for each embedding."
+    for chunk_idx in 1:indexer.num_chunks   
+        offset = indexer.embeddings_offsets[chunk_idx] 
+        chunk_codes = load_codes(indexer.saver.codec, chunk_idx)
+        append!(codes, chunk_codes)
+    end
+
+    @info "Sorting the codes."
+    ivf, values = sortperm(codes), sort(codes) 
+
+    @info "Getting unique codes and their counts."
+    ivf_lengths = counts(values, 1:indexer.num_partitions)
+
+    @info "Saving the IVF."
+    ivf_path = joinpath(indexer.config.indexing_settings.index_path, "ivf.jld2")
+    save(ivf_path, Dict(
+        "ivf" => ivf,
+        "ivf_lengths" => ivf_lengths
+    ))
+end
