@@ -178,6 +178,7 @@ function _check_all_files_are_saved(indexer::CollectionIndexer)
 end
 
 function _collect_embedding_id_offset(indexer::CollectionIndexer)
+    @info "Collecting embedding ID offsets."
     passage_offset = 1
     embedding_offset = 1
 
