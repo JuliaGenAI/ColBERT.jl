@@ -6,6 +6,20 @@ struct BaseColBERT
     tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder
 end
 
+"""
+    BaseColBERT(; bert::Transformers.HuggingFace.HGFBertModel, linear::Transformers.Layers.Dense, tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder)
+
+A struct representing the BERT model, linear layer, and the tokenizer used to compute embeddings for documents and queries.
+
+# Arguments
+- `bert`: The pre-trained BERT model used to generate the embeddings.
+- `linear`: The linear layer used to project the embeddings to a specific dimension.
+- `tokenizer`: The tokenizer to used by the BERT model.
+
+# Returns
+
+A [`BaseColBERT`](@ref) object.
+"""
 function BaseColBERT(checkpoint::String, config::ColBERTConfig)
     # since Transformers.jl doesn't support local loading
     # we manually load the linear layer
@@ -17,6 +31,21 @@ function BaseColBERT(checkpoint::String, config::ColBERTConfig)
     BaseColBERT(bert_model, linear, tokenizer)
 end
 
+"""
+    Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer, colbert_config::ColBERTConfig)
+
+A wrapper for [`BaseColBERT`](@ref), which includes a [`ColBERTConfig`](@ref) and tokenization-specific functions via the [`DocTokenizer`](@ref) type. 
+
+If the config's [`DocSettings`](@ref) are configured to mask punctuations, then the `skiplist` property of the created [`Checkpoint`](@ref) will be set to a list of token IDs of punctuations.
+
+# Arguments
+- `model`: The [`BaseColBERT`](@ref) to be wrapped.
+- `doc_tokenizer`: A [`DocTokenizer`](@ref) used for functions related to document tokenization. 
+- `colbert_config`: The underlying [`ColBERTConfig`](@ref). 
+
+# Returns
+The created [`Checkpoint`](@ref).
+"""
 struct Checkpoint
     model::BaseColBERT
     doc_tokenizer::DocTokenizer
@@ -34,6 +63,22 @@ function Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer, colbert_con
     Checkpoint(model, doc_tokenizer, colbert_config, skiplist)
 end
 
+"""
+    mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, integer_ids::AbstractArray, skiplist::Union{Missing, Vector{Int}})
+
+Create a mask for the given `integer_ids`, based on the provided `skiplist`. 
+If the `skiplist` is not missing, then any token ids in the list will be filtered out.
+Otherwise, all tokens are included in the mask.
+
+# Arguments
+
+- `tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder`: The text encoder used to transform the input text into integer ids. 
+- `integer_ids::AbstractArray`: An array of integers representing the encoded tokens. 
+- `skiplist::Union{Missing, Vector{Int}}`: A list of token ids to skip in the mask. If missing, all tokens are included.
+
+# Returns
+An array of booleans indicating whether each token id is included in the mask or not.
+"""
 function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, integer_ids::AbstractArray, skiplist::Union{Missing, Vector{Int}})
     if !ismissing(skiplist)
         filter = token_id -> !(token_id in skiplist) && token_id != TextEncodeBase.lookup(tokenizer.vocab, tokenizer.padsym)
