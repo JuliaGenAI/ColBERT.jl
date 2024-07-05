@@ -17,11 +17,13 @@ to integrate this powerful neural retrieval algorithm into their own downstream 
 
 This package is currently under active development, and has not been registered in Julia's package registry yet. To develop this package, simply clone this repository, and from the root of the package just `dev` it:
 
-```julia
-] dev .
-```
+    ] dev .
 
-Then, import and use the package as needed. Check out the `examples` folder to see an example of the indexing module. 
+Then, import and use the package as needed. Check out the `examples` folder to see an example of the indexing module. It works with the `lifestyle/dev` split of the [LoTTe dataset](https://github.com/stanford-futuredata/ColBERT/blob/main/LoTTE.md). Use the `examples/lotte.sh` script to download the dataset, and extract the first `10` rows of the dataset to work with: 
+
+    examples/lotte.sh
+
+The script `example/indexing.jl` contains a minimal working example of how indexing is done. It's as simple as creating a configuration object, and calling the `index` function on it.
 
 ## Key Features
 
@@ -46,6 +48,7 @@ We're excited to continue developing and improving [ColBERT.jl](https://github.c
 - PLAID[^3] optimizations.
 - More documentation! The package needs a lot more documentation and examples.
 - Integration with downstream packages like [AIHelpMe.jl](https://github.com/svilupp/AIHelpMe.jl) and [PromptingTools.jl](https://github.com/svilupp/PromptingTools.jl). This package can be used as a backend for any information retrieval task.
+- Add support for optimization tricks like [vector pooling](https://www.answer.ai/posts/colbert-pooling.html). 
 
 [^1]: [ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT](https://arxiv.org/abs/2004.12832) (SIGIR'20)
 [^2]: [ColBERTv2: Effective and Efficient Retrieval via Lightweight Late Interaction](https://arxiv.org/abs/2112.01488) (NAACL'22).
