@@ -25,7 +25,7 @@ function CollectionIndexer(config::ColBERTConfig, encoder::CollectionEncoder, sa
         saver,
         plan_path,
         0,              # num_chunks
-        0.0,              # num_embeddings_est
+        0.0,            # num_embeddings_est
         0,              # num_partitions
         0,              # num_sample_embs
         0.0,            # avg_doclen_est
