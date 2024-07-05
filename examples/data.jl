@@ -5,6 +5,7 @@ using Random
 # set the global seed
 Random.seed!(0)
 
+# create the config
 dataroot = "downloads/lotte"
 dataset = "lifestyle"
 datasplit = "dev"
@@ -44,23 +45,6 @@ config = ColBERTConfig(
     SearchSettings(),
 )
 
-# trying to load the BaseColBERT
-base_colbert = BaseColBERT(checkpoint, config)
-checkPoint = Checkpoint(base_colbert, DocTokenizer(base_colbert.tokenizer, config), config)
-
-# # getting embeddings and doclens for all passages
-# bsize = 2
-# D, doclens = ColBERT.docFromText(checkPoint, collection.data, bsize)
-#
-# bsize = 3           # should give the same results
-# new_D, new_doclens = ColBERT.docFromText(checkPoint, collection.data, bsize)
-#
-# @test isequal(D, new_D)
-# @test isequal(doclens, new_doclens)
-
-encoder = ColBERT.CollectionEncoder(config, checkPoint)
-indexer = CollectionIndexer(config, encoder, ColBERT.IndexSaver(config=config))
-ColBERT.setup(indexer)
-ColBERT.train(indexer)
-ColBERT.index(indexer)
-ColBERT.finalize(indexer)
+# create and run the indexer
+indexer = Indexer(config) 
+index(indexer)
