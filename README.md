@@ -25,6 +25,10 @@ Then, import and use the package as needed. Check out the `examples` folder to s
 
 The script `example/indexing.jl` contains a minimal working example of how indexing is done. It's as simple as creating a configuration object, and calling the `index` function on it.
 
+    julia --project=examples/ examples/indexing.jl
+
+The script creates an index at a path determined from the configuration you've set up. Check out the example to see more details!
+
 ## Key Features
 
 As of now, the package supports the following:
