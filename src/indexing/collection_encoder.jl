@@ -1,5 +1,20 @@
 using ..ColBERT: ColBERTConfig
 
+"""
+    CollectionEncoder(config::ColBERTConfig, checkpoint::Checkpoint)
+
+Structure to represent an encoder used to encode document passages to their corresponding embeddings.
+
+# Arguments
+
+- `config`: The underlying [`ColBERTConfig`](@ref). 
+- `checkpoint`: The [`Checkpoint`](@ref) used by the model.
+
+# Returns
+
+A [`CollectionEncoder`](@ref).
+
+"""
 struct CollectionEncoder
     config::ColBERTConfig
     checkpoint::Checkpoint

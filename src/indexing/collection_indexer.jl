@@ -1,5 +1,19 @@
 using .ColBERT: ColBERTConfig, CollectionEncoder, ResidualCodec
 
+"""
+    CollectionIndexer(config::ColBERTConfig, encoder::CollectionEncoder, saver::IndexSaver)
+
+Structure which performs all the index-building operations, including sampling initial centroids, clustering, computing document embeddings, compressing and building the `ivf`.
+
+# Arguments
+- `config`: The [`ColBERTConfig`](@ref) used to build the model. 
+- `encoder`: The [`CollectionEncoder`](@ref) to be used for encoding documents. 
+- `saver`: The [`IndexSaver`](@ref), responsible for saving the index to disk.
+
+# Returns
+
+A [`CollectionIndexer`](@ref) object, containing all indexing-related information. See the [`setup`](@ref), [`train`](@ref), [`index`](@ref) and [`finalize`](@ref) functions for building the index.
+"""
 mutable struct CollectionIndexer
     config::ColBERTConfig
     encoder::CollectionEncoder
