@@ -54,6 +54,7 @@ function compress_into_codes(codec::ResidualCodec, embs::Matrix{Float64})
         offset += bsize
     end
 
+    @assert length(codes) == size(embs)[2]
     codes
 end
 
