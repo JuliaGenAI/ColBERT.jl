@@ -74,7 +74,7 @@ end
 """
     _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
 
-Compute embeddings for the PIDs sampled by [``_sample_pids](@ref), compute the average document length using the embeddings, and save the sampled embeddings to disk.
+Compute embeddings for the PIDs sampled by [`_sample_pids`](@ref), compute the average document length using the embeddings, and save the sampled embeddings to disk.
 
 The embeddings for the sampled documents are saved in a file named `sample.jld2` with it's path specified by the indexing directory. This embedding array has shape `(D, N)`, where `D` is the embedding dimension (`128`, after applying the linear layer of the ColBERT model) and `N` is the total number of embeddings over all documents.
 
@@ -119,14 +119,6 @@ Information about the number of chunks, number of clusters, estimated number of 
 # Arguments
 
 - `indexer`: The `CollectionIndexer` object that contains the index plan to be saved.
-
-# Examples
-
-```julia-repl
-julia> _save_plan(indexer) 
-"Saving the index plan to $(indexer.plan_path)."
-```
-
 """
 function _save_plan(indexer::CollectionIndexer)
     @info "Saving the index plan to $(indexer.plan_path)."
