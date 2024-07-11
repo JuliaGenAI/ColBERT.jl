@@ -49,6 +49,17 @@ function CollectionIndexer(config::ColBERTConfig, encoder::CollectionEncoder, sa
     )
 end
 
+"""
+    _sample_pids(indexer::CollectionIndexer)
+
+Sample PIDs from the collection to be used to compute clusters using a ``k``-means clustering algorithm.
+
+# Arguments
+- `indexer`: The collection indexer object containing the collection of passages to be indexed.
+
+# Returns
+A `Set` of `Int`s containing the sampled PIDs.
+"""
 function _sample_pids(indexer::CollectionIndexer)
     num_passages = length(indexer.config.resource_settings.collection.data)
     typical_doclen = 120
@@ -60,6 +71,23 @@ function _sample_pids(indexer::CollectionIndexer)
     sampled_pids
 end
 
+"""
+    _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
+
+Compute embeddings for the PIDs sampled by [``_sample_pids](@ref), compute the average document length using the embeddings, and save the sampled embeddings to disk.
+
+The embeddings for the sampled documents are saved in a file named `sample.jld2` with it's path specified by the indexing directory. This embedding array has shape `(D, N)`, where `D` is the embedding dimension (`128`, after applying the linear layer of the ColBERT model) and `N` is the total number of embeddings over all documents.
+
+Sample the passages with `pid` in `sampled_pids` from the `collection` and compute the average passage length. The function returns a tuple containing the embedded passages and the average passage length.
+
+# Arguments
+- `indexer`: An instance of `CollectionIndexer`.
+- `sampled_pids`: Set of PIDs sampled by [`_sample_pids`](@ref). 
+
+# Returns
+
+The average document length (i.e number of attended tokens) computed from the sampled documents.
+"""
 function _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
     # collect all passages with pids in sampled_pids
     collection = indexer.config.resource_settings.collection
@@ -67,6 +95,9 @@ function _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
     local_sample = collection.data[sorted_sampled_pids]
 
     local_sample_embs, local_sample_doclens = encode_passages(indexer.encoder, local_sample)
+    @debug "Local sample embeddings shape: $(size(local_sample_embs)), \t Local sample doclens: $(local_sample_doclens)"
+    @assert size(local_sample_embs)[2] == sum(local_sample_doclens)             
+
     indexer.num_sample_embs = size(local_sample_embs)[2]
     indexer.avg_doclen_est = length(local_sample_doclens) > 0 ? sum(local_sample_doclens) / length(local_sample_doclens) : 0
 
@@ -78,6 +109,25 @@ function _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
     indexer.avg_doclen_est
 end
 
+"""
+     _save_plan(indexer::CollectionIndexer)
+ 
+Save the indexing plan to a JSON file. 
+
+Information about the number of chunks, number of clusters, estimated number of embeddings over all documents and the estimated average document length is saved to a file named `plan.json`, with directory specified by the indexing directory.
+
+# Arguments
+
+- `indexer`: The `CollectionIndexer` object that contains the index plan to be saved.
+
+# Examples
+
+```julia-repl
+julia> _save_plan(indexer) 
+"Saving the index plan to $(indexer.plan_path)."
+```
+
+"""
 function _save_plan(indexer::CollectionIndexer)
     @info "Saving the index plan to $(indexer.plan_path)."
     # TODO: export the config as json as well
@@ -94,6 +144,16 @@ function _save_plan(indexer::CollectionIndexer)
     end
 end
 
+"""
+    setup(indexer::CollectionIndexer)
+
+Initialize `indexer` by computing some indexing-specific estimates and save the indexing plan to disk.
+
+The number of chunks into which the document embeddings will be stored (`indexer.num_chunks`) is simply computed using the number of documents and the size of a chunk obtained from [`get_chunksize`](@ref). A bunch of pids used for initializing the centroids for the embedding clusters are sampled using the [`_sample_pids`](@ref) and [`_sample_embeddings`](@ref) functions, and these samples are used to calculate the average document lengths and the estimated number of embeddings which will be computed across all documents. Finally, the number of clusters (`indexer.num_partitions`) to be used for indexing is computed, and is proportional to ``16\\sqrt{\\text{Estimated number of embeddings}}``, and the indexing plan is saved to `plan.json` (see [`_save_plan`](@ref)) in the indexing directory.
+
+# Arguments
+- `indexer::CollectionIndexer`: The indexer to be initialized.
+"""
 function setup(indexer::CollectionIndexer)
     collection = indexer.config.resource_settings.collection
     indexer.num_chunks = Int(ceil(length(collection.data) / get_chunksize(collection, indexer.config.run_settings.nranks)))
