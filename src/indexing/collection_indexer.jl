@@ -165,10 +165,25 @@ function setup(indexer::CollectionIndexer)
     _save_plan(indexer)
 end
 
+"""
+    _concatenate_and_split_sample(indexer::CollectionIndexer)
+
+Randomly shuffle and split the sampled embeddings.
+
+The sample embeddings saved by the [`setup`](@ref) function are loaded, shuffled randomly, and then split into a `sample` and a `sample_heldout` set, with `sample_heldout` containing a `0.05` fraction of the original sampled embeddings.
+
+# Arguments
+- `indexer`: The [`CollectionIndexer`](@ref)
+
+# Returns
+
+The tuple `sample, sample_heldout`.
+"""
 function _concatenate_and_split_sample(indexer::CollectionIndexer)
     # load the sample embeddings
     sample_path = joinpath(indexer.config.indexing_settings.index_path, "sample.jld2")
     sample = load(sample_path, "local_sample_embs")
+    @debug "Original sample shape: $(size(sample))"
 
     # randomly shuffle embeddings
     num_local_sample_embs = size(sample)[2]
@@ -178,9 +193,26 @@ function _concatenate_and_split_sample(indexer::CollectionIndexer)
     heldout_fraction = 0.05
     heldout_size = Int(floor(min(50000, heldout_fraction * num_local_sample_embs)))
     sample, sample_heldout = sample[:, 1:(num_local_sample_embs - heldout_size)], sample[:, num_local_sample_embs - heldout_size + 1:num_local_sample_embs]
+
+    @debug "Split sample sizes: sample size: $(size(sample)), \t sample_heldout size: $(size(sample_heldout))"
     sample, sample_heldout
 end
 
+"""
+    _compute_avg_residuals(indexer::CollectionIndexer, centroids::Matrix{Float64}, heldout::Matrix{Float64})
+
+Compute the average residuals and other statistics of the held-out sample embeddings.
+
+# Arguments
+
+- `indexer`: The underlying [`CollectionIndexer`](@ref). 
+- `centroids`: A matrix containing the centroids of the computed using a ``k``-means clustering algorithm on the sampled embeddings. Has shape `(D, indexer.num_partitions)`, where `D` is the embedding dimension (`128`) and `indexer.num_partitions` is the number of clusters.
+- `heldout`: A matrix containing the held-out embeddings, computed using [`_concatenate_and_split_sample`](@ref).
+
+# Returns
+
+A tuple `bucket_cutoffs, bucket_weights, avg_residual`.
+"""
 function _compute_avg_residuals(indexer::CollectionIndexer, centroids::Matrix{Float64}, heldout::Matrix{Float64})
     compressor = ResidualCodec(indexer.config, centroids, 0.0, Vector{Float64}(), Vector{Float64}()) 
     codes = compress_into_codes(compressor, heldout)             # get centroid codes
@@ -203,9 +235,22 @@ function _compute_avg_residuals(indexer::CollectionIndexer, centroids::Matrix{Fl
     bucket_cutoffs, bucket_weights, mean(avg_residual)
 end
 
+"""
+    train(indexer::CollectionIndexer)
+
+Train a [`CollectionIndexer`](@ref) by computing centroids using a ``k``-means clustering algorithn, and store the compression information on disk.
+
+Average residuals and other compression data is computed via the [`_compute_avg_residuals`](@ref) function, and the codec is saved on disk using [`save_codec`](@ref).
+
+# Arguments
+
+- `indexer::CollectionIndexer`: The [`CollectionIndexer`](@ref) to be trained.
+"""
 function train(indexer::CollectionIndexer)
     sample, heldout = _concatenate_and_split_sample(indexer)
     centroids = kmeans(sample, indexer.num_partitions, maxiter = indexer.config.indexing_settings.kmeans_niters, display = :iter).centers
+    @assert size(centroids)[2] == indexer.num_partitions
+
     bucket_cutoffs, bucket_weights, avg_residual = _compute_avg_residuals(indexer, centroids, heldout)
     @info "avg_residual = $(avg_residual)"
 
