@@ -10,7 +10,7 @@ It stores information about the configuration of the model, the centroids used t
 # Arguments
 
 - `config`: A [`ColBERTConfig`](@ref), representing all configuration parameters related to various ColBERT components.
-- `centroids`: A matrix of centroids used to quantize the residuals.
+- `centroids`: A matrix of centroids used to quantize the residuals. Has shape `(D, N)`, where `D` is the embedding dimension and `N` is the number of clusters.
 - `avg_residual`: The average residual value.
 - `bucket_cutoffs`: A vector of cutoff values used to determine which buckets each residual belongs to.
 - `bucket_weights`: A vector of weights used to determine the importance of each bucket.
