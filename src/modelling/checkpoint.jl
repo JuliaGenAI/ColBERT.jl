@@ -16,6 +16,8 @@ A [`BaseColBERT`](@ref) object.
 
 # Examples
 
+The `config` in the below example is taken from the example in [`ColBERTConfig`](@ref).
+
 ```julia-repl
 julia> base_colbert = BaseColBERT(checkpoint, config); 
 
