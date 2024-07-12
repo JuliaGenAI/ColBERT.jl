@@ -161,6 +161,7 @@ function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEnco
     ids, mask = encoded_text.token, encoded_text.attention_mask
     integer_ids = reinterpret(Int32, ids)
     integer_mask = NeuralAttentionlib.getmask(mask, ids)[1, :, :]
+    @assert isequal(size(integer_ids), size(integer_mask))
 
     # adding the [D] marker token ID
     integer_ids[2, :] .= doc_tokenizer.D_marker_token_id
