@@ -1,11 +1,5 @@
 using ..ColBERT: DocTokenizer, ColBERTConfig
 
-struct BaseColBERT
-    bert::Transformers.HuggingFace.HGFBertModel
-    linear::Transformers.Layers.Dense
-    tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder
-end
-
 """
     BaseColBERT(; bert::Transformers.HuggingFace.HGFBertModel, linear::Transformers.Layers.Dense, tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder)
 
@@ -19,7 +13,78 @@ A struct representing the BERT model, linear layer, and the tokenizer used to co
 # Returns
 
 A [`BaseColBERT`](@ref) object.
+
+# Examples
+
+```julia-repl
+julia> base_colbert = BaseColBERT(checkpoint, config); 
+
+julia> base_colbert.bert
+HGFBertModel(
+  Chain(
+    CompositeEmbedding(
+      token = Embed(768, 30522),        # 23_440_896 parameters
+      position = ApplyEmbed(.+, FixedLenPositionEmbed(768, 512)),  # 393_216 parameters
+      segment = ApplyEmbed(.+, Embed(768, 2), Transformers.HuggingFace.bert_ones_like),  # 1_536 parameters
+    ),
+    DropoutLayer<nothing>(
+      LayerNorm(768, ϵ = 1.0e-12),      # 1_536 parameters
+    ),
+  ),
+  Transformer<12>(
+    PostNormTransformerBlock(
+      DropoutLayer<nothing>(
+        SelfAttention(
+          MultiheadQKVAttenOp(head = 12, p = nothing),
+          Fork<3>(Dense(W = (768, 768), b = true)),  # 1_771_776 parameters
+          Dense(W = (768, 768), b = true),  # 590_592 parameters
+        ),
+      ),
+      LayerNorm(768, ϵ = 1.0e-12),      # 1_536 parameters
+      DropoutLayer<nothing>(
+        Chain(
+          Dense(σ = NNlib.gelu, W = (768, 3072), b = true),  # 2_362_368 parameters
+          Dense(W = (3072, 768), b = true),  # 2_360_064 parameters
+        ),
+      ),
+      LayerNorm(768, ϵ = 1.0e-12),      # 1_536 parameters
+    ),
+  ),                  # Total: 192 arrays, 85_054_464 parameters, 324.477 MiB.
+  Branch{(:pooled,) = (:hidden_state,)}(
+    BertPooler(Dense(σ = NNlib.tanh_fast, W = (768, 768), b = true)),  # 590_592 parameters
+  ),
+)                   # Total: 199 arrays, 109_482_240 parameters, 417.664 MiB.
+
+julia> base_colbert.linear
+Dense(W = (768, 128), b = true)  # 98_432 parameters
+
+julia> base_colbert.tokenizer
+BertTextEncoder(
+├─ TextTokenizer(MatchTokenization(WordPieceTokenization(bert_uncased_tokenizer, WordPiece(vocab_size = 30522, unk = [UNK], max_char = 100)), 5 patterns)),
+├─ vocab = Vocab{String, SizedArray}(size = 30522, unk = [UNK], unki = 101),
+├─ startsym = [CLS],
+├─ endsym = [SEP],
+├─ padsym = [PAD],
+├─ trunc = 512,
+└─ process = Pipelines:
+  ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  ╰─ target[token] := Transformers.TextEncoders.grouping_sentence(target.token)
+  ╰─ target[(token, segment)] := SequenceTemplate{String}([CLS]:<type=1> Input[1]:<type=1> [SEP]:<type=1> (Input[2]:<type=2> [SEP]:<type=2>)...)(target.token)
+  ╰─ target[attention_mask] := (NeuralAttentionlib.LengthMask ∘ Transformers.TextEncoders.getlengths(512))(target.token)
+  ╰─ target[token] := TextEncodeBase.trunc_and_pad(512, [PAD], tail, tail)(target.token)
+  ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
+  ╰─ target[segment] := TextEncodeBase.trunc_and_pad(512, 1, tail, tail)(target.segment)
+  ╰─ target[segment] := TextEncodeBase.nested2batch(target.segment)
+  ╰─ target := (target.token, target.segment, target.attention_mask)
+
+```
 """
+struct BaseColBERT
+    bert::Transformers.HuggingFace.HGFBertModel
+    linear::Transformers.Layers.Dense
+    tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder
+end
+
 function BaseColBERT(checkpoint::String, config::ColBERTConfig)
     # since Transformers.jl doesn't support local loading
     # we manually load the linear layer
@@ -45,6 +110,47 @@ If the config's [`DocSettings`](@ref) are configured to mask punctuations, then 
 
 # Returns
 The created [`Checkpoint`](@ref).
+
+# Examples
+
+Continuing from the example for [`BaseColBERT`](@ref):
+
+```julia-repl
+julia> checkPoint = Checkpoint(base_colbert, DocTokenizer(base_colbert.tokenizer, config), config);
+
+julia> checkPoint.skiplist              # by default, all punctuations
+32-element Vector{Int64}:
+ 1000
+ 1001
+ 1002
+ 1003
+ 1004
+ 1005
+ 1006
+ 1007
+ 1008
+ 1009
+ 1010
+ 1011
+ 1012
+ 1013
+    ⋮
+ 1028
+ 1029
+ 1030
+ 1031
+ 1032
+ 1033
+ 1034
+ 1035
+ 1036
+ 1037
+ 1064
+ 1065
+ 1066
+ 1067
+
+```
 """
 struct Checkpoint
     model::BaseColBERT
