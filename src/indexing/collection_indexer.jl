@@ -173,7 +173,7 @@ Randomly shuffle and split the sampled embeddings.
 The sample embeddings saved by the [`setup`](@ref) function are loaded, shuffled randomly, and then split into a `sample` and a `sample_heldout` set, with `sample_heldout` containing a `0.05` fraction of the original sampled embeddings.
 
 # Arguments
-- `indexer`: The [`CollectionIndexer`](@ref)
+- `indexer`: The [`CollectionIndexer`](@ref).
 
 # Returns
 
@@ -259,6 +259,18 @@ function train(indexer::CollectionIndexer)
     save_codec(indexer.saver)
 end
 
+"""
+    index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = missing)
+
+Build the index using `indexer`.
+
+The documents are processed in batches of size `chunksize` (see [`enumerate_batches`](@ref)). Embeddings and document lengths are computed for each batch (see [`encode_passages`](@ref)), and they are saved to disk along with relevant metadata (see [`save_chunk`](@ref)).
+
+# Arguments
+
+- `indexer`: The [`CollectionIndexer`](@ref) used to build the index.
+- `chunksize`: Size of a chunk into which the index is to be stored. 
+"""
 function index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = missing)
     load_codec!(indexer.saver)                  # load the codec objects
     batches = enumerate_batches(indexer.config.resource_settings.collection, chunksize = chunksize, nranks = indexer.config.run_settings.nranks)
@@ -271,6 +283,16 @@ function index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = miss
     end
 end
 
+"""
+    finalize(indexer::CollectionIndexer)
+
+Finalize the indexing process by saving all files, collecting embedding ID offsets, building IVF, and updating metadata.
+
+See [`_check_all_files_are_saved`](@ref), [`_collect_embedding_id_offset`](@ref), [`_build_ivf`](@ref) and [`_update_metadata`](@ref) for more details.
+
+# Arguments
+- `indexer::CollectionIndexer`: The [`CollectionIndexer`](@ref) used to finalize the indexing process. 
+"""
 function finalize(indexer::CollectionIndexer)
     _check_all_files_are_saved(indexer)
     _collect_embedding_id_offset(indexer)

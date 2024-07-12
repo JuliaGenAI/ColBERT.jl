@@ -95,7 +95,6 @@ function binarize(codec::ResidualCodec, residuals::Matrix{Float64})
     residuals_packed = reshape(residuals_packed, (Int(dim / 8) * nbits, num_embeddings)) # reshape back to get compressions for each embedding
 end
 
-
 """
     compress(codec::ResidualCodec, embs::Matrix{Float64})
 
