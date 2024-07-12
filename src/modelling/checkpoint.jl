@@ -173,17 +173,41 @@ end
     mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, integer_ids::AbstractArray, skiplist::Union{Missing, Vector{Int}})
 
 Create a mask for the given `integer_ids`, based on the provided `skiplist`. 
-If the `skiplist` is not missing, then any token ids in the list will be filtered out.
+If the `skiplist` is not missing, then any token IDs in the list will be filtered out along with the padding token.
 Otherwise, all tokens are included in the mask.
 
 # Arguments
 
-- `tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder`: The text encoder used to transform the input text into integer ids. 
-- `integer_ids::AbstractArray`: An array of integers representing the encoded tokens. 
-- `skiplist::Union{Missing, Vector{Int}}`: A list of token ids to skip in the mask. If missing, all tokens are included.
+- `tokenizer`: The underlying tokenizer. 
+- `integer_ids`: An `Array` of token IDs for the documents. 
+- `skiplist`: A list of token IDs to skip in the mask. 
 
 # Returns
-An array of booleans indicating whether each token id is included in the mask or not.
+An array of booleans indicating whether the corresponding token ID is included in the mask or not. The array has the same shape as `integer_ids`, i.e `(L, N)`, where `L` is the maximum length of any document in `integer_ids` and `N` is the number of documents.
+
+# Examples
+
+Continuing with the example for [`tensorize`](@ref) and the `skiplist` from the example in [`Checkpoint`](@ref). 
+
+```julia-repl
+julia>  mask_skiplist(checkPoint.model.tokenizer, integer_ids, checkPoint.skiplist)
+14×4 BitMatrix:
+ 1  1  1  1
+ 1  1  1  1
+ 1  1  1  1
+ 1  1  1  1
+ 1  0  0  1
+ 0  1  0  1
+ 0  0  0  1
+ 0  0  0  0
+ 0  0  0  1
+ 0  0  0  1
+ 0  0  0  1
+ 0  0  0  1
+ 0  0  0  1
+ 0  0  0  1
+
+```
 """
 function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, integer_ids::AbstractArray, skiplist::Union{Missing, Vector{Int}})
     if !ismissing(skiplist)
