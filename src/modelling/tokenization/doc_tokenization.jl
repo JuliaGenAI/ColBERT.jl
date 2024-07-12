@@ -45,13 +45,112 @@ This function adds the document marker token at the beginning of each document a
 
 If `bsize` is `missing`, then a tuple is returned, which contains: 
 
-- `integer_ids`: An `Array` of integer IDs representing the token IDs of the documents in the input collection.
-- `integer_mask`: An `Array` of bits representing the attention mask for each document. 
+- `integer_ids`: An `Array` of integer IDs representing the token IDs of the documents in the input collection. It has shape `(L, N)`, where `L` is the length of the largest document in `batch_text` (i.e the document with the largest number of tokens), and `N` is the number of documents in the batch.
+- `integer_mask`: An `Array` of bits representing the attention mask for each document. It has shape `(L, N)`, the same as `integer_ids`. 
 
 If `bsize` is not `missing`, then a tuple containing the following is returned:
 
-- `batches::`: Batches of sorted integer IDs and masks. 
-- `reverse_indices::Vector{Int}`: A vector containing the indices of the documents in their original order.
+- `batches`: A `Vector` of tuples of arrays of token IDs and masks, sorted in the order of document lengths. Each array in each tuple has shape `(L, N)`, where `L` is the length of the largest document in `batch_text`, and `N` is the number of documents in the batch being considered.
+- `reverse_indices`: A `Vector` containing the indices of the documents in their original order.
+
+# Examples
+
+```julia-repl
+julia> base_colbert = BaseColBERT("colbert-ir/colbertv2.0", config); 
+
+julia> tokenizer = base_colbert.tokenizer;
+
+julia> doc_tokenizer = DocTokenizer(tokenizer, config);
+
+julia> batch_text = [
+    "hello world",
+    "thank you!",
+    "a",
+    "this is some longer text, so length should be longer",
+];
+
+julia> integer_ids, integer_mask = tensorize(doc_tokenizer, tokenizer, batch_text, missing);    # no batching
+
+julia> integer_ids
+14×4 reinterpret(Int32, ::Matrix{PrimitiveOneHot.OneHot{0x0000773a}}):
+  102   102   102   102
+    3     3     3     3
+ 7593  4068  1038  2024
+ 2089  2018   103  2004
+  103  1000     1  2071
+    1   103     1  2937
+    1     1     1  3794
+    1     1     1  1011
+    1     1     1  2062
+    1     1     1  3092
+    1     1     1  2324
+    1     1     1  2023
+    1     1     1  2937
+    1     1     1   103
+
+julia> integer_mask
+14×4 Matrix{Bool}:
+ 1  1  1  1
+ 1  1  1  1
+ 1  1  1  1
+ 1  1  1  1
+ 1  1  0  1
+ 0  1  0  1
+ 0  0  0  1
+ 0  0  0  1
+ 0  0  0  1
+ 0  0  0  1
+ 0  0  0  1
+ 0  0  0  1
+ 0  0  0  1
+ 0  0  0  1
+
+julia> batch_text = [
+    "hello world",
+    "thank you!",
+    "a",
+    "this is some longer text, so length should be longer",
+    "this is an even longer document. this is some longer text, so length should be longer",
+]; 
+
+julia> batches, reverse_indices = tensorize(doc_tokenizer, tokenizer, batch_text, 3)
+2-element Vector{Tuple{AbstractArray, AbstractMatrix}}:
+ (Int32[102 102 102; 3 3 3; … ; 1 1 1; 1 1 1], Bool[1 1 1; 1 1 1; … ; 0 0 0; 0 0 0])
+ (Int32[102 102; 3 3; … ; 1 2937; 1 103], Bool[1 1; 1 1; … ; 0 1; 0 1])
+
+julia> batches[1][1]                # this time they are sorted by length 
+21×3 Matrix{Int32}:
+  102   102   102
+    3     3     3
+ 1038  7593  4068
+  103  2089  2018
+    1   103  1000
+    1     1   103
+    1     1     1
+    1     1     1
+    1     1     1
+    1     1     1
+    1     1     1
+    1     1     1
+    1     1     1
+    1     1     1
+    1     1     1
+    1     1     1
+    1     1     1
+    1     1     1
+    1     1     1
+    1     1     1
+    1     1     1
+
+julia> reverse_indices              # the original order 
+5-element Vector{Int64}:
+ 2
+ 3
+ 1
+ 4
+ 5
+
+```
 """
 function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, batch_text::Vector{String}, bsize::Union{Missing, Int})
     # placeholder for [D] marker token
@@ -72,6 +171,7 @@ function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEnco
         # we sort passages by length to do batch packing for more efficient use of the GPU
         integer_ids, integer_mask, reverse_indices = _sort_by_length(integer_ids, integer_mask, bsize)
         batches = _split_into_batches(integer_ids, integer_mask, bsize)
+        @assert length(reverse_indices) == length(batch_text)
 
         batches, reverse_indices
     end
