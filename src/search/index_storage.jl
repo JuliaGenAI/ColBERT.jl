@@ -1,0 +1,2 @@
+struct IndexScorer
+end
