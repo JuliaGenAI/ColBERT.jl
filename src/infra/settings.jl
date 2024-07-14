@@ -138,7 +138,6 @@ Base.@kwdef struct IndexingSettings
 end
 
 Base.@kwdef struct SearchSettings
-    ncells::Union{Nothing, Int} = nothing
-    centroid_score_threshold::Union{Nothing, Float64} = nothing
-    ndocs::Union{Nothing, Int} = nothing
+    nprobe::Int = 2 
+    ncandidates::Int = 8192
 end
