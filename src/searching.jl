@@ -19,3 +19,17 @@ function Searcher(config::ColBERTConfig)
 
     Searcher(config, checkPoint, IndexScorer())
 end
+
+function encode_query(query::String)
+    @info "This will ColBERT-style encode a query."
+end
+
+function search(searcher::Searcher, query::String, k::Int)
+    dense_search(encode_query(query), k) 
+end
+
+function dense_search(searcher::Searcher, Q::Matrix{Float64}, k::Int)
+    @info "This will implement dense search."
+end
+
+
