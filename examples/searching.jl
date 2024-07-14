@@ -39,3 +39,6 @@ config = ColBERTConfig(
     ),
     SearchSettings(),
 )
+
+# build the searcher
+searcher = Searcher(config)
