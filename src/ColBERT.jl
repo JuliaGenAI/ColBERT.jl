@@ -29,8 +29,9 @@ export RunSettings, TokenizerSettings, ResourceSettings,
 
 # models, document/query tokenizers
 include("modelling/tokenization/doc_tokenization.jl")
+include("modelling/tokenization/query_tokenization.jl")
 include("modelling/checkpoint.jl")
-export BaseColBERT, Checkpoint, DocTokenizer
+export BaseColBERT, Checkpoint, DocTokenizer, QueryTokenizer
 
 # indexer
 include("indexing/codecs/residual.jl")
