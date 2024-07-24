@@ -269,6 +269,7 @@ function doc(checkpoint::Checkpoint, integer_ids::AbstractArray, integer_mask::A
 
     mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, checkpoint.skiplist)
     mask = reshape(mask, (1, size(mask)...))                                        # equivalent of unsqueeze
+    @assert isequal(size(mask)[2:end], size(D)[2:end])
 
     D = D .* mask                                                                   # clear out embeddings of masked tokens
     D = mapslices(v -> iszero(v) ? v : normalize(v), D, dims = 1)                   # normalize each embedding
