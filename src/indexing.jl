@@ -17,7 +17,7 @@ function index(indexer::Indexer)
     # loading the models
     @info "Loading ColBERT layers from HuggingFace."
     base_colbert = BaseColBERT(checkpoint, config)
-    checkPoint = Checkpoint(base_colbert, DocTokenizer(base_colbert.tokenizer, config), config)
+    checkPoint = Checkpoint(base_colbert, DocTokenizer(base_colbert.tokenizer, config), QueryTokenizer(base_colbert.tokenizer, config), config)
 
     # creating the encoder, saver and indexer
     encoder = CollectionEncoder(config, checkPoint)
