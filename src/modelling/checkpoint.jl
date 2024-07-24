@@ -382,3 +382,18 @@ function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{
         D, doclens
     end
 end
+
+function query(checkpoint::Checkpoint, integer_ids::AbstractArray, integer_mask::AbstractArray)
+    Q = checkpoint.model.bert((token=integer_ids, attention_mask=NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
+    Q = checkpoint.model.linear(Q)
+
+    # only skip the pad symbol, i.e an empty skiplist
+    mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, Vector{Int}())
+    mask = reshape(mask, (1, size(mask)...))                                        # equivalent of unsqueeze
+    @assert isequal(size(mask)[2:end], size(Q)[2:end])
+
+    Q = Q .* mask
+    Q = mapslices(v -> iszero(v) ? v : normalize(v), Q, dims = 1)                   # normalize each embedding
+    Q
+end
+
