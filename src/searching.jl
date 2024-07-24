@@ -15,7 +15,7 @@ function Searcher(config::ColBERTConfig)
     # loading the model and saving it to prevent multiple loads
     @info "Loading ColBERT layers from HuggingFace."
     base_colbert = BaseColBERT(config.resource_settings.checkpoint, config)
-    checkPoint = Checkpoint(base_colbert, DocTokenizer(base_colbert.tokenizer, config), config)
+    checkPoint = Checkpoint(base_colbert, DocTokenizer(base_colbert.tokenizer, config), QueryTokenizer(base_colbert.tokenizer, config), config)
 
     Searcher(config, checkPoint, IndexScorer())
 end
