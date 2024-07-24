@@ -225,7 +225,7 @@ end
 """
     doc(checkpoint::Checkpoint, integer_ids::AbstractArray, integer_mask::AbstractArray)
 
-Compute the hidden state of the BERT and linear layers of ColBERT. 
+Compute the hidden state of the BERT and linear layers of ColBERT for documents. 
 
 # Arguments
 
