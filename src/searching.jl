@@ -20,8 +20,11 @@ function Searcher(config::ColBERTConfig)
     Searcher(config, checkPoint, IndexScorer())
 end
 
-function encode_query(query::String)
-    @info "This will ColBERT-style encode a query."
+function encode_query(searcher::Searcher, query::String)
+    queries = [query]
+    bsize = 128
+    Q = queryFromText(searcher.checkpoint, queries, bsize)
+    Q
 end
 
 function search(searcher::Searcher, query::String, k::Int)
