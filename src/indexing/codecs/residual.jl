@@ -28,6 +28,22 @@ mutable struct ResidualCodec
 end
 
 """
+
+# Examples
+
+```julia-repl
+julia> codec = load_codec(index_path); 
+```
+"""
+function load_codec(index_path::String)
+    config = load(joinpath(index_path, "config.jld2"), "config")
+    centroids = load(joinpath(index_path, "centroids.jld2"), "centroids")
+    avg_residual = load(joinpath(index_path, "avg_residual.jld2"), "avg_residual")
+    buckets = load(joinpath(index_path, "buckets.jld2"))
+    ResidualCodec(config, centroids, avg_residual, buckets["bucket_cutoffs"], buckets["bucket_weights"])
+end
+
+"""
     compress_into_codes(codec::ResidualCodec, embs::Matrix{Float64})
 
 Compresses a matrix of embeddings into a vector of codes using the given [`ResidualCodec`](@ref), where the code for each embedding is its nearest centroid ID. 
