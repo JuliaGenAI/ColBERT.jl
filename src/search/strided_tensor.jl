@@ -57,6 +57,20 @@ function StridedTensor(packed_tensor::Vector{Int}, lengths::Vector{Int})
     )
 end
 
+"""
+    _select_strides(lengths::Vector{Int}, quantiles::Vector{Float64})
+
+Get candidate strides computed using `quantiles`  from `lengths`.
+
+# Arguments
+
+- `lengths`: A vector of `ivf` lengths to select candidate stride lengths from. 
+- `quantiles`: The quantiles to be computed.
+
+# Returns
+
+A `Vector` containing the corresponding quantiles.
+"""
 function _select_strides(lengths::Vector{Int}, quantiles::Vector{Float64})
     if length(lengths) < 5000
         quantile(lengths, quantiles)
