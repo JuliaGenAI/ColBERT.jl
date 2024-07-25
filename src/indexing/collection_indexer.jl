@@ -104,7 +104,7 @@ function _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
     sample_path = joinpath(indexer.config.indexing_settings.index_path, "sample.jld2")
     @info "avg_doclen_est = $(indexer.avg_doclen_est) \t length(local_sample) = $(length(local_sample))"
     @info "Saving sampled embeddings to $(sample_path)."
-    save(sample_path, Dict("local_sample_embs" => local_sample_embs))
+    JLD2.save(sample_path, Dict("local_sample_embs" => local_sample_embs))
 
     indexer.avg_doclen_est
 end
@@ -182,7 +182,7 @@ The tuple `sample, sample_heldout`.
 function _concatenate_and_split_sample(indexer::CollectionIndexer)
     # load the sample embeddings
     sample_path = joinpath(indexer.config.indexing_settings.index_path, "sample.jld2")
-    sample = load(sample_path, "local_sample_embs")
+    sample = JLD2.load(sample_path, "local_sample_embs")
     @debug "Original sample shape: $(size(sample))"
 
     # randomly shuffle embeddings
@@ -357,7 +357,7 @@ function _build_ivf(indexer::CollectionIndexer)
 
     @info "Saving the IVF."
     ivf_path = joinpath(indexer.config.indexing_settings.index_path, "ivf.jld2")
-    save(ivf_path, Dict(
+    JLD2.save(ivf_path, Dict(
         "ivf" => ivf,
         "ivf_lengths" => ivf_lengths
     ))

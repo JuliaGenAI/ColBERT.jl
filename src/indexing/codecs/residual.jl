@@ -147,6 +147,6 @@ A vector of codes for the specified chunk.
 """
 function load_codes(codec::ResidualCodec, chunk_idx::Int)
     codes_path = joinpath(codec.config.indexing_settings.index_path, "$(chunk_idx).codes.jld2")
-    codes = load(codes_path, "codes") 
+    codes = JLD2.load(codes_path, "codes")
     codes
 end
