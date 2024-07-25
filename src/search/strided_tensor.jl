@@ -80,6 +80,20 @@ function _select_strides(lengths::Vector{Int}, quantiles::Vector{Float64})
     end
 end
 
+"""
+    _create_view(tensor::Vector{Int}, stride::Int)
+
+Create a view into `tensor`, where each column of the view corresponds to a slice of size `stride` in the original tensor. 
+
+# Arguments
+
+- `tensor`: The input `Vector` to create views of. 
+- `stride`: The number of elements to include in each slice of the output tensor.
+
+# Returns
+
+An array of shape `(stride, outdim)`, where each column is a slice of size `stride` from the original tensor, and `outdim = length(tensor) - stride + 1`. 
+"""
 function _create_view(tensor::Vector{Int}, stride::Int)
     outdim = length(tensor) - stride + 1 
     size = (stride, outdim)
