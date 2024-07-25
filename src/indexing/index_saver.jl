@@ -28,9 +28,9 @@ The path of of the codec is inferred from the config stored in `saver`.
 """
 function load_codec!(saver::IndexSaver)
     index_path = saver.config.indexing_settings.index_path
-    centroids = load(joinpath(index_path, "centroids.jld2"), "centroids")
-    avg_residual = load(joinpath(index_path, "avg_residual.jld2"), "avg_residual")
-    buckets = load(joinpath(index_path, "buckets.jld2"))
+    centroids = JLD2.load(joinpath(index_path, "centroids.jld2"), "centroids")
+    avg_residual = JLD2.load(joinpath(index_path, "avg_residual.jld2"), "avg_residual")
+    buckets = JLD2.load(joinpath(index_path, "buckets.jld2"))
     saver.codec = ResidualCodec(saver.config, centroids, avg_residual, buckets["bucket_cutoffs"], buckets["bucket_weights"]) 
 end
 
@@ -57,9 +57,9 @@ function save_codec(saver::IndexSaver)
     buckets_path = joinpath(index_path, "buckets.jld2") 
     @info "Saving codec to $(centroids_path), $(avg_residual_path) and $(buckets_path)"
 
-    save(centroids_path, Dict("centroids" => saver.codec.centroids))
-    save(avg_residual_path, Dict("avg_residual" => saver.codec.avg_residual))
-    save(
+    JLD2.save(centroids_path, Dict("centroids" => saver.codec.centroids))
+    JLD2.save(avg_residual_path, Dict("avg_residual" => saver.codec.avg_residual))
+    JLD2.save(
         buckets_path, 
         Dict(
             "bucket_cutoffs" => saver.codec.bucket_cutoffs,
@@ -92,13 +92,13 @@ function save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int, embs::Matrix
     codes_path = "$(path_prefix).codes.jld2"
     residuals_path = "$(path_prefix).residuals.jld2"
     @info "Saving compressed codes to $(codes_path) and residuals to $(residuals_path)"
-    save(codes_path, Dict("codes" => codes))
-    save(residuals_path, Dict("residuals" => residuals))
+    JLD2.save(codes_path, Dict("codes" => codes))
+    JLD2.save(residuals_path, Dict("residuals" => residuals))
 
     # saving doclens
     doclens_path = joinpath(saver.config.indexing_settings.index_path, "doclens.$(chunk_idx).jld2")
     @info "Saving doclens to $(doclens_path)"
-    save(doclens_path, Dict("doclens" => doclens))
+    JLD2.save(doclens_path, Dict("doclens" => doclens))
 
     # the metadata
     metadata_path = joinpath(saver.config.indexing_settings.index_path, "$(chunk_idx).metadata.json")
