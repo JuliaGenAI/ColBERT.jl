@@ -79,3 +79,9 @@ Base.@kwdef struct ColBERTConfig
     indexing_settings::IndexingSettings
     search_settings::SearchSettings
 end
+
+# TODO: need to think of a better way to save the config later.
+function save(config::ColBERTConfig)
+    config_path = joinpath(config.indexing_settings.index_path, "config.jld2")
+    JLD2.save(config_path, Dict("config" => config))
+end
