@@ -19,6 +19,8 @@ julia> IndexScorer(index_path)
 ```
 """
 function IndexScorer(index_path::String)
+    @info "Loading the index from {index_path}."
+
     # loading the config from the index path
     config = JLD2.load(joinpath(index_path, "config.jld2"))["config"]
 
@@ -61,7 +63,8 @@ function IndexScorer(index_path::String)
         codes_offset = codes_offset + length(chunk_codes)
     end
 
-    # the embd2pid mapping
+    # the emb2pid mapping
+    @info "Building the emb2pid mapping."
     @assert isequal(sum(doclens), metadata["num_embeddings"])
     emb2pid = zeros(Int, metadata["num_embeddings"])
 
