@@ -166,3 +166,9 @@ function load_codes(codec::ResidualCodec, chunk_idx::Int)
     codes = JLD2.load(codes_path, "codes")
     codes
 end
+
+function load_residuals(codec::ResidualCodec, chunk_idx::Int)
+    residual_path = joinpath(codec.config.indexing_settings.index_path, "$(chunk_idx).residuals.jld2")
+    residuals = JLD2.load(residual_path, "residuals")
+    residuals 
+end
