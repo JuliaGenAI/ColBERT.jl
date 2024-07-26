@@ -1,10 +1,12 @@
 struct IndexScorer
     metadata::Dict
     codec::ResidualCodec
-    ivf::StridedTensor
+    ivf::Vector{Int}
+    ivf_lengths::Vector{Int}
     doclens::Vector{Int}
     codes::Vector{Int}
     residuals::Matrix{UInt8}
+    emb2pid::Vector{Int}
 end
 
 """
@@ -31,7 +33,7 @@ function IndexScorer(index_path::String)
     ivf_path = joinpath(index_path, "ivf.jld2")
     ivf_dict = JLD2.load(ivf_path)
     ivf, ivf_lengths = ivf_dict["ivf"], ivf_dict["ivf_lengths"]
-    ivf = StridedTensor(ivf, ivf_lengths)
+    # ivf = StridedTensor(ivf, ivf_lengths)
 
     # loading all doclens
     doclens = Vector{Int}() 
@@ -59,12 +61,33 @@ function IndexScorer(index_path::String)
         codes_offset = codes_offset + length(chunk_codes)
     end
 
+    # the embd2pid mapping
+    @assert isequal(sum(doclens), metadata["num_embeddings"])
+    emb2pid = zeros(Int, metadata["num_embeddings"])
+
+    offset_doclens = 1
+    for (pid, dlength) in enumerate(doclens)
+        emb2pid[offset_doclens:offset_doclens + dlength - 1] .= pid
+        offset_doclens += dlength
+    end
+
     IndexScorer(
         metadata,
         codec,
         ivf,
+        ivf_lengths,
         doclens,
         codes,
         residuals,
+        emb2pid,
     )
 end
+
+function retrieve(config::ColBERTConfig, Q::Array{Float64})
+    # TODO: retrieve pids for embeddings contained in the cloest nprobe centroids 
+end
+
+function rank(ranker::IndexScorer, config::ColBERTConfig, Q::Array{Float64}, k::Int)
+    # TODO: call retrieve to get pids for embeddings for the closest nprobe centroids
+    # TODO: call score_pids to score those pids
+end 
