@@ -6,18 +6,20 @@ struct Searcher
     ranker::IndexScorer
 end
 
-function Searcher(config::ColBERTConfig)
-    index_path = config.indexing_settings.index_path
+function Searcher(index_path::String)
     if !isdir(index_path) 
         error("Index at $(index_path) does not exist! Please build the index first and try again.")
     end
+
+    # loading the config from the path
+    config = JLD2.load(joinpath(index_path, "config.jld2"))["config"]
 
     # loading the model and saving it to prevent multiple loads
     @info "Loading ColBERT layers from HuggingFace."
     base_colbert = BaseColBERT(config.resource_settings.checkpoint, config)
     checkPoint = Checkpoint(base_colbert, DocTokenizer(base_colbert.tokenizer, config), QueryTokenizer(base_colbert.tokenizer, config), config)
 
-    Searcher(config, checkPoint, IndexScorer())
+    Searcher(config, checkPoint, IndexScorer(index_path))
 end
 
 """
