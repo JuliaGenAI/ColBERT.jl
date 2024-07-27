@@ -70,8 +70,8 @@ function IndexScorer(index_path::String)
 
     offset_doclens = 1
     for (pid, dlength) in enumerate(doclens)
-        emb2pid[offset_doclens:offset_doclens + dlength - 1] .= pid
-        offset_doclens += dlength
+            emb2pid[offset_doclens:offset_doclens + dlength - 1] .= pid
+            offset_doclens += dlength
     end
 
     IndexScorer(
@@ -86,11 +86,35 @@ function IndexScorer(index_path::String)
     )
 end
 
-function retrieve(config::ColBERTConfig, Q::Array{Float64})
-    # TODO: retrieve pids for embeddings contained in the cloest nprobe centroids 
+function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::Array{Float64}) 
+    @assert isequal(size(Q)[2], config.query_settings.query_maxlen)     # Q: (128, 32, 1)
+
+    Q = reshape(Q, size(Q)[1:end .!= end]...)           # squeeze out the last dimension 
+    @assert isequal(length(size(Q)), 2)
+
+    # score of each query embedding with each centroid and take top nprobe centroids
+    cells = transpose(Q) * ranker.codec.centroids
+    cells = mapslices(row -> partialsortperm(row, 1:config.search_settings.nprobe, rev=true), cells, dims = 2)          # take top nprobe centroids for each query 
+    centroid_ids = sort(unique(vec(cells)))
+
+    # get all embedding IDs contained in centroid_ids using ivf
+    centroid_ivf_offsets = cat([1], 1 .+ cumsum(ranker.ivf_lengths)[1:end .!= end], dims = 1)
+    eids = Vector{Int}()
+    for centroid_id in centroid_ids
+        offset = centroid_ivf_offsets[centroid_id]
+        length = ranker.ivf_lengths[centroid_id]
+        append!(eids, ranker.ivf[offset:offset + length - 1])
+    end
+    @assert isequal(length(eids), sum(ranker.ivf_lengths[centroid_ids]))
+    eids = sort(unique(eids))
+
+    # get pids from the emb2pid mapping
+    pids = sort(unique(ranker.emb2pid[eids]))
+    pids
 end
 
 function rank(ranker::IndexScorer, config::ColBERTConfig, Q::Array{Float64}, k::Int)
     # TODO: call retrieve to get pids for embeddings for the closest nprobe centroids
+    pids = retrieve(config, Q)
     # TODO: call score_pids to score those pids
 end 
