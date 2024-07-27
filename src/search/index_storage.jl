@@ -86,7 +86,7 @@ function IndexScorer(index_path::String)
     )
 end
 
-function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::Array{Float64}) 
+function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::Array{<:AbstractFloat})
     @assert isequal(size(Q)[2], config.query_settings.query_maxlen)     # Q: (128, 32, 1)
 
     Q = reshape(Q, size(Q)[1:end .!= end]...)           # squeeze out the last dimension 
