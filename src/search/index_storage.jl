@@ -46,7 +46,7 @@ function IndexScorer(index_path::String)
     end
 
     # loading all embeddings
-    num_embeddings = metadata["num_embeddings"] + 512                   # 512 added for access with strides 
+    num_embeddings = metadata["num_embeddings"]
     dim, nbits = config.doc_settings.dim, config.indexing_settings.nbits
     @assert (dim * nbits) % 8 == 0
     codes = zeros(Int, num_embeddings) 
