@@ -86,6 +86,10 @@ function IndexScorer(index_path::String)
     )
 end
 
+"""
+
+Return a candidate set of `pids` for the query matrix `Q`. This is done as follows: the nearest `nprobe` centroids for each query embedding are found. This list is then flattened and the unique set of these centroids is built. Using the `ivf`, the list of all unique embedding IDs contained in these centroids is computed. Finally, these embedding IDs are converted to `pids` using `emb2pid`. This list of `pids` is the final candidate set.
+"""
 function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::Array{<:AbstractFloat})
     @assert isequal(size(Q)[2], config.query_settings.query_maxlen)     # Q: (128, 32, 1)
 
