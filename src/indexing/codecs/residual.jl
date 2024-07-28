@@ -178,6 +178,32 @@ function decompress_residuals(codec::ResidualCodec, binary_residuals::Array{UInt
     embeddings = codec.bucket_weights[unpacked_bits]
 end
 
+function decompress(codec::ResidualCodec, codes::Vector{Int}, residuals::Array{UInt8})
+    @assert ndims(codes) == 1 
+    @assert ndims(residuals) == 2
+    @assert length(codes) == size(residuals)[2]
+
+    # decompress in batches
+    D = Vector{Array{<:AbstractFloat}}() 
+    bsize = 1 << 15
+    batch_offset = 1
+    while batch_offset <= length(codes)
+        batch_codes = codes[batch_offset:min(batch_offset + bsize - 1, length(codes))]
+        batch_residuals = residuals[:, batch_offset:min(batch_offset + bsize - 1, length(codes))]
+
+        centroids_ = codec.centroids[:, batch_codes]
+        residuals_ = decompress_residuals(codec, batch_residuals)
+    
+        batch_embeddings = centroids_ + residuals_
+        batch_embeddings = mapslices(v -> iszero(v) ? v : normalize(v), batch_embeddings, dims = 1)
+        push!(D, batch_embeddings)
+
+        batch_offset += bsize
+    end
+
+    cat(D..., dims = 2)
+end
+
 """
     load_codes(codec::ResidualCodec, chunk_idx::Int)
 
