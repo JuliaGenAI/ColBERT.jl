@@ -81,11 +81,11 @@ function encode_query(searcher::Searcher, query::String)
 end
 
 function search(searcher::Searcher, query::String, k::Int)
-    dense_search(encode_query(query), k) 
+    dense_search(searcher, encode_query(searcher, query), k) 
 end
 
-function dense_search(searcher::Searcher, Q::Matrix{Float64}, k::Int)
-    @info "This will implement dense search."
+function dense_search(searcher::Searcher, Q::Array{<:AbstractFloat}, k::Int)
+    pids, scores = rank(searcher.ranker, searcher.config, Q) 
+
+    pids[1:k], scores[1:k]
 end
-
-
