@@ -165,8 +165,10 @@ function score_pids(ranker::IndexScorer, config::ColBERTConfig, Q::Array{<:Abstr
     scores
 end
 
-function rank(ranker::IndexScorer, config::ColBERTConfig, Q::Array{Float64}, k::Int)
-    # TODO: call retrieve to get pids for embeddings for the closest nprobe centroids
-    pids = retrieve(config, Q)
-    # TODO: call score_pids to score those pids
+function rank(ranker::IndexScorer, config::ColBERTConfig, Q::Array{<:AbstractFloat})
+    pids = retrieve(ranker, config, Q)
+    scores = score_pids(ranker, config, Q, pids)
+    indices = sortperm(scores, rev=true) 
+    
+    pids[indices], scores[indices]
 end 
