@@ -45,6 +45,6 @@ export Indexer, CollectionIndexer, index
 include("search/strided_tensor.jl")
 include("search/index_storage.jl")
 include("searching.jl")
-export Searcher
+export Searcher, search
 
 end
