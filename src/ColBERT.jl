@@ -41,4 +41,10 @@ include("indexing/index_saver.jl")
 include("indexing/collection_indexer.jl")
 export Indexer, CollectionIndexer, index
 
+# searcher
+include("search/strided_tensor.jl")
+include("search/index_storage.jl")
+include("searching.jl")
+export Searcher, search
+
 end

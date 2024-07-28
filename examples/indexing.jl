@@ -48,3 +48,4 @@ config = ColBERTConfig(
 # create and run the indexer
 indexer = Indexer(config) 
 index(indexer)
+ColBERT.save(config)

@@ -28,6 +28,22 @@ mutable struct ResidualCodec
 end
 
 """
+
+# Examples
+
+```julia-repl
+julia> codec = load_codec(index_path); 
+```
+"""
+function load_codec(index_path::String)
+    config = load(joinpath(index_path, "config.jld2"), "config")
+    centroids = load(joinpath(index_path, "centroids.jld2"), "centroids")
+    avg_residual = load(joinpath(index_path, "avg_residual.jld2"), "avg_residual")
+    buckets = load(joinpath(index_path, "buckets.jld2"))
+    ResidualCodec(config, centroids, avg_residual, buckets["bucket_cutoffs"], buckets["bucket_weights"])
+end
+
+"""
     compress_into_codes(codec::ResidualCodec, embs::Matrix{Float64})
 
 Compresses a matrix of embeddings into a vector of codes using the given [`ResidualCodec`](@ref), where the code for each embedding is its nearest centroid ID. 
@@ -130,6 +146,64 @@ function compress(codec::ResidualCodec, embs::Matrix{Float64})
     codes, residuals
 end
 
+function decompress_residuals(codec::ResidualCodec, binary_residuals::Array{UInt8})
+    dim = codec.config.doc_settings.dim
+    nbits = codec.config.indexing_settings.nbits
+
+    @assert ndims(binary_residuals) == 2 
+    @assert size(binary_residuals)[1] == (dim / 8) * nbits
+
+    # unpacking UInt8 into bits
+    unpacked_bits = BitVector() 
+    for byte in vec(binary_residuals) 
+        append!(unpacked_bits, [byte & (0x1<<n) != 0 for n in 0:7])
+    end
+    
+    # reshaping into dims (nbits, dim, num_embeddings); inverse of what binarize does
+    unpacked_bits = reshape(unpacked_bits, nbits, dim, size(binary_residuals)[2])
+
+    # get decimal value for coordinate of the nbits-wide dimension; again, inverse of binarize
+    positionbits = fill(1, (nbits, 1, 1))
+    for i in 1:nbits
+        positionbits[i, :, :] .= 1 << (i - 1)
+    end
+
+    # multiply by 2^(i - 1) for the ith bit, and take sum to get the original bin back
+    unpacked_bits = unpacked_bits .* positionbits
+    unpacked_bits = sum(unpacked_bits, dims=1)
+    unpacked_bits = unpacked_bits .+ 1                          # adding 1 to get correct bin indices
+
+    # reshaping to get rid of the nbits wide dimension
+    unpacked_bits = reshape(unpacked_bits, size(unpacked_bits)[2:end]...)
+    embeddings = codec.bucket_weights[unpacked_bits]
+end
+
+function decompress(codec::ResidualCodec, codes::Vector{Int}, residuals::Array{UInt8})
+    @assert ndims(codes) == 1 
+    @assert ndims(residuals) == 2
+    @assert length(codes) == size(residuals)[2]
+
+    # decompress in batches
+    D = Vector{Array{<:AbstractFloat}}() 
+    bsize = 1 << 15
+    batch_offset = 1
+    while batch_offset <= length(codes)
+        batch_codes = codes[batch_offset:min(batch_offset + bsize - 1, length(codes))]
+        batch_residuals = residuals[:, batch_offset:min(batch_offset + bsize - 1, length(codes))]
+
+        centroids_ = codec.centroids[:, batch_codes]
+        residuals_ = decompress_residuals(codec, batch_residuals)
+    
+        batch_embeddings = centroids_ + residuals_
+        batch_embeddings = mapslices(v -> iszero(v) ? v : normalize(v), batch_embeddings, dims = 1)
+        push!(D, batch_embeddings)
+
+        batch_offset += bsize
+    end
+
+    cat(D..., dims = 2)
+end
+
 """
     load_codes(codec::ResidualCodec, chunk_idx::Int)
 
@@ -149,4 +223,10 @@ function load_codes(codec::ResidualCodec, chunk_idx::Int)
     codes_path = joinpath(codec.config.indexing_settings.index_path, "$(chunk_idx).codes.jld2")
     codes = JLD2.load(codes_path, "codes")
     codes
+end
+
+function load_residuals(codec::ResidualCodec, chunk_idx::Int)
+    residual_path = joinpath(codec.config.indexing_settings.index_path, "$(chunk_idx).residuals.jld2")
+    residuals = JLD2.load(residual_path, "residuals")
+    residuals 
 end
