@@ -146,6 +146,38 @@ function compress(codec::ResidualCodec, embs::Matrix{Float64})
     codes, residuals
 end
 
+function decompress_residuals(codec::ResidualCodec, binary_residuals::Array{UInt8})
+    dim = codec.config.doc_settings.dim
+    nbits = codec.config.indexing_settings.nbits
+
+    @assert ndims(binary_residuals) == 2 
+    @assert size(binary_residuals)[1] == (dim / 8) * nbits
+
+    # unpacking UInt8 into bits
+    unpacked_bits = BitVector() 
+    for byte in vec(binary_residuals) 
+        append!(unpacked_bits, [byte & (0x1<<n) != 0 for n in 0:7])
+    end
+    
+    # reshaping into dims (nbits, dim, num_embeddings); inverse of what binarize does
+    unpacked_bits = reshape(unpacked_bits, nbits, dim, size(binary_residuals)[2])
+
+    # get decimal value for coordinate of the nbits-wide dimension; again, inverse of binarize
+    positionbits = fill(1, (nbits, 1, 1))
+    for i in 1:nbits
+        positionbits[i, :, :] .= 1 << (i - 1)
+    end
+
+    # multiply by 2^(i - 1) for the ith bit, and take sum to get the original bin back
+    unpacked_bits = unpacked_bits .* positionbits
+    unpacked_bits = sum(unpacked_bits, dims=1)
+    unpacked_bits = unpacked_bits .+ 1                          # adding 1 to get correct bin indices
+
+    # reshaping to get rid of the nbits wide dimension
+    unpacked_bits = reshape(unpacked_bits, size(unpacked_bits)[2:end]...)
+    embeddings = codec.bucket_weights[unpacked_bits]
+end
+
 """
     load_codes(codec::ResidualCodec, chunk_idx::Int)
 
