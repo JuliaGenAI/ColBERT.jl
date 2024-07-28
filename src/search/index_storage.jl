@@ -117,6 +117,54 @@ function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::Array{<:Abstrac
     pids
 end
 
+"""
+- Get the decompressed embedding matrix for all embeddings in `pids`. Use `doclens` for this.
+"""
+function score_pids(ranker::IndexScorer, config::ColBERTConfig, Q::Array{<:AbstractFloat}, pids::Vector{Int}) 
+    # get codes and residuals for all embeddings across all pids
+    num_embs = sum(ranker.doclens[pids]) 
+    codes_packed = zeros(Int, num_embs)  
+    residuals_packed = zeros(UInt8,  size(ranker.residuals)[1], num_embs)
+    pid_offsets = cat([1], 1 .+ cumsum(ranker.doclens)[1:end .!= end], dims=1)
+
+    offset = 1
+    for pid in pids
+        pid_offset = pid_offsets[pid]
+        num_embs_pid = ranker.doclens[pid]
+        codes_packed[offset: offset + num_embs_pid - 1] = ranker.codes[pid_offset: pid_offset + num_embs_pid - 1] 
+        residuals_packed[:, offset: offset + num_embs_pid - 1] = ranker.residuals[:, pid_offset: pid_offset + num_embs_pid - 1] 
+        offset += num_embs_pid
+    end
+    @assert offset == num_embs + 1
+
+    # decompress these codes and residuals to get the original embeddings
+    D_packed = decompress(ranker.codec, codes_packed, residuals_packed) 
+    @assert ndims(D_packed) == 2
+    @assert size(D_packed)[1] == config.doc_settings.dim
+    @assert size(D_packed)[2] == num_embs 
+
+    # get the max-sim scores
+    if size(Q)[3] > 1
+        error("Only one query is supported at the moment!")
+    end
+    @assert size(Q)[3] == 1
+    Q = reshape(Q, size(Q)[1:2]...)
+    
+    scores = Vector{Float64}()
+    query_doc_scores = transpose(Q) * D_packed                    # (num_query_tokens, num_embeddings)
+    offset = 1
+    for pid in pids
+        num_embs_pid = ranker.doclens[pid]
+        pid_scores = query_doc_scores[:, offset:min(num_embs, offset + num_embs_pid - 1)]
+        push!(scores, sum(maximum(pid_scores, dims = 2)))
+
+        offset += num_embs_pid
+    end
+    @assert offset == num_embs + 1
+
+    scores
+end
+
 function rank(ranker::IndexScorer, config::ColBERTConfig, Q::Array{Float64}, k::Int)
     # TODO: call retrieve to get pids for embeddings for the closest nprobe centroids
     pids = retrieve(config, Q)
