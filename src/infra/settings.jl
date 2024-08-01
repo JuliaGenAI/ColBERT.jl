@@ -1,5 +1,3 @@
-using ..ColBERT: Collection
-
 """
     RunSettings([root, experiment, index_root, name, rank, nranks])
 

@@ -1,5 +1,3 @@
-using .ColBERT: ColBERTConfig, CollectionEncoder, ResidualCodec
-
 """
     CollectionIndexer(config::ColBERTConfig, encoder::CollectionEncoder, saver::IndexSaver)
 

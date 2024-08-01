@@ -1,5 +1,3 @@
-using ..ColBERT: ColBERTConfig
-
 """
     CollectionEncoder(config::ColBERTConfig, checkpoint::Checkpoint)
 

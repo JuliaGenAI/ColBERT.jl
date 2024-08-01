@@ -1,5 +1,3 @@
-using ...ColBERT: ColBERTConfig
-
 """
     DocTokenizer(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, config::ColBERTConfig)
 

@@ -1,5 +1,3 @@
-using ..ColBERT: DocTokenizer, QueryTokenizer, ColBERTConfig
-
 """
     BaseColBERT(; bert::Transformers.HuggingFace.HGFBertModel, linear::Transformers.Layers.Dense, tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder)
 
