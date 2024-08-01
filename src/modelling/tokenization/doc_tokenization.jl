@@ -167,7 +167,7 @@ function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEnco
     integer_ids[2, :] .= doc_tokenizer.D_marker_token_id
 
     if ismissing(bsize)
-        integer_ids, integer_mask
+        error("Currently bsize can't be missing!")
     else
         # we sort passages by length to do batch packing for more efficient use of the GPU
         integer_ids, integer_mask, reverse_indices = _sort_by_length(integer_ids, integer_mask, bsize)
