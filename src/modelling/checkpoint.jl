@@ -409,7 +409,7 @@ function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{
         @assert D isa AbstractMatrix{Float32} "$(typeof(D))"
         @assert doclens isa Vector{Int64} "$(typeof(doclens))"
 
-        D, doclens
+        Flux.cpu(D), Flux.cpu(doclens)
     end
 end
 
