@@ -212,12 +212,11 @@ julia>  mask_skiplist(checkPoint.model.tokenizer, integer_ids, checkPoint.skipli
 ```
 """
 function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, integer_ids::AbstractMatrix{Int32}, skiplist::Union{Missing, Vector{Int64}})
-    if !ismissing(skiplist)
-        filter = token_id -> !(token_id in skiplist) && token_id != TextEncodeBase.lookup(tokenizer.vocab, tokenizer.padsym)
-    else
-        filter = token_id -> true
+    filter = integer_ids .!= TextEncodeBase.lookup(tokenizer.vocab, tokenizer.padsym)
+    for token_id in skiplist
+        filter = filter .& (integer_ids .!= token_id)
     end
-    filter.(integer_ids)
+    filter
 end
 
 """
