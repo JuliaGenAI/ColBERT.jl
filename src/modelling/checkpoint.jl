@@ -93,6 +93,12 @@ function BaseColBERT(checkpoint::String, config::ColBERTConfig)
     bert_model = HuggingFace.load_model(:bert, checkpoint, :model, bert_state_dict; config = bert_config)
     linear = HuggingFace._load_dense(bert_state_dict, "linear", bert_config.hidden_size, config.doc_settings.dim, bert_config.initializer_range, true)
     tokenizer = Transformers.load_tokenizer(checkpoint)
+    
+    if config.run_settings.use_gpu
+        bert_model = bert_model |> Flux.gpu 
+        linear = linear |> Flux.gpu
+    end
+
     BaseColBERT(bert_model, linear, tokenizer)
 end
 
