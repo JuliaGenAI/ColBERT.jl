@@ -1,5 +1,3 @@
-using .ColBERT: ColBERTConfig
-
 struct Indexer
     config::ColBERTConfig
 end
