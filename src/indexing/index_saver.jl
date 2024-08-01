@@ -1,5 +1,3 @@
-using .ColBERT: ResidualCodec
-
 """
     IndexSaver(config::ColBERTConfig, codec::Union{Missing, ResidualCodec} = missing)
 
