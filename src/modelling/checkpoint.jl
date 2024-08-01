@@ -97,7 +97,7 @@ function BaseColBERT(checkpoint::String, config::ColBERTConfig)
 end
 
 """
-    Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer, colbert_config::ColBERTConfig)
+    Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer, config::ColBERTConfig)
 
 A wrapper for [`BaseColBERT`](@ref), which includes a [`ColBERTConfig`](@ref) and tokenization-specific functions via the [`DocTokenizer`](@ref) and [`QueryTokenizer`] types. 
 
@@ -107,7 +107,7 @@ If the config's [`DocSettings`](@ref) are configured to mask punctuations, then 
 - `model`: The [`BaseColBERT`](@ref) to be wrapped.
 - `doc_tokenizer`: A [`DocTokenizer`](@ref) used for functions related to document tokenization. 
 - `query_tokenizer`: A [`QueryTokenizer`](@ref) used for functions related to query tokenization. 
-- `colbert_config`: The underlying [`ColBERTConfig`](@ref). 
+- `config`: The underlying [`ColBERTConfig`](@ref). 
 
 # Returns
 The created [`Checkpoint`](@ref).
@@ -157,18 +157,18 @@ struct Checkpoint
     model::BaseColBERT
     doc_tokenizer::DocTokenizer
     query_tokenizer::QueryTokenizer
-    colbert_config::ColBERTConfig
+    config::ColBERTConfig
     skiplist::Union{Missing, Vector{Int}}
 end
 
-function Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer, query_tokenizer::QueryTokenizer, colbert_config::ColBERTConfig)
-    if colbert_config.doc_settings.mask_punctuation
+function Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer, query_tokenizer::QueryTokenizer, config::ColBERTConfig)
+    if config.doc_settings.mask_punctuation
         punctuation_list = string.(collect("!\"#\$%&\'()*+,-./:;<=>?@[\\]^_`{|}~"))
         skiplist = [TextEncodeBase.lookup(model.tokenizer.vocab, punct) for punct in punctuation_list]
     else
         skiplist = missing
     end
-    Checkpoint(model, doc_tokenizer, query_tokenizer, colbert_config, skiplist)
+    Checkpoint(model, doc_tokenizer, query_tokenizer, config, skiplist)
 end
 
 """
@@ -502,7 +502,7 @@ function queryFromText(checkpoint::Checkpoint, queries::Vector{String}, bsize::U
     # configure the tokenizer to truncate or pad to query_maxlen
     tokenizer = checkpoint.model.tokenizer 
     process = tokenizer.process
-    truncpad_pipe = Pipeline{:token}(TextEncodeBase.trunc_or_pad(checkpoint.colbert_config.query_settings.query_maxlen, "[PAD]", :tail, :tail), :token)
+    truncpad_pipe = Pipeline{:token}(TextEncodeBase.trunc_or_pad(checkpoint.config.query_settings.query_maxlen, "[PAD]", :tail, :tail), :token)
     process = process[1:4] |> truncpad_pipe |> process[6:end]
     tokenizer = Transformers.TextEncoders.BertTextEncoder(tokenizer.tokenizer, tokenizer.vocab, process; startsym = tokenizer.startsym, endsym = tokenizer.endsym, padsym = tokenizer.padsym, trunc = tokenizer.trunc)
 
