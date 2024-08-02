@@ -57,8 +57,7 @@ A `Vector{UInt32}` of codes, where each code corresponds to the nearest centroid
 ```
 """
 function compress_into_codes(codec::ResidualCodec, embs::AbstractMatrix{Float32})
-    use_gpu = codec.config.run_settings.use_gpu
-    codes = Vector{UInt32}() |> Flux.gpu
+    codes = Vector{UInt32}()
 
     bsize = Int(floor((1 << 29) / size(codec.centroids)[2]))
     offset = 1 
