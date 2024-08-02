@@ -215,9 +215,8 @@ function _compute_avg_residuals(indexer::CollectionIndexer, centroids::AbstractM
     compressor = ResidualCodec(indexer.config, centroids, 0.0, Vector{Float32}(), Vector{Float32}()) 
     codes = compress_into_codes(compressor, heldout)             # get centroid codes
     @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
-    
-    heldout_reconstruct = compressor.centroids[:, codes]         # get corresponding centroids
-    heldout_avg_residual = heldout - heldout_reconstruct         # compute the residual
+    heldout_reconstruct = Flux.gpu(compressor.centroids[:, codes])         # get corresponding centroids
+    heldout_avg_residual = Flux.gpu(heldout) - heldout_reconstruct         # compute the residual
     
     avg_residual = mean(abs.(heldout_avg_residual), dims = 2)    # for each dimension, take mean of absolute values of residuals
     
