@@ -1,7 +1,6 @@
 module ColBERT
 using Clustering
 using CSV
-using CUDA
 using Dates
 using Flux 
 using JLD2
