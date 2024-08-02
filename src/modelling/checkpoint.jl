@@ -94,10 +94,8 @@ function BaseColBERT(checkpoint::String, config::ColBERTConfig)
     linear = HuggingFace._load_dense(bert_state_dict, "linear", bert_config.hidden_size, config.doc_settings.dim, bert_config.initializer_range, true)
     tokenizer = Transformers.load_tokenizer(checkpoint)
     
-    if config.run_settings.use_gpu
-        bert_model = bert_model |> Flux.gpu 
-        linear = linear |> Flux.gpu
-    end
+    bert_model = bert_model |> Flux.gpu 
+    linear = linear |> Flux.gpu
 
     BaseColBERT(bert_model, linear, tokenizer)
 end
@@ -269,10 +267,8 @@ julia> mask
 function doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool})
     use_gpu = checkpoint.config.run_settings.use_gpu
 
-    if use_gpu 
-        integer_ids = integer_ids |> Flux.gpu
-        integer_mask = integer_mask|> Flux.gpu
-    end
+    integer_ids = integer_ids |> Flux.gpu
+    integer_mask = integer_mask|> Flux.gpu
 
     D = checkpoint.model.bert((token=integer_ids, attention_mask=NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
     D = checkpoint.model.linear(D)
