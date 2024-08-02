@@ -57,12 +57,21 @@ A `Vector{UInt32}` of codes, where each code corresponds to the nearest centroid
 ```
 """
 function compress_into_codes(codec::ResidualCodec, embs::AbstractMatrix{Float32})
+    use_gpu = codec.config.run_settings.use_gpu
     codes = Vector{UInt32}() 
+
+    if use_gpu
+        codes = codes |> Flux.gpu
+    end
 
     bsize = Int(floor((1 << 29) / size(codec.centroids)[2]))
     offset = 1 
     while (offset <= size(embs)[2])                             # batch on the second dimension
-        dot_products = transpose(embs[:, offset:min(size(embs)[2], offset + bsize - 1)]) * codec.centroids 
+        if !use_gpu
+            dot_products = transpose(embs[:, offset:min(size(embs)[2], offset + bsize - 1)]) * codec.centroids 
+        else
+            dot_products = transpose(Flux.gpu(embs[:, offset:min(size(embs)[2], offset + bsize - 1)])) * Flux.gpu(codec.centroids)
+        end
         indices = (cartesian_index -> cartesian_index.I[2]).(argmax(dot_products, dims = 2)[:, 1])
         append!(codes, indices)
         offset += bsize
