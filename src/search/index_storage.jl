@@ -4,7 +4,7 @@ struct IndexScorer
     ivf::Vector{Int}
     ivf_lengths::Vector{Int}
     doclens::Vector{Int}
-    codes::Vector{Int}
+    codes::Vector{UInt32}
     residuals::Matrix{UInt8}
     emb2pid::Vector{Int}
 end
@@ -45,11 +45,11 @@ function IndexScorer(index_path::String)
         append!(doclens, chunk_doclens)
     end
 
-    # loading all embeddings
+    # loading all compressed embeddings
     num_embeddings = metadata["num_embeddings"]
     dim, nbits = config.doc_settings.dim, config.indexing_settings.nbits
     @assert (dim * nbits) % 8 == 0
-    codes = zeros(Int, num_embeddings) 
+    codes = zeros(UInt32, num_embeddings) 
     residuals = zeros(UInt8, Int((dim  / 8) * nbits), num_embeddings)
     codes_offset = 1
     for chunk_idx in 1:metadata["num_chunks"]
@@ -90,7 +90,7 @@ end
 
 Return a candidate set of `pids` for the query matrix `Q`. This is done as follows: the nearest `nprobe` centroids for each query embedding are found. This list is then flattened and the unique set of these centroids is built. Using the `ivf`, the list of all unique embedding IDs contained in these centroids is computed. Finally, these embedding IDs are converted to `pids` using `emb2pid`. This list of `pids` is the final candidate set.
 """
-function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::Array{<:AbstractFloat})
+function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::AbstractArray{Float32})
     @assert isequal(size(Q)[2], config.query_settings.query_maxlen)     # Q: (128, 32, 1)
 
     Q = reshape(Q, size(Q)[1:end .!= end]...)           # squeeze out the last dimension 
@@ -120,10 +120,10 @@ end
 """
 - Get the decompressed embedding matrix for all embeddings in `pids`. Use `doclens` for this.
 """
-function score_pids(ranker::IndexScorer, config::ColBERTConfig, Q::Array{<:AbstractFloat}, pids::Vector{Int}) 
+function score_pids(ranker::IndexScorer, config::ColBERTConfig, Q::AbstractArray{Float32}, pids::Vector{Int}) 
     # get codes and residuals for all embeddings across all pids
     num_embs = sum(ranker.doclens[pids]) 
-    codes_packed = zeros(Int, num_embs)  
+    codes_packed = zeros(UInt32, num_embs)  
     residuals_packed = zeros(UInt8,  size(ranker.residuals)[1], num_embs)
     pid_offsets = cat([1], 1 .+ cumsum(ranker.doclens)[1:end .!= end], dims=1)
 
@@ -142,6 +142,7 @@ function score_pids(ranker::IndexScorer, config::ColBERTConfig, Q::Array{<:Abstr
     @assert ndims(D_packed) == 2
     @assert size(D_packed)[1] == config.doc_settings.dim
     @assert size(D_packed)[2] == num_embs 
+    @assert D_packed isa AbstractMatrix{Float32}
 
     # get the max-sim scores
     if size(Q)[3] > 1
@@ -150,7 +151,7 @@ function score_pids(ranker::IndexScorer, config::ColBERTConfig, Q::Array{<:Abstr
     @assert size(Q)[3] == 1
     Q = reshape(Q, size(Q)[1:2]...)
     
-    scores = Vector{Float64}()
+    scores = Vector{Float32}()
     query_doc_scores = transpose(Q) * D_packed                    # (num_query_tokens, num_embeddings)
     offset = 1
     for pid in pids
@@ -165,7 +166,7 @@ function score_pids(ranker::IndexScorer, config::ColBERTConfig, Q::Array{<:Abstr
     scores
 end
 
-function rank(ranker::IndexScorer, config::ColBERTConfig, Q::Array{<:AbstractFloat})
+function rank(ranker::IndexScorer, config::ColBERTConfig, Q::AbstractArray{Float32})
     pids = retrieve(ranker, config, Q)
     scores = score_pids(ranker, config, Q, pids)
     indices = sortperm(scores, rev=true) 
