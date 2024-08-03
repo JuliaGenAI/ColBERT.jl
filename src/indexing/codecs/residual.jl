@@ -1,5 +1,5 @@
 """
-    ResidualCodec(config::ColBERTConfig, centroids::Matrix{Float64}, avg_residual::Float64, bucket_cutoffs::Vector{Float64}, bucket_weights::Vector{Float64})
+    ResidualCodec(config::ColBERTConfig, centroids::AbstractMatrix{Float32}, avg_residual::Float32, bucket_cutoffs::AbstractVector{Float32}, bucket_weights::AbstractVector{Float32})
 
 A struct that represents a compressor for ColBERT embeddings. 
 
@@ -19,10 +19,10 @@ A `ResidualCodec` object.
 """
 mutable struct ResidualCodec
     config::ColBERTConfig
-    centroids::Matrix{Float64}
-    avg_residual::Float64
-    bucket_cutoffs::Vector{Float64}
-    bucket_weights::Vector{Float64}
+    centroids::AbstractMatrix{Float32}
+    avg_residual::Float32
+    bucket_cutoffs::AbstractVector{Float32}
+    bucket_weights::AbstractVector{Float32}
 end
 
 """
@@ -42,7 +42,7 @@ function load_codec(index_path::String)
 end
 
 """
-    compress_into_codes(codec::ResidualCodec, embs::Matrix{Float64})
+    compress_into_codes(codec::ResidualCodec, embs::AbstractMatrix{Float32})
 
 Compresses a matrix of embeddings into a vector of codes using the given [`ResidualCodec`](@ref), where the code for each embedding is its nearest centroid ID. 
 
@@ -53,11 +53,11 @@ Compresses a matrix of embeddings into a vector of codes using the given [`Resid
 
 # Returns
 
-A vector of codes, where each code corresponds to the nearest centroid ID for the embedding.
+A `Vector{UInt32}` of codes, where each code corresponds to the nearest centroid ID for the embedding.
 ```
 """
-function compress_into_codes(codec::ResidualCodec, embs::Matrix{Float64})
-    codes = []
+function compress_into_codes(codec::ResidualCodec, embs::AbstractMatrix{Float32})
+    codes = Vector{UInt32}() 
 
     bsize = Int(floor((1 << 29) / size(codec.centroids)[2]))
     offset = 1 
@@ -69,11 +69,12 @@ function compress_into_codes(codec::ResidualCodec, embs::Matrix{Float64})
     end
 
     @assert length(codes) == size(embs)[2]
+    @assert codes isa AbstractVector{UInt32} 
     codes
 end
 
 """
-    binarize(codec::ResidualCodec, residuals::Matrix{Float64})
+    binarize(codec::ResidualCodec, residuals::AbstractMatrix{Float32})
 
 Convert a matrix of residual vectors into a matrix of integer residual vector using `nbits` bits (specified by the underlying `config`). 
 
@@ -86,7 +87,7 @@ Convert a matrix of residual vectors into a matrix of integer residual vector us
 
 A matrix of compressed integer residual vectors. 
 """
-function binarize(codec::ResidualCodec, residuals::Matrix{Float64})
+function binarize(codec::ResidualCodec, residuals::AbstractMatrix{Float32})
     dim = codec.config.doc_settings.dim
     nbits = codec.config.indexing_settings.nbits
     num_embeddings = size(residuals)[2]
@@ -107,10 +108,15 @@ function binarize(codec::ResidualCodec, residuals::Matrix{Float64})
     bucket_indices = bucket_indices .& 1                                                 # apply mod 1 to binarize
     residuals_packed = reinterpret(UInt8, BitArray(vec(bucket_indices)).chunks)          # flatten out the bits, and pack them into UInt8
     residuals_packed = reshape(residuals_packed, (Int(dim / 8) * nbits, num_embeddings)) # reshape back to get compressions for each embedding
+    @assert ndims(residuals_packed) == 2
+    @assert size(residuals_packed)[2] == size(residuals)[2]
+    @assert residuals_packed isa AbstractMatrix{UInt8}
+
+    residuals_packed
 end
 
 """
-    compress(codec::ResidualCodec, embs::Matrix{Float64})
+    compress(codec::ResidualCodec, embs::AbstractMatrix{Float32})
 
 Compress a matrix of embeddings into a compact representation using the specified [`ResidualCodec`](@ref). 
 
@@ -125,8 +131,8 @@ All embeddings are compressed to their nearest centroid IDs and their quantized 
 
 A tuple containing a vector of codes and the compressed residuals matrix.
 """
-function compress(codec::ResidualCodec, embs::Matrix{Float64})
-    codes, residuals = Vector{Int}(), Vector{Matrix{UInt8}}() 
+function compress(codec::ResidualCodec, embs::AbstractMatrix{Float32})
+    codes, residuals = Vector{UInt32}(), Vector{Matrix{UInt8}}() 
 
     offset = 1
     bsize = 1 << 18
@@ -141,10 +147,17 @@ function compress(codec::ResidualCodec, embs::Matrix{Float64})
     end
     residuals = cat(residuals..., dims = 2)
 
+    @assert ndims(codes) == 1
+    @assert ndims(residuals) == 2
+    @assert length(codes) == size(embs)[2] 
+    @assert size(residuals)[2] == size(embs)[2]
+    @assert codes isa AbstractVector{UInt32}
+    @assert residuals isa AbstractMatrix{UInt8}
+
     codes, residuals
 end
 
-function decompress_residuals(codec::ResidualCodec, binary_residuals::Array{UInt8})
+function decompress_residuals(codec::ResidualCodec, binary_residuals::AbstractMatrix{UInt8})
     dim = codec.config.doc_settings.dim
     nbits = codec.config.indexing_settings.nbits
 
@@ -174,15 +187,21 @@ function decompress_residuals(codec::ResidualCodec, binary_residuals::Array{UInt
     # reshaping to get rid of the nbits wide dimension
     unpacked_bits = reshape(unpacked_bits, size(unpacked_bits)[2:end]...)
     embeddings = codec.bucket_weights[unpacked_bits]
+
+    @assert ndims(embeddings) == 2
+    @assert size(embeddings)[2] == size(binary_residuals)[2]
+    @assert embeddings isa AbstractMatrix{Float32} 
+
+    embeddings
 end
 
-function decompress(codec::ResidualCodec, codes::Vector{Int}, residuals::Array{UInt8})
+function decompress(codec::ResidualCodec, codes::Vector{UInt32}, residuals::AbstractMatrix{UInt8})
     @assert ndims(codes) == 1 
     @assert ndims(residuals) == 2
     @assert length(codes) == size(residuals)[2]
 
     # decompress in batches
-    D = Vector{Array{<:AbstractFloat}}() 
+    D = Vector{AbstractMatrix{Float32}}() 
     bsize = 1 << 15
     batch_offset = 1
     while batch_offset <= length(codes)
@@ -198,8 +217,13 @@ function decompress(codec::ResidualCodec, codes::Vector{Int}, residuals::Array{U
 
         batch_offset += bsize
     end
+    embeddings = cat(D..., dims = 2)
 
-    cat(D..., dims = 2)
+    @assert ndims(embeddings) == 2
+    @assert size(embeddings)[2] == length(codes) 
+    @assert embeddings isa AbstractMatrix{Float32}
+
+    embeddings
 end
 
 """
