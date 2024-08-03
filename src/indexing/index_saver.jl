@@ -67,7 +67,7 @@ function save_codec(saver::IndexSaver)
 end
 
 """
-    save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int, embs::Matrix{Float64}, doclens::Vector{Int})
+    save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int, embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
 
 Save a single chunk of compressed embeddings and their relevant metadata to disk.
 
@@ -81,7 +81,7 @@ The codes and compressed residuals for the chunk are saved in files named `<chun
 - `embs`: The embeddings matrix for the current chunk.
 - `doclens`: The document lengths vector for the current chunk.
 """
-function save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int, embs::Matrix{Float64}, doclens::Vector{Int})
+function save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int, embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
     codes, residuals = compress(saver.codec, embs)
     path_prefix = joinpath(saver.config.indexing_settings.index_path, string(chunk_idx))
     @assert length(codes) == size(embs)[2]
