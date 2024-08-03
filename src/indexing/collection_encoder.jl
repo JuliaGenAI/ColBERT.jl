@@ -34,8 +34,8 @@ The given `passages` are run through the underlying BERT model and the linear la
 
 A tuple `embs, doclens` where:
 
-- `embs::Matrix{Float64}`: The full embedding matrix. Of shape `(D, N)`, where `D` is the embedding dimension and `N` is the total number of embeddings across all the passages. 
-- `doclens::Vector{Int}`: A vector of document lengths for each passage, i.e the total number of attended tokens for each document passage. 
+- `embs::AbstractMatrix{Float32}`: The full embedding matrix. Of shape `(D, N)`, where `D` is the embedding dimension and `N` is the total number of embeddings across all the passages. 
+- `doclens::AbstractVector{Int}`: A vector of document lengths for each passage, i.e the total number of attended tokens for each document passage. 
 """
 function encode_passages(encoder::CollectionEncoder, passages::Vector{String})
     @info "Encoding $(length(passages)) passages."
@@ -44,7 +44,7 @@ function encode_passages(encoder::CollectionEncoder, passages::Vector{String})
         error("The list of passages to encode is empty!")
     end
 
-    embs, doclens = Vector{Matrix{Float64}}(), Vector{Int}()
+    embs, doclens = Vector{AbstractMatrix{Float32}}(), Vector{Int}()
     # batching here to avoid storing intermediate embeddings on GPU
     # batching also occurs inside docFromText to do batch packing optimizations
     for passages_batch in batch(passages, encoder.config.indexing_settings.index_bsize * 50)
