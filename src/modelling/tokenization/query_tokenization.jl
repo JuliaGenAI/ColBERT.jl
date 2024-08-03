@@ -137,6 +137,8 @@ function tensorize(query_tokenizer::QueryTokenizer, tokenizer::Transformers.Text
     integer_mask = NeuralAttentionlib.getmask(mask, ids)[1, :, :]
     @assert isequal(size(integer_ids), size(integer_mask))
     @assert isequal(size(integer_ids)[1], query_tokenizer.config.query_settings.query_maxlen)
+    @assert integer_ids isa AbstractMatrix{Int32}
+    @assert integer_mask isa AbstractMatrix{Bool}
 
     # adding the [Q] marker token ID and [MASK] augmentation
     integer_ids[2, :] .= query_tokenizer.Q_marker_token_id 
@@ -148,5 +150,7 @@ function tensorize(query_tokenizer::QueryTokenizer, tokenizer::Transformers.Text
     end
 
     batches = _split_into_batches(integer_ids, integer_mask, bsize)
+    @assert batches isa Vector{Tuple{AbstractMatrix{Int32}, AbstractMatrix{Bool}}}
+
     batches
 end

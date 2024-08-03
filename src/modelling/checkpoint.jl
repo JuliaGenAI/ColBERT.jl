@@ -396,7 +396,7 @@ function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{
 end
 
 """
-    query(checkpoint::Checkpoint, integer_ids::AbstractArray, integer_mask::AbstractArray)
+    query(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool})
 
 Compute the hidden state of the BERT and linear layers of ColBERT for queries. 
 
@@ -442,7 +442,7 @@ julia> query(checkPoint, integer_ids, integer_mask)
 
 ```
 """
-function query(checkpoint::Checkpoint, integer_ids::AbstractArray, integer_mask::AbstractArray)
+function query(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool})
     Q = checkpoint.model.bert((token=integer_ids, attention_mask=NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
     Q = checkpoint.model.linear(Q)
 
@@ -453,6 +453,11 @@ function query(checkpoint::Checkpoint, integer_ids::AbstractArray, integer_mask:
 
     Q = Q .* mask
     Q = mapslices(v -> iszero(v) ? v : normalize(v), Q, dims = 1)                   # normalize each embedding
+
+    @assert ndims(Q) == 3
+    @assert isequal(size(Q)[2:end], size(integer_ids))
+    @assert Q isa AbstractArray{Float32} 
+
     Q
 end
 
@@ -523,5 +528,10 @@ function queryFromText(checkpoint::Checkpoint, queries::Vector{String}, bsize::U
     # get ids and masks, embeddings and returning the concatenated tensors
     batches = tensorize(checkpoint.query_tokenizer, tokenizer, queries, bsize)
     batches = [query(checkpoint, integer_ids, integer_mask) for (integer_ids, integer_mask) in batches]
-    cat(batches..., dims=3)
+    Q = cat(batches..., dims=3)
+
+    @assert ndims(Q) == 3
+    @assert Q isa AbstractArray{Float32}
+
+    Q
 end
