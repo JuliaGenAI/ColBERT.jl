@@ -48,7 +48,7 @@ function IndexScorer(index_path::String)
     # loading all compressed embeddings
     num_embeddings = metadata["num_embeddings"]
     dim, nbits = config.doc_settings.dim, config.indexing_settings.nbits
-    @assert (dim * nbits) % 8 == 0
+    @assert (dim * nbits) % 8 == 0 "(dim, nbits): $((dim, nbits))"
     codes = zeros(UInt32, num_embeddings) 
     residuals = zeros(UInt8, Int((dim  / 8) * nbits), num_embeddings)
     codes_offset = 1
@@ -65,7 +65,7 @@ function IndexScorer(index_path::String)
 
     # the emb2pid mapping
     @info "Building the emb2pid mapping."
-    @assert isequal(sum(doclens), metadata["num_embeddings"])
+    @assert isequal(sum(doclens), metadata["num_embeddings"]) "sum(doclens): $(sum(doclens)), num_embeddings: $(metadata["num_embeddings"])"
     emb2pid = zeros(Int, metadata["num_embeddings"])
 
     offset_doclens = 1
@@ -91,10 +91,10 @@ end
 Return a candidate set of `pids` for the query matrix `Q`. This is done as follows: the nearest `nprobe` centroids for each query embedding are found. This list is then flattened and the unique set of these centroids is built. Using the `ivf`, the list of all unique embedding IDs contained in these centroids is computed. Finally, these embedding IDs are converted to `pids` using `emb2pid`. This list of `pids` is the final candidate set.
 """
 function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::AbstractArray{Float32})
-    @assert isequal(size(Q)[2], config.query_settings.query_maxlen)     # Q: (128, 32, 1)
+    @assert isequal(size(Q)[2], config.query_settings.query_maxlen) "size(Q): $(size(Q)), query_maxlen: $(config.query_settings.query_maxlen)"     # Q: (128, 32, 1)
 
     Q = reshape(Q, size(Q)[1:end .!= end]...)           # squeeze out the last dimension 
-    @assert isequal(length(size(Q)), 2)
+    @assert isequal(length(size(Q)), 2) "size(Q): $(size(Q))"
 
     # score of each query embedding with each centroid and take top nprobe centroids
     cells = transpose(Q) * ranker.codec.centroids
@@ -109,7 +109,7 @@ function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::AbstractArray{F
         length = ranker.ivf_lengths[centroid_id]
         append!(eids, ranker.ivf[offset:offset + length - 1])
     end
-    @assert isequal(length(eids), sum(ranker.ivf_lengths[centroid_ids]))
+    @assert isequal(length(eids), sum(ranker.ivf_lengths[centroid_ids])) "length(eids): $(length(eids)), sum(ranker.ivf_lengths[centroid_ids]): $(sum(ranker.ivf_lengths[centroid_ids]))"
     eids = sort(unique(eids))
 
     # get pids from the emb2pid mapping
@@ -135,20 +135,20 @@ function score_pids(ranker::IndexScorer, config::ColBERTConfig, Q::AbstractArray
         residuals_packed[:, offset: offset + num_embs_pid - 1] = ranker.residuals[:, pid_offset: pid_offset + num_embs_pid - 1] 
         offset += num_embs_pid
     end
-    @assert offset == num_embs + 1
+    @assert offset == num_embs + 1 "offset: $(offset), num_embs + 1: $(num_embs + 1)"
 
     # decompress these codes and residuals to get the original embeddings
     D_packed = decompress(ranker.codec, codes_packed, residuals_packed) 
-    @assert ndims(D_packed) == 2
-    @assert size(D_packed)[1] == config.doc_settings.dim
-    @assert size(D_packed)[2] == num_embs 
-    @assert D_packed isa AbstractMatrix{Float32}
+    @assert ndims(D_packed) == 2 "ndims(D_packed): $(ndims(D_packed))"
+    @assert size(D_packed)[1] == config.doc_settings.dim "size(D_packed): $(size(D_packed)), config.doc_settings.dim: $(config.doc_settings.dim)"
+    @assert size(D_packed)[2] == num_embs "size(D_packed): $(size(D_packed)), num_embs: $(num_embs)"
+    @assert D_packed isa AbstractMatrix{Float32} "$(typeof(D_packed))"
 
     # get the max-sim scores
     if size(Q)[3] > 1
         error("Only one query is supported at the moment!")
     end
-    @assert size(Q)[3] == 1
+    @assert size(Q)[3] == 1 "size(Q): $(size(Q))"
     Q = reshape(Q, size(Q)[1:2]...)
     
     scores = Vector{Float32}()
@@ -161,7 +161,7 @@ function score_pids(ranker::IndexScorer, config::ColBERTConfig, Q::AbstractArray
 
         offset += num_embs_pid
     end
-    @assert offset == num_embs + 1
+    @assert offset == num_embs + 1 "offset: $(offset), num_embs + 1: $(num_embs + 1)"
 
     scores
 end

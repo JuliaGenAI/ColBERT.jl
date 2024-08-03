@@ -159,9 +159,9 @@ function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEnco
     ids, mask = encoded_text.token, encoded_text.attention_mask
     integer_ids = reinterpret(Int32, ids)
     integer_mask = NeuralAttentionlib.getmask(mask, ids)[1, :, :]
-    @assert isequal(size(integer_ids), size(integer_mask))
-    @assert integer_ids isa AbstractMatrix{Int32}
-    @assert integer_mask isa AbstractMatrix{Bool}
+    @assert isequal(size(integer_ids), size(integer_mask)) "size(integer_ids): $(size(integer_ids)), size(integer_mask): $(integer_mask)"
+    @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
+    @assert integer_mask isa AbstractMatrix{Bool} "$(typeof(integer_mask))"
 
     # adding the [D] marker token ID
     integer_ids[2, :] .= doc_tokenizer.D_marker_token_id
@@ -171,13 +171,13 @@ function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEnco
     else
         # we sort passages by length to do batch packing for more efficient use of the GPU
         integer_ids, integer_mask, reverse_indices = _sort_by_length(integer_ids, integer_mask, bsize)
-        @assert length(reverse_indices) == length(batch_text)
-        @assert integer_ids isa AbstractMatrix{Int32}
-        @assert integer_mask isa AbstractMatrix{Bool}
-        @assert reverse_indices isa Vector{Int64}
+        @assert length(reverse_indices) == length(batch_text) "length(reverse_indices): $(length(reverse_indices)), length(batch_text): $(length(batch_text))"
+        @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
+        @assert integer_mask isa AbstractMatrix{Bool} "$(typeof(integer_mask))"
+        @assert reverse_indices isa Vector{Int64i} "$(typeof(reverse_indices))" 
 
         batches = _split_into_batches(integer_ids, integer_mask, bsize)
-        @assert batches isa Vector{Tuple{AbstractMatrix{Int32}, AbstractMatrix{Bool}}}
+        @assert batches isa Vector{Tuple{AbstractMatrix{Int32}, AbstractMatrix{Bool}}} "$(typeof(batches))" 
 
         batches, reverse_indices
     end

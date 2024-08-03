@@ -84,7 +84,7 @@ The codes and compressed residuals for the chunk are saved in files named `<chun
 function save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int, embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
     codes, residuals = compress(saver.codec, embs)
     path_prefix = joinpath(saver.config.indexing_settings.index_path, string(chunk_idx))
-    @assert length(codes) == size(embs)[2]
+    @assert length(codes) == size(embs)[2] "length(codes): $(length(codes)), size(embs): $(size(embs))"
 
     # saving the compressed embeddings
     codes_path = "$(path_prefix).codes.jld2"

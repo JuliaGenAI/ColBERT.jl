@@ -267,15 +267,15 @@ function doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer
 
     mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, checkpoint.skiplist)
     mask = reshape(mask, (1, size(mask)...))                                        # equivalent of unsqueeze
-    @assert isequal(size(mask)[2:end], size(D)[2:end])
-    @assert mask isa AbstractArray{Bool} 
+    @assert isequal(size(mask)[2:end], size(D)[2:end]) "size(mask): $(size(mask)), size(D): $(size(D))"
+    @assert mask isa AbstractArray{Bool} "$(typeof(mask))" 
 
     D = D .* mask                                                                   # clear out embeddings of masked tokens
     D = mapslices(v -> iszero(v) ? v : normalize(v), D, dims = 1)                   # normalize each embedding
 
-    @assert ndims(D) == 3
-    @assert isequal(size(D)[2:end], size(integer_ids))
-    @assert D isa AbstractArray{Float32} 
+    @assert ndims(D) == 3 "ndims(D): $(ndims(D))"
+    @assert isequal(size(D)[2:end], size(integer_ids)) "size(D): $(size(D)), size(integer_ids): $(size(integer_ids))"
+    @assert D isa AbstractArray{Float32} "$(typeof(D))" 
 
     D, mask
 end
@@ -386,10 +386,10 @@ function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{
         # remove embeddings for masked tokens
         D = D[:, reshape(mask, prod(size(mask)))]
 
-        @assert ndims(D) == 2
-        @assert size(D)[2] == sum(doclens)
-        @assert D isa AbstractMatrix{Float32}
-        @assert doclens isa Vector{Int64}
+        @assert ndims(D) == 2 "ndims(D): $(ndims(D))"
+        @assert size(D)[2] == sum(doclens) "size(D): $(size(D)), sum(doclens): $(sum(doclens))"
+        @assert D isa AbstractMatrix{Float32} "$(typeof(D))"
+        @assert doclens isa Vector{Int64} "$(typeof(doclens))"
 
         D, doclens
     end
@@ -449,14 +449,14 @@ function query(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integ
     # only skip the pad symbol, i.e an empty skiplist
     mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, Vector{Int}())
     mask = reshape(mask, (1, size(mask)...))                                        # equivalent of unsqueeze
-    @assert isequal(size(mask)[2:end], size(Q)[2:end])
+    @assert isequal(size(mask)[2:end], size(Q)[2:end]) "size(mask): $(size(mask)), size(Q): $(size(Q))"
 
     Q = Q .* mask
     Q = mapslices(v -> iszero(v) ? v : normalize(v), Q, dims = 1)                   # normalize each embedding
 
-    @assert ndims(Q) == 3
-    @assert isequal(size(Q)[2:end], size(integer_ids))
-    @assert Q isa AbstractArray{Float32} 
+    @assert ndims(Q) == 3 "ndims(Q): $(ndims(Q))"
+    @assert isequal(size(Q)[2:end], size(integer_ids)) "size(Q): $(size(Q)), size(integer_ids): $(size(integer_ids))"
+    @assert Q isa AbstractArray{Float32} "$(typeof(Q))" 
 
     Q
 end
@@ -530,8 +530,8 @@ function queryFromText(checkpoint::Checkpoint, queries::Vector{String}, bsize::U
     batches = [query(checkpoint, integer_ids, integer_mask) for (integer_ids, integer_mask) in batches]
     Q = cat(batches..., dims=3)
 
-    @assert ndims(Q) == 3
-    @assert Q isa AbstractArray{Float32}
+    @assert ndims(Q) == 3 "ndims(Q): $(ndims(Q))"
+    @assert Q isa AbstractArray{Float32} "$(typeof(Q))"
 
     Q
 end

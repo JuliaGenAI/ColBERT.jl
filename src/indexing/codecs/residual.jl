@@ -68,8 +68,8 @@ function compress_into_codes(codec::ResidualCodec, embs::AbstractMatrix{Float32}
         offset += bsize
     end
 
-    @assert length(codes) == size(embs)[2]
-    @assert codes isa AbstractVector{UInt32} 
+    @assert length(codes) == size(embs)[2] "length(codes): $(length(codes)), size(embs): $(size(embs))"
+    @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
     codes
 end
 
@@ -108,9 +108,9 @@ function binarize(codec::ResidualCodec, residuals::AbstractMatrix{Float32})
     bucket_indices = bucket_indices .& 1                                                 # apply mod 1 to binarize
     residuals_packed = reinterpret(UInt8, BitArray(vec(bucket_indices)).chunks)          # flatten out the bits, and pack them into UInt8
     residuals_packed = reshape(residuals_packed, (Int(dim / 8) * nbits, num_embeddings)) # reshape back to get compressions for each embedding
-    @assert ndims(residuals_packed) == 2
-    @assert size(residuals_packed)[2] == size(residuals)[2]
-    @assert residuals_packed isa AbstractMatrix{UInt8}
+    @assert ndims(residuals_packed) == 2 "ndims(residuals_packed): $(ndims(residuals_packed))"
+    @assert size(residuals_packed)[2] == size(residuals)[2] "size(residuals_packed): $(size(residuals_packed)), size(residuals): $(size(residuals))"
+    @assert residuals_packed isa AbstractMatrix{UInt8} "$(typeof(residuals_packed))"
 
     residuals_packed
 end
@@ -147,12 +147,12 @@ function compress(codec::ResidualCodec, embs::AbstractMatrix{Float32})
     end
     residuals = cat(residuals..., dims = 2)
 
-    @assert ndims(codes) == 1
-    @assert ndims(residuals) == 2
-    @assert length(codes) == size(embs)[2] 
-    @assert size(residuals)[2] == size(embs)[2]
-    @assert codes isa AbstractVector{UInt32}
-    @assert residuals isa AbstractMatrix{UInt8}
+    @assert ndims(codes) == 1 "ndims(codes): $(ndims(codes))"
+    @assert ndims(residuals) == 2 "ndims(residuals): $(ndims(residuals))"
+    @assert length(codes) == size(embs)[2] "length(codes): $(length(codes)), size(embs): $(size(embs))" 
+    @assert size(residuals)[2] == size(embs)[2] "size(residuals): $(size(residuals)), size(embs): $(size(embs))"
+    @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
+    @assert residuals isa AbstractMatrix{UInt8} "$(typeof(residuals))"
 
     codes, residuals
 end
@@ -161,8 +161,8 @@ function decompress_residuals(codec::ResidualCodec, binary_residuals::AbstractMa
     dim = codec.config.doc_settings.dim
     nbits = codec.config.indexing_settings.nbits
 
-    @assert ndims(binary_residuals) == 2 
-    @assert size(binary_residuals)[1] == (dim / 8) * nbits
+    @assert ndims(binary_residuals) == 2 "ndims(binary_residuals): $(ndims(binary_residuals))" 
+    @assert size(binary_residuals)[1] == (dim / 8) * nbits "size(binary_residuals): $(size(binary_residuals)), (dim / 8) * nbits: $((dim / 8) * nbits)"
 
     # unpacking UInt8 into bits
     unpacked_bits = BitVector() 
@@ -188,17 +188,17 @@ function decompress_residuals(codec::ResidualCodec, binary_residuals::AbstractMa
     unpacked_bits = reshape(unpacked_bits, size(unpacked_bits)[2:end]...)
     embeddings = codec.bucket_weights[unpacked_bits]
 
-    @assert ndims(embeddings) == 2
-    @assert size(embeddings)[2] == size(binary_residuals)[2]
-    @assert embeddings isa AbstractMatrix{Float32} 
+    @assert ndims(embeddings) == 2 "ndims(embeddings): $(ndims(embeddings))"
+    @assert size(embeddings)[2] == size(binary_residuals)[2] "size(embeddings): $(size(embeddings)), size(binary_residuals): $(size(binary_residuals)) "
+    @assert embeddings isa AbstractMatrix{Float32} "$(typeof(embeddings))" 
 
     embeddings
 end
 
 function decompress(codec::ResidualCodec, codes::Vector{UInt32}, residuals::AbstractMatrix{UInt8})
-    @assert ndims(codes) == 1 
-    @assert ndims(residuals) == 2
-    @assert length(codes) == size(residuals)[2]
+    @assert ndims(codes) == 1 "ndims(codes): $(ndims(codes))"
+    @assert ndims(residuals) == 2 "ndims(residuals): $(ndims(residuals))"
+    @assert length(codes) == size(residuals)[2] "length(codes): $(length(codes)), size(residuals): $(size(residuals))"
 
     # decompress in batches
     D = Vector{AbstractMatrix{Float32}}() 
@@ -219,9 +219,9 @@ function decompress(codec::ResidualCodec, codes::Vector{UInt32}, residuals::Abst
     end
     embeddings = cat(D..., dims = 2)
 
-    @assert ndims(embeddings) == 2
-    @assert size(embeddings)[2] == length(codes) 
-    @assert embeddings isa AbstractMatrix{Float32}
+    @assert ndims(embeddings) == 2 "ndims(embeddings): $(ndims(embeddings))"
+    @assert size(embeddings)[2] == length(codes) "size(embeddings): $(size(embeddings)),  length(codes): $(length(codes))"  
+    @assert embeddings isa AbstractMatrix{Float32} "$(typeof(embeddings))"
 
     embeddings
 end
