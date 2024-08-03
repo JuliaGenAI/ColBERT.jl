@@ -158,7 +158,7 @@ struct Checkpoint
     doc_tokenizer::DocTokenizer
     query_tokenizer::QueryTokenizer
     config::ColBERTConfig
-    skiplist::Union{Missing, Vector{Int}}
+    skiplist::Union{Missing, Vector{Int64}}
 end
 
 function Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer, query_tokenizer::QueryTokenizer, config::ColBERTConfig)
@@ -172,7 +172,7 @@ function Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer, query_token
 end
 
 """
-    mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, integer_ids::AbstractArray, skiplist::Union{Missing, Vector{Int}})
+    mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, integer_ids::AbstractMatrix{Int32}, skiplist::Union{Missing, Vector{Int64}})
 
 Create a mask for the given `integer_ids`, based on the provided `skiplist`. 
 If the `skiplist` is not missing, then any token IDs in the list will be filtered out along with the padding token.
@@ -211,7 +211,7 @@ julia>  mask_skiplist(checkPoint.model.tokenizer, integer_ids, checkPoint.skipli
 
 ```
 """
-function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, integer_ids::AbstractArray, skiplist::Union{Missing, Vector{Int}})
+function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, integer_ids::AbstractMatrix{Int32}, skiplist::Union{Missing, Vector{Int64}})
     if !ismissing(skiplist)
         filter = token_id -> !(token_id in skiplist) && token_id != TextEncodeBase.lookup(tokenizer.vocab, tokenizer.padsym)
     else
@@ -221,7 +221,7 @@ function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerT
 end
 
 """
-    doc(checkpoint::Checkpoint, integer_ids::AbstractArray, integer_mask::AbstractArray)
+    doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool})
 
 Compute the hidden state of the BERT and linear layers of ColBERT for documents. 
 
@@ -261,16 +261,22 @@ julia> mask
 
 ```
 """
-function doc(checkpoint::Checkpoint, integer_ids::AbstractArray, integer_mask::AbstractArray)
+function doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool})
     D = checkpoint.model.bert((token=integer_ids, attention_mask=NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
     D = checkpoint.model.linear(D)
 
     mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, checkpoint.skiplist)
     mask = reshape(mask, (1, size(mask)...))                                        # equivalent of unsqueeze
     @assert isequal(size(mask)[2:end], size(D)[2:end])
+    @assert mask isa AbstractArray{Bool} 
 
     D = D .* mask                                                                   # clear out embeddings of masked tokens
     D = mapslices(v -> iszero(v) ? v : normalize(v), D, dims = 1)                   # normalize each embedding
+
+    @assert ndims(D) == 3
+    @assert isequal(size(D)[2:end], size(integer_ids))
+    @assert D isa AbstractArray{Float32} 
+
     D, mask
 end
 
@@ -343,8 +349,11 @@ julia> embs
   0.0438686     0.0846609       -0.0967041   -0.0294838   -0.0853617
 
 julia> doclens
-1×4 Matrix{Int64}:
- 5  5  4  13
+4-element Vector{Int64}:
+  5
+  5
+  4
+ 13
 
 ```
 """
@@ -358,7 +367,7 @@ function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{
         batches = [doc(checkpoint, integer_ids, integer_mask) for (integer_ids, integer_mask) in text_batches]
 
         # aggregate all embeddings
-        D, mask = [], []
+        D, mask = Vector{AbstractArray{Float32}}(), Vector{BitArray}()
         for (_D, _mask) in batches
             push!(D, _D)
             push!(mask, _mask)
@@ -369,13 +378,18 @@ function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{
         mask = reshape(mask, size(mask)[2:end])
 
         # get doclens, i.e number of attended tokens for each passage
-        doclens = sum(mask, dims = 1)
+        doclens = vec(sum(mask, dims = 1))
 
         # flatten out embeddings, i.e get embeddings for each token in each passage
         D = reshape(D, size(D)[1], prod(size(D)[2:end]))
 
         # remove embeddings for masked tokens
         D = D[:, reshape(mask, prod(size(mask)))]
+
+        @assert ndims(D) == 2
+        @assert size(D)[2] == sum(doclens)
+        @assert D isa AbstractMatrix{Float32}
+        @assert doclens isa Vector{Int64}
 
         D, doclens
     end
