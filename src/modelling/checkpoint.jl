@@ -93,6 +93,10 @@ function BaseColBERT(checkpoint::String, config::ColBERTConfig)
     bert_model = HuggingFace.load_model(:bert, checkpoint, :model, bert_state_dict; config = bert_config)
     linear = HuggingFace._load_dense(bert_state_dict, "linear", bert_config.hidden_size, config.doc_settings.dim, bert_config.initializer_range, true)
     tokenizer = Transformers.load_tokenizer(checkpoint)
+    
+    bert_model = bert_model |> Flux.gpu 
+    linear = linear |> Flux.gpu
+
     BaseColBERT(bert_model, linear, tokenizer)
 end
 
@@ -212,12 +216,11 @@ julia>  mask_skiplist(checkPoint.model.tokenizer, integer_ids, checkPoint.skipli
 ```
 """
 function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, integer_ids::AbstractMatrix{Int32}, skiplist::Union{Missing, Vector{Int64}})
-    if !ismissing(skiplist)
-        filter = token_id -> !(token_id in skiplist) && token_id != TextEncodeBase.lookup(tokenizer.vocab, tokenizer.padsym)
-    else
-        filter = token_id -> true
+    filter = integer_ids .!= TextEncodeBase.lookup(tokenizer.vocab, tokenizer.padsym)
+    for token_id in skiplist
+        filter = filter .& (integer_ids .!= token_id)
     end
-    filter.(integer_ids)
+    filter
 end
 
 """
@@ -262,6 +265,11 @@ julia> mask
 ```
 """
 function doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool})
+    use_gpu = checkpoint.config.run_settings.use_gpu
+
+    integer_ids = integer_ids |> Flux.gpu
+    integer_mask = integer_mask|> Flux.gpu
+
     D = checkpoint.model.bert((token=integer_ids, attention_mask=NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
     D = checkpoint.model.linear(D)
 
@@ -271,11 +279,20 @@ function doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer
     @assert mask isa AbstractArray{Bool} "$(typeof(mask))" 
 
     D = D .* mask                                                                   # clear out embeddings of masked tokens
-    D = mapslices(v -> iszero(v) ? v : normalize(v), D, dims = 1)                   # normalize each embedding
 
-    @assert ndims(D) == 3 "ndims(D): $(ndims(D))"
-    @assert isequal(size(D)[2:end], size(integer_ids)) "size(D): $(size(D)), size(integer_ids): $(size(integer_ids))"
-    @assert D isa AbstractArray{Float32} "$(typeof(D))" 
+    if !use_gpu
+        # doing this because normalize gives exact results
+        D = mapslices(v -> iszero(v) ? v : normalize(v), D, dims = 1)                 # normalize each embedding
+    else
+        # TODO: try to do some tests to see the gap between this and LinearAlgebra.normalize
+        # mapreduce doesn't give exact normalization
+        norms = map(sqrt, mapreduce(abs2, +, D, dims = 1))
+        norms[norms .== 0] .= 1                                                         # avoid division by 0
+        @assert isequal(size(norms)[2:end], size(D)[2:end])
+        @assert size(norms)[1] == 1
+
+        D = D ./ norms
+    end
 
     D, mask
 end
@@ -367,7 +384,7 @@ function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{
         batches = [doc(checkpoint, integer_ids, integer_mask) for (integer_ids, integer_mask) in text_batches]
 
         # aggregate all embeddings
-        D, mask = Vector{AbstractArray{Float32}}(), Vector{BitArray}()
+        D, mask = Vector{AbstractArray{Float32}}(), Vector{AbstractArray{Bool}}()
         for (_D, _mask) in batches
             push!(D, _D)
             push!(mask, _mask)
@@ -389,9 +406,9 @@ function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{
         @assert ndims(D) == 2 "ndims(D): $(ndims(D))"
         @assert size(D)[2] == sum(doclens) "size(D): $(size(D)), sum(doclens): $(sum(doclens))"
         @assert D isa AbstractMatrix{Float32} "$(typeof(D))"
-        @assert doclens isa Vector{Int64} "$(typeof(doclens))"
+        @assert doclens isa AbstractVector{Int64} "$(typeof(doclens))"
 
-        D, doclens
+        Flux.cpu(D), Flux.cpu(doclens)
     end
 end
 
@@ -443,16 +460,35 @@ julia> query(checkPoint, integer_ids, integer_mask)
 ```
 """
 function query(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool})
+    use_gpu = checkpoint.config.run_settings.use_gpu
+
+    integer_ids = integer_ids |> Flux.gpu
+    integer_mask = integer_mask |> Flux.gpu
+
     Q = checkpoint.model.bert((token=integer_ids, attention_mask=NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
     Q = checkpoint.model.linear(Q)
 
     # only skip the pad symbol, i.e an empty skiplist
-    mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, Vector{Int}())
+    mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, Vector{Int64}())
     mask = reshape(mask, (1, size(mask)...))                                        # equivalent of unsqueeze
     @assert isequal(size(mask)[2:end], size(Q)[2:end]) "size(mask): $(size(mask)), size(Q): $(size(Q))"
+    @assert mask isa AbstractArray{Bool} "$(typeof(mask))"
 
     Q = Q .* mask
-    Q = mapslices(v -> iszero(v) ? v : normalize(v), Q, dims = 1)                   # normalize each embedding
+
+    if !use_gpu
+        # doing this because normalize gives exact results
+        Q = mapslices(v -> iszero(v) ? v : normalize(v), Q, dims = 1)                 # normalize each embedding
+    else
+        # TODO: try to do some tests to see the gap between this and LinearAlgebra.normalize
+        # mapreduce doesn't give exact normalization
+        norms = map(sqrt, mapreduce(abs2, +, Q, dims = 1))
+        norms[norms .== 0] .= 1                                                         # avoid division by 0
+        @assert isequal(size(norms)[2:end], size(Q)[2:end])
+        @assert size(norms)[1] == 1
+
+        Q = Q ./ norms
+    end
 
     @assert ndims(Q) == 3 "ndims(Q): $(ndims(Q))"
     @assert isequal(size(Q)[2:end], size(integer_ids)) "size(Q): $(size(Q)), size(integer_ids): $(size(integer_ids))"
@@ -533,5 +569,5 @@ function queryFromText(checkpoint::Checkpoint, queries::Vector{String}, bsize::U
     @assert ndims(Q) == 3 "ndims(Q): $(ndims(Q))"
     @assert Q isa AbstractArray{Float32} "$(typeof(Q))"
 
-    Q
+    Flux.cpu(Q)
 end

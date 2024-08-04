@@ -167,14 +167,14 @@ function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEnco
     integer_ids[2, :] .= doc_tokenizer.D_marker_token_id
 
     if ismissing(bsize)
-        integer_ids, integer_mask
+        error("Currently bsize can't be missing!")
     else
         # we sort passages by length to do batch packing for more efficient use of the GPU
         integer_ids, integer_mask, reverse_indices = _sort_by_length(integer_ids, integer_mask, bsize)
         @assert length(reverse_indices) == length(batch_text) "length(reverse_indices): $(length(reverse_indices)), length(batch_text): $(length(batch_text))"
         @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
         @assert integer_mask isa AbstractMatrix{Bool} "$(typeof(integer_mask))"
-        @assert reverse_indices isa Vector{Int64i} "$(typeof(reverse_indices))" 
+        @assert reverse_indices isa Vector{Int64} "$(typeof(reverse_indices))"
 
         batches = _split_into_batches(integer_ids, integer_mask, bsize)
         @assert batches isa Vector{Tuple{AbstractMatrix{Int32}, AbstractMatrix{Bool}}} "$(typeof(batches))" 

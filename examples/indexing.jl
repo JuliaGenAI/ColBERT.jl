@@ -1,4 +1,5 @@
 using ColBERT
+using CUDA
 using Test
 using Random
 
@@ -25,6 +26,7 @@ index_path = joinpath(index_root, index_name)
 config = ColBERTConfig(
     RunSettings(
         experiment="notebook",
+        use_gpu=true,
     ),
     TokenizerSettings(),
     ResourceSettings(
@@ -45,7 +47,6 @@ config = ColBERTConfig(
     SearchSettings(),
 )
 
-# create and run the indexer
 indexer = Indexer(config) 
 index(indexer)
 ColBERT.save(config)

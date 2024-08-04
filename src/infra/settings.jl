@@ -9,6 +9,7 @@ Structure holding all the settings necessary to describe the run environment.
 - `experiment`: The name of the run. Default is `"default"`.
 - `index_root`: The root directory for storing index. For now, there is no need to specify this as it is determined by the indexing component.
 - `name`: The name of the run. Default is the current date and time.
+- `use_gpu`: Whether to use a GPU or not. Default is `false`. 
 - `rank`: The index of the running GPU. Default is `0`. For now, the package only allows this to be `0`.
 - `nranks`: The number of GPUs used in the run. Default is `1`. For now, the package only supports one GPU.
 
@@ -21,6 +22,7 @@ Base.@kwdef struct RunSettings
     experiment::String = "default"
     index_root::Union{Nothing, String} = nothing
     name::String = Dates.format(now(), "yyyy/mm/dd/HH.MM.SS")
+    use_gpu::Bool = false 
     rank::Int = 0
     nranks::Int = 1
 end

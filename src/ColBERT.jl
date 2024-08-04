@@ -2,6 +2,7 @@ module ColBERT
 using Clustering
 using CSV
 using Dates
+using Flux 
 using JLD2
 using JSON
 using LinearAlgebra

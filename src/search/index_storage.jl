@@ -97,7 +97,8 @@ function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::AbstractArray{F
     @assert isequal(length(size(Q)), 2) "size(Q): $(size(Q))"
 
     # score of each query embedding with each centroid and take top nprobe centroids
-    cells = transpose(Q) * ranker.codec.centroids
+    cells = Flux.gpu(transpose(Q)) * Flux.gpu(ranker.codec.centroids) |> Flux.cpu
+    # TODO: how to take topk entries using GPU code?
     cells = mapslices(row -> partialsortperm(row, 1:config.search_settings.nprobe, rev=true), cells, dims = 2)          # take top nprobe centroids for each query 
     centroid_ids = sort(unique(vec(cells)))
 
@@ -152,7 +153,7 @@ function score_pids(ranker::IndexScorer, config::ColBERTConfig, Q::AbstractArray
     Q = reshape(Q, size(Q)[1:2]...)
     
     scores = Vector{Float32}()
-    query_doc_scores = transpose(Q) * D_packed                    # (num_query_tokens, num_embeddings)
+    query_doc_scores = Flux.gpu(transpose(Q)) * Flux.gpu(D_packed)                    # (num_query_tokens, num_embeddings)
     offset = 1
     for pid in pids
         num_embs_pid = ranker.doclens[pid]
