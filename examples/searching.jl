@@ -1,4 +1,5 @@
 using ColBERT
+using CUDA
 
 # create the config
 dataroot = "downloads/lotte"
@@ -23,3 +24,5 @@ print(searcher.config.resource_settings.collection.data[pids])
 query = "are rabbits easy to housebreak?"
 pids, scores = search(searcher, query, 9)
 print(searcher.config.resource_settings.collection.data[pids])
+
+
