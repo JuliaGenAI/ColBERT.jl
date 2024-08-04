@@ -460,16 +460,35 @@ julia> query(checkPoint, integer_ids, integer_mask)
 ```
 """
 function query(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool})
+    use_gpu = checkpoint.config.run_settings.use_gpu
+
+    integer_ids = integer_ids |> Flux.gpu
+    integer_mask = integer_mask |> Flux.gpu
+
     Q = checkpoint.model.bert((token=integer_ids, attention_mask=NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
     Q = checkpoint.model.linear(Q)
 
     # only skip the pad symbol, i.e an empty skiplist
-    mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, Vector{Int}())
+    mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, Vector{Int64}())
     mask = reshape(mask, (1, size(mask)...))                                        # equivalent of unsqueeze
     @assert isequal(size(mask)[2:end], size(Q)[2:end]) "size(mask): $(size(mask)), size(Q): $(size(Q))"
+    @assert mask isa AbstractArray{Bool} "$(typeof(mask))"
 
     Q = Q .* mask
-    Q = mapslices(v -> iszero(v) ? v : normalize(v), Q, dims = 1)                   # normalize each embedding
+
+    if !use_gpu
+        # doing this because normalize gives exact results
+        Q = mapslices(v -> iszero(v) ? v : normalize(v), Q, dims = 1)                 # normalize each embedding
+    else
+        # TODO: try to do some tests to see the gap between this and LinearAlgebra.normalize
+        # mapreduce doesn't give exact normalization
+        norms = map(sqrt, mapreduce(abs2, +, Q, dims = 1))
+        norms[norms .== 0] .= 1                                                         # avoid division by 0
+        @assert isequal(size(norms)[2:end], size(Q)[2:end])
+        @assert size(norms)[1] == 1
+
+        Q = Q ./ norms
+    end
 
     @assert ndims(Q) == 3 "ndims(Q): $(ndims(Q))"
     @assert isequal(size(Q)[2:end], size(integer_ids)) "size(Q): $(size(Q)), size(integer_ids): $(size(integer_ids))"
@@ -550,5 +569,5 @@ function queryFromText(checkpoint::Checkpoint, queries::Vector{String}, bsize::U
     @assert ndims(Q) == 3 "ndims(Q): $(ndims(Q))"
     @assert Q isa AbstractArray{Float32} "$(typeof(Q))"
 
-    Q
+    Flux.cpu(Q)
 end
