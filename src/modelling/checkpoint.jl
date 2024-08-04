@@ -384,7 +384,7 @@ function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{
         batches = [doc(checkpoint, integer_ids, integer_mask) for (integer_ids, integer_mask) in text_batches]
 
         # aggregate all embeddings
-        D, mask = Vector{AbstractArray{Float32}}(), Vector{BitArray}()
+        D, mask = Vector{AbstractArray{Float32}}(), Vector{AbstractArray{Bool}}()
         for (_D, _mask) in batches
             push!(D, _D)
             push!(mask, _mask)
@@ -406,7 +406,7 @@ function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{
         @assert ndims(D) == 2 "ndims(D): $(ndims(D))"
         @assert size(D)[2] == sum(doclens) "size(D): $(size(D)), sum(doclens): $(sum(doclens))"
         @assert D isa AbstractMatrix{Float32} "$(typeof(D))"
-        @assert doclens isa Vector{Int64} "$(typeof(doclens))"
+        @assert doclens isa AbstractVector{Int64} "$(typeof(doclens))"
 
         Flux.cpu(D), Flux.cpu(doclens)
     end

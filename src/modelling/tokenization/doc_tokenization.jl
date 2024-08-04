@@ -174,7 +174,7 @@ function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEnco
         @assert length(reverse_indices) == length(batch_text) "length(reverse_indices): $(length(reverse_indices)), length(batch_text): $(length(batch_text))"
         @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
         @assert integer_mask isa AbstractMatrix{Bool} "$(typeof(integer_mask))"
-        @assert reverse_indices isa Vector{Int64i} "$(typeof(reverse_indices))" 
+        @assert reverse_indices isa Vector{Int64} "$(typeof(reverse_indices))"
 
         batches = _split_into_batches(integer_ids, integer_mask, bsize)
         @assert batches isa Vector{Tuple{AbstractMatrix{Int32}, AbstractMatrix{Bool}}} "$(typeof(batches))" 
