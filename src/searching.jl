@@ -82,7 +82,7 @@ function search(searcher::Searcher, query::String, k::Int)
     dense_search(searcher, encode_query(searcher, query), k) 
 end
 
-function dense_search(searcher::Searcher, Q::Array{<:AbstractFloat}, k::Int)
+function dense_search(searcher::Searcher, Q::AbstractArray{Float32}, k::Int)
     pids, scores = rank(searcher.ranker, searcher.config, Q) 
 
     pids[1:k], scores[1:k]

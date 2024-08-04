@@ -94,7 +94,7 @@ function _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
 
     local_sample_embs, local_sample_doclens = encode_passages(indexer.encoder, local_sample)
     @debug "Local sample embeddings shape: $(size(local_sample_embs)), \t Local sample doclens: $(local_sample_doclens)"
-    @assert size(local_sample_embs)[2] == sum(local_sample_doclens)             
+    @assert size(local_sample_embs)[2] == sum(local_sample_doclens) "size(local_sample_embs): $(size(local_sample_embs)), sum(local_sample_doclens): $(sum(local_sample_doclens))" 
 
     indexer.num_sample_embs = size(local_sample_embs)[2]
     indexer.avg_doclen_est = length(local_sample_doclens) > 0 ? sum(local_sample_doclens) / length(local_sample_doclens) : 0
@@ -197,7 +197,7 @@ function _concatenate_and_split_sample(indexer::CollectionIndexer)
 end
 
 """
-    _compute_avg_residuals(indexer::CollectionIndexer, centroids::Matrix{Float64}, heldout::Matrix{Float64})
+    _compute_avg_residuals(indexer::CollectionIndexer, centroids::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32})
 
 Compute the average residuals and other statistics of the held-out sample embeddings.
 
@@ -211,9 +211,11 @@ Compute the average residuals and other statistics of the held-out sample embedd
 
 A tuple `bucket_cutoffs, bucket_weights, avg_residual`.
 """
-function _compute_avg_residuals(indexer::CollectionIndexer, centroids::Matrix{Float64}, heldout::Matrix{Float64})
-    compressor = ResidualCodec(indexer.config, centroids, 0.0, Vector{Float64}(), Vector{Float64}()) 
+function _compute_avg_residuals(indexer::CollectionIndexer, centroids::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32})
+    compressor = ResidualCodec(indexer.config, centroids, 0.0, Vector{Float32}(), Vector{Float32}()) 
     codes = compress_into_codes(compressor, heldout)             # get centroid codes
+    @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
+    
     heldout_reconstruct = compressor.centroids[:, codes]         # get corresponding centroids
     heldout_avg_residual = heldout - heldout_reconstruct         # compute the residual
     
@@ -224,8 +226,10 @@ function _compute_avg_residuals(indexer::CollectionIndexer, centroids::Matrix{Fl
     quantiles = Vector(0:num_options - 1) / num_options
     bucket_cutoffs_quantiles, bucket_weights_quantiles = quantiles[2:end], quantiles .+ (0.5 / num_options)  
 
-    bucket_cutoffs = quantile(heldout_avg_residual, bucket_cutoffs_quantiles)
-    bucket_weights = quantile(heldout_avg_residual, bucket_weights_quantiles)
+    bucket_cutoffs = Float32.(quantile(heldout_avg_residual, bucket_cutoffs_quantiles))
+    bucket_weights = Float32.(quantile(heldout_avg_residual, bucket_weights_quantiles))
+    @assert bucket_cutoffs isa AbstractVector{Float32} "$(typeof(bucket_cutoffs))"
+    @assert bucket_weights isa AbstractVector{Float32} "$(typeof(bucket_weights))"
 
     @info "Got bucket_cutoffs_quantiles = $(bucket_cutoffs_quantiles) and bucket_weights_quantiles = $(bucket_weights_quantiles)"
     @info "Got bucket_cutoffs = $(bucket_cutoffs) and bucket_weights = $(bucket_weights)"
@@ -246,8 +250,12 @@ Average residuals and other compression data is computed via the [`_compute_avg_
 """
 function train(indexer::CollectionIndexer)
     sample, heldout = _concatenate_and_split_sample(indexer)
+    @assert sample isa AbstractMatrix{Float32} "$(typeof(sample))"
+    @assert heldout isa AbstractMatrix{Float32} "$(typeof(heldout))"
+
     centroids = kmeans(sample, indexer.num_partitions, maxiter = indexer.config.indexing_settings.kmeans_niters, display = :iter).centers
-    @assert size(centroids)[2] == indexer.num_partitions
+    @assert size(centroids)[2] == indexer.num_partitions "size(centroids): $(size(centroids)), indexer.num_partitions: $(indexer.num_partitions)" 
+    @assert centroids isa AbstractMatrix{Float32} "$(typeof(centroids))" 
 
     bucket_cutoffs, bucket_weights, avg_residual = _compute_avg_residuals(indexer, centroids, heldout)
     @info "avg_residual = $(avg_residual)"
@@ -276,6 +284,9 @@ function index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = miss
         # TODO: add functionality to not re-write chunks if they already exist! 
         # TODO: add multiprocessing to this step!
         embs, doclens = encode_passages(indexer.encoder, passages)
+        @assert embs isa AbstractMatrix{Float32} "$(typeof(embs))"
+        @assert doclens isa AbstractVector{Int} "$(typeof(doclens))" 
+
         @info "Saving chunk $(chunk_idx): \t $(length(passages)) passages and $(size(embs)[2]) embeddings. From offset #$(offset) onward." 
         save_chunk(indexer.saver, chunk_idx, offset, embs, doclens)
     end
@@ -338,14 +349,14 @@ end
 
 function _build_ivf(indexer::CollectionIndexer)
     @info "Building the centroid to embedding IVF." 
-    codes = Vector{Int}() 
+    codes = Vector{UInt32}() 
 
     @info "Loading codes for each embedding."
     for chunk_idx in 1:indexer.num_chunks   
-        offset = indexer.embeddings_offsets[chunk_idx] 
         chunk_codes = load_codes(indexer.saver.codec, chunk_idx)
         append!(codes, chunk_codes)
     end
+    @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
 
     @info "Sorting the codes."
     ivf, values = sortperm(codes), sort(codes) 

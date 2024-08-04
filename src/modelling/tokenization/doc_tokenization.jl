@@ -159,7 +159,9 @@ function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEnco
     ids, mask = encoded_text.token, encoded_text.attention_mask
     integer_ids = reinterpret(Int32, ids)
     integer_mask = NeuralAttentionlib.getmask(mask, ids)[1, :, :]
-    @assert isequal(size(integer_ids), size(integer_mask))
+    @assert isequal(size(integer_ids), size(integer_mask)) "size(integer_ids): $(size(integer_ids)), size(integer_mask): $(integer_mask)"
+    @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
+    @assert integer_mask isa AbstractMatrix{Bool} "$(typeof(integer_mask))"
 
     # adding the [D] marker token ID
     integer_ids[2, :] .= doc_tokenizer.D_marker_token_id
@@ -169,15 +171,20 @@ function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEnco
     else
         # we sort passages by length to do batch packing for more efficient use of the GPU
         integer_ids, integer_mask, reverse_indices = _sort_by_length(integer_ids, integer_mask, bsize)
+        @assert length(reverse_indices) == length(batch_text) "length(reverse_indices): $(length(reverse_indices)), length(batch_text): $(length(batch_text))"
+        @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
+        @assert integer_mask isa AbstractMatrix{Bool} "$(typeof(integer_mask))"
+        @assert reverse_indices isa Vector{Int64i} "$(typeof(reverse_indices))" 
+
         batches = _split_into_batches(integer_ids, integer_mask, bsize)
-        @assert length(reverse_indices) == length(batch_text)
+        @assert batches isa Vector{Tuple{AbstractMatrix{Int32}, AbstractMatrix{Bool}}} "$(typeof(batches))" 
 
         batches, reverse_indices
     end
 end
 
 """
-    _sort_by_length(integer_ids::AbstractMatrix, integer_mask::AbstractMatrix, bsize::Int)
+    _sort_by_length(integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
 
 Sort sentences by number of attended tokens, if the number of sentences is larger than `bsize`. 
 
@@ -194,7 +201,7 @@ Depending upon `bsize`, the following are returned:
 - If the number of documents (second dimension of `integer_ids`) is atmost `bsize`, then the `integer_ids` and `integer_mask` are returned unchanged. 
 - If the number of documents is larger than `bsize`, then the passages are first sorted by the number of attended tokens (figured out from the `integer_mask`), and then the sorted arrays `integer_ids`, `integer_mask` are returned, along with a list of `reverse_indices`, i.e a mapping from the documents to their indices in the original order.
 """
-function _sort_by_length(integer_ids::AbstractMatrix, integer_mask::AbstractMatrix, bsize::Int)
+function _sort_by_length(integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
     batch_size = size(integer_ids)[2]
     if batch_size <= bsize
         # if the number of passages fits the batch size, do nothing
@@ -209,7 +216,7 @@ function _sort_by_length(integer_ids::AbstractMatrix, integer_mask::AbstractMatr
 end
 
 """
-    _split_into_batches(integer_ids::AbstractArray, integer_mask::AbstractMatrix, bsize::Int)
+    _split_into_batches(integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
 
 Split the given `integer_ids` and `integer_mask` into batches of size `bsize`.
 
@@ -222,9 +229,9 @@ Split the given `integer_ids` and `integer_mask` into batches of size `bsize`.
 
 Batches of token IDs and attention masks, with each batch having size `bsize` (with the possibility of the last batch being smaller).
 """
-function _split_into_batches(integer_ids::AbstractArray, integer_mask::AbstractMatrix, bsize::Int)
+function _split_into_batches(integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
     batch_size = size(integer_ids)[2]
-    batches = Vector{Tuple{AbstractArray, AbstractMatrix}}()
+    batches = Vector{Tuple{AbstractMatrix{Int32}, AbstractMatrix{Bool}}}()
     for offset in 1:bsize:batch_size
         push!(batches, (integer_ids[:, offset:min(batch_size, offset + bsize - 1)], integer_mask[:, offset:min(batch_size, offset + bsize - 1)]))
     end
