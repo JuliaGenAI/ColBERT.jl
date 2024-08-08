@@ -28,8 +28,8 @@ for (index, arg) in enumerate(ARGS)
     if arg in ["-v", "--verbose"]
         opt = :verbose
         push!(indices_to_remove, index)
-    elseif arg in ["-h", "--help"] 
-        opt = :help 
+    elseif arg in ["-h", "--help"]
+        opt = :help
         push!(indices_to_remove, index)
     else
         error("Option $arg is not supported.")

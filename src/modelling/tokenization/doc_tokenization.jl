@@ -17,8 +17,10 @@ struct DocTokenizer
     config::ColBERTConfig
 end
 
-function DocTokenizer(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, config::ColBERTConfig)
-    D_marker_token_id = TextEncodeBase.lookup(tokenizer.vocab, config.tokenizer_settings.doc_token_id)
+function DocTokenizer(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        config::ColBERTConfig)
+    D_marker_token_id = TextEncodeBase.lookup(
+        tokenizer.vocab, config.tokenizer_settings.doc_token_id)
     DocTokenizer(D_marker_token_id, config)
 end
 
@@ -150,7 +152,9 @@ julia> reverse_indices              # the original order
 
 ```
 """
-function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, batch_text::Vector{String}, bsize::Union{Missing, Int})
+function tensorize(doc_tokenizer::DocTokenizer,
+        tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        batch_text::Vector{String}, bsize::Union{Missing, Int})
     # placeholder for [D] marker token
     batch_text = [". " * doc for doc in batch_text]
 
@@ -170,14 +174,15 @@ function tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEnco
         error("Currently bsize can't be missing!")
     else
         # we sort passages by length to do batch packing for more efficient use of the GPU
-        integer_ids, integer_mask, reverse_indices = _sort_by_length(integer_ids, integer_mask, bsize)
-        @assert length(reverse_indices) == length(batch_text) "length(reverse_indices): $(length(reverse_indices)), length(batch_text): $(length(batch_text))"
+        integer_ids, integer_mask, reverse_indices = _sort_by_length(
+            integer_ids, integer_mask, bsize)
+        @assert length(reverse_indices)==length(batch_text) "length(reverse_indices): $(length(reverse_indices)), length(batch_text): $(length(batch_text))"
         @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
         @assert integer_mask isa AbstractMatrix{Bool} "$(typeof(integer_mask))"
         @assert reverse_indices isa Vector{Int64} "$(typeof(reverse_indices))"
 
         batches = _split_into_batches(integer_ids, integer_mask, bsize)
-        @assert batches isa Vector{Tuple{AbstractMatrix{Int32}, AbstractMatrix{Bool}}} "$(typeof(batches))" 
+        @assert batches isa Vector{Tuple{AbstractMatrix{Int32}, AbstractMatrix{Bool}}} "$(typeof(batches))"
 
         batches, reverse_indices
     end
@@ -201,7 +206,8 @@ Depending upon `bsize`, the following are returned:
 - If the number of documents (second dimension of `integer_ids`) is atmost `bsize`, then the `integer_ids` and `integer_mask` are returned unchanged. 
 - If the number of documents is larger than `bsize`, then the passages are first sorted by the number of attended tokens (figured out from the `integer_mask`), and then the sorted arrays `integer_ids`, `integer_mask` are returned, along with a list of `reverse_indices`, i.e a mapping from the documents to their indices in the original order.
 """
-function _sort_by_length(integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
+function _sort_by_length(
+        integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
     batch_size = size(integer_ids)[2]
     if batch_size <= bsize
         # if the number of passages fits the batch size, do nothing
@@ -229,11 +235,14 @@ Split the given `integer_ids` and `integer_mask` into batches of size `bsize`.
 
 Batches of token IDs and attention masks, with each batch having size `bsize` (with the possibility of the last batch being smaller).
 """
-function _split_into_batches(integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
+function _split_into_batches(
+        integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
     batch_size = size(integer_ids)[2]
     batches = Vector{Tuple{AbstractMatrix{Int32}, AbstractMatrix{Bool}}}()
     for offset in 1:bsize:batch_size
-        push!(batches, (integer_ids[:, offset:min(batch_size, offset + bsize - 1)], integer_mask[:, offset:min(batch_size, offset + bsize - 1)]))
+        push!(batches,
+            (integer_ids[:, offset:min(batch_size, offset + bsize - 1)],
+                integer_mask[:, offset:min(batch_size, offset + bsize - 1)]))
     end
     batches
 end

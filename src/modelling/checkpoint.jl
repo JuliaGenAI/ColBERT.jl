@@ -90,11 +90,13 @@ function BaseColBERT(checkpoint::String, config::ColBERTConfig)
     # we manually load the linear layer
     bert_config = Transformers.load_config(checkpoint)
     bert_state_dict = HuggingFace.load_state_dict(checkpoint)
-    bert_model = HuggingFace.load_model(:bert, checkpoint, :model, bert_state_dict; config = bert_config)
-    linear = HuggingFace._load_dense(bert_state_dict, "linear", bert_config.hidden_size, config.doc_settings.dim, bert_config.initializer_range, true)
+    bert_model = HuggingFace.load_model(
+        :bert, checkpoint, :model, bert_state_dict; config = bert_config)
+    linear = HuggingFace._load_dense(bert_state_dict, "linear", bert_config.hidden_size,
+        config.doc_settings.dim, bert_config.initializer_range, true)
     tokenizer = Transformers.load_tokenizer(checkpoint)
-    
-    bert_model = bert_model |> Flux.gpu 
+
+    bert_model = bert_model |> Flux.gpu
     linear = linear |> Flux.gpu
 
     BaseColBERT(bert_model, linear, tokenizer)
@@ -165,10 +167,12 @@ struct Checkpoint
     skiplist::Union{Missing, Vector{Int64}}
 end
 
-function Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer, query_tokenizer::QueryTokenizer, config::ColBERTConfig)
+function Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer,
+        query_tokenizer::QueryTokenizer, config::ColBERTConfig)
     if config.doc_settings.mask_punctuation
         punctuation_list = string.(collect("!\"#\$%&\'()*+,-./:;<=>?@[\\]^_`{|}~"))
-        skiplist = [TextEncodeBase.lookup(model.tokenizer.vocab, punct) for punct in punctuation_list]
+        skiplist = [TextEncodeBase.lookup(model.tokenizer.vocab, punct)
+                    for punct in punctuation_list]
     else
         skiplist = missing
     end
@@ -215,7 +219,8 @@ julia>  mask_skiplist(checkPoint.model.tokenizer, integer_ids, checkPoint.skipli
 
 ```
 """
-function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, integer_ids::AbstractMatrix{Int32}, skiplist::Union{Missing, Vector{Int64}})
+function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        integer_ids::AbstractMatrix{Int32}, skiplist::Union{Missing, Vector{Int64}})
     filter = integer_ids .!= TextEncodeBase.lookup(tokenizer.vocab, tokenizer.padsym)
     for token_id in skiplist
         filter = filter .& (integer_ids .!= token_id)
@@ -264,19 +269,21 @@ julia> mask
 
 ```
 """
-function doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool})
+function doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
+        integer_mask::AbstractMatrix{Bool})
     use_gpu = checkpoint.config.run_settings.use_gpu
 
     integer_ids = integer_ids |> Flux.gpu
-    integer_mask = integer_mask|> Flux.gpu
+    integer_mask = integer_mask |> Flux.gpu
 
-    D = checkpoint.model.bert((token=integer_ids, attention_mask=NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
+    D = checkpoint.model.bert((token = integer_ids,
+        attention_mask = NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
     D = checkpoint.model.linear(D)
 
     mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, checkpoint.skiplist)
     mask = reshape(mask, (1, size(mask)...))                                        # equivalent of unsqueeze
     @assert isequal(size(mask)[2:end], size(D)[2:end]) "size(mask): $(size(mask)), size(D): $(size(D))"
-    @assert mask isa AbstractArray{Bool} "$(typeof(mask))" 
+    @assert mask isa AbstractArray{Bool} "$(typeof(mask))"
 
     D = D .* mask                                                                   # clear out embeddings of masked tokens
 
@@ -374,14 +381,17 @@ julia> doclens
 
 ```
 """
-function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{Missing, Int})
+function docFromText(
+        checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{Missing, Int})
     if ismissing(bsize)
         # integer_ids, integer_mask = tensorize(checkpoint.doc_tokenizer, checkpoint.model.tokenizer, docs, bsize)
         # doc(checkpoint, integer_ids, integer_mask)
         error("Currently bsize cannot be missing!")
     else
-        text_batches, reverse_indices = tensorize(checkpoint.doc_tokenizer, checkpoint.model.tokenizer, docs, bsize)
-        batches = [doc(checkpoint, integer_ids, integer_mask) for (integer_ids, integer_mask) in text_batches]
+        text_batches, reverse_indices = tensorize(
+            checkpoint.doc_tokenizer, checkpoint.model.tokenizer, docs, bsize)
+        batches = [doc(checkpoint, integer_ids, integer_mask)
+                   for (integer_ids, integer_mask) in text_batches]
 
         # aggregate all embeddings
         D, mask = Vector{AbstractArray{Float32}}(), Vector{AbstractArray{Bool}}()
@@ -391,7 +401,8 @@ function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{
         end
 
         # concat embeddings and masks, and put them in the original order
-        D, mask = cat(D..., dims = 3)[:, :, reverse_indices], cat(mask..., dims = 3)[:, :, reverse_indices]
+        D, mask = cat(D..., dims = 3)[:, :, reverse_indices],
+        cat(mask..., dims = 3)[:, :, reverse_indices]
         mask = reshape(mask, size(mask)[2:end])
 
         # get doclens, i.e number of attended tokens for each passage
@@ -403,8 +414,8 @@ function docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{
         # remove embeddings for masked tokens
         D = D[:, reshape(mask, prod(size(mask)))]
 
-        @assert ndims(D) == 2 "ndims(D): $(ndims(D))"
-        @assert size(D)[2] == sum(doclens) "size(D): $(size(D)), sum(doclens): $(sum(doclens))"
+        @assert ndims(D)==2 "ndims(D): $(ndims(D))"
+        @assert size(D)[2]==sum(doclens) "size(D): $(size(D)), sum(doclens): $(sum(doclens))"
         @assert D isa AbstractMatrix{Float32} "$(typeof(D))"
         @assert doclens isa AbstractVector{Int64} "$(typeof(doclens))"
 
@@ -459,13 +470,15 @@ julia> query(checkPoint, integer_ids, integer_mask)
 
 ```
 """
-function query(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool})
+function query(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
+        integer_mask::AbstractMatrix{Bool})
     use_gpu = checkpoint.config.run_settings.use_gpu
 
     integer_ids = integer_ids |> Flux.gpu
     integer_mask = integer_mask |> Flux.gpu
 
-    Q = checkpoint.model.bert((token=integer_ids, attention_mask=NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
+    Q = checkpoint.model.bert((token = integer_ids,
+        attention_mask = NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
     Q = checkpoint.model.linear(Q)
 
     # only skip the pad symbol, i.e an empty skiplist
@@ -490,9 +503,9 @@ function query(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integ
         Q = Q ./ norms
     end
 
-    @assert ndims(Q) == 3 "ndims(Q): $(ndims(Q))"
+    @assert ndims(Q)==3 "ndims(Q): $(ndims(Q))"
     @assert isequal(size(Q)[2:end], size(integer_ids)) "size(Q): $(size(Q)), size(integer_ids): $(size(integer_ids))"
-    @assert Q isa AbstractArray{Float32} "$(typeof(Q))" 
+    @assert Q isa AbstractArray{Float32} "$(typeof(Q))"
 
     Q
 end
@@ -549,24 +562,31 @@ julia> queryFromText(checkPoint, queries, 128)
 
 ```
 """
-function queryFromText(checkpoint::Checkpoint, queries::Vector{String}, bsize::Union{Missing, Int})
+function queryFromText(
+        checkpoint::Checkpoint, queries::Vector{String}, bsize::Union{Missing, Int})
     if ismissing(bsize)
         error("Currently bsize cannot be missing!")
     end
 
     # configure the tokenizer to truncate or pad to query_maxlen
-    tokenizer = checkpoint.model.tokenizer 
+    tokenizer = checkpoint.model.tokenizer
     process = tokenizer.process
-    truncpad_pipe = Pipeline{:token}(TextEncodeBase.trunc_or_pad(checkpoint.config.query_settings.query_maxlen, "[PAD]", :tail, :tail), :token)
+    truncpad_pipe = Pipeline{:token}(
+        TextEncodeBase.trunc_or_pad(
+            checkpoint.config.query_settings.query_maxlen, "[PAD]", :tail, :tail),
+        :token)
     process = process[1:4] |> truncpad_pipe |> process[6:end]
-    tokenizer = Transformers.TextEncoders.BertTextEncoder(tokenizer.tokenizer, tokenizer.vocab, process; startsym = tokenizer.startsym, endsym = tokenizer.endsym, padsym = tokenizer.padsym, trunc = tokenizer.trunc)
+    tokenizer = Transformers.TextEncoders.BertTextEncoder(
+        tokenizer.tokenizer, tokenizer.vocab, process; startsym = tokenizer.startsym,
+        endsym = tokenizer.endsym, padsym = tokenizer.padsym, trunc = tokenizer.trunc)
 
     # get ids and masks, embeddings and returning the concatenated tensors
     batches = tensorize(checkpoint.query_tokenizer, tokenizer, queries, bsize)
-    batches = [query(checkpoint, integer_ids, integer_mask) for (integer_ids, integer_mask) in batches]
-    Q = cat(batches..., dims=3)
+    batches = [query(checkpoint, integer_ids, integer_mask)
+               for (integer_ids, integer_mask) in batches]
+    Q = cat(batches..., dims = 3)
 
-    @assert ndims(Q) == 3 "ndims(Q): $(ndims(Q))"
+    @assert ndims(Q)==3 "ndims(Q): $(ndims(Q))"
     @assert Q isa AbstractArray{Float32} "$(typeof(Q))"
 
     Flux.cpu(Q)
