@@ -1,0 +1,2 @@
+#!/bin/sh
+julia --color=yes dev/format.jl .
