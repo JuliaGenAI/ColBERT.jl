@@ -25,28 +25,28 @@ index_path = joinpath(index_root, index_name)
 
 config = ColBERTConfig(
     RunSettings(
-        experiment="notebook",
-        use_gpu=true,
+        experiment = "notebook",
+        use_gpu = true
     ),
     TokenizerSettings(),
     ResourceSettings(
-        checkpoint=checkpoint,
-        collection=collection,
-        index_name=index_name,
+        checkpoint = checkpoint,
+        collection = collection,
+        index_name = index_name
     ),
     DocSettings(
-        doc_maxlen=doc_maxlen,
+        doc_maxlen = doc_maxlen,
     ),
     QuerySettings(),
     IndexingSettings(
-        index_path=index_path,
-        index_bsize=3,
-        nbits=nbits,
-        kmeans_niters=20,
+        index_path = index_path,
+        index_bsize = 3,
+        nbits = nbits,
+        kmeans_niters = 20
     ),
-    SearchSettings(),
+    SearchSettings()
 )
 
-indexer = Indexer(config) 
+indexer = Indexer(config)
 index(indexer)
 ColBERT.save(config)

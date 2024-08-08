@@ -5,7 +5,7 @@ struct Searcher
 end
 
 function Searcher(index_path::String)
-    if !isdir(index_path) 
+    if !isdir(index_path)
         error("Index at $(index_path) does not exist! Please build the index first and try again.")
     end
 
@@ -15,7 +15,8 @@ function Searcher(index_path::String)
     # loading the model and saving it to prevent multiple loads
     @info "Loading ColBERT layers from HuggingFace."
     base_colbert = BaseColBERT(config.resource_settings.checkpoint, config)
-    checkPoint = Checkpoint(base_colbert, DocTokenizer(base_colbert.tokenizer, config), QueryTokenizer(base_colbert.tokenizer, config), config)
+    checkPoint = Checkpoint(base_colbert, DocTokenizer(base_colbert.tokenizer, config),
+        QueryTokenizer(base_colbert.tokenizer, config), config)
 
     Searcher(config, checkPoint, IndexScorer(index_path))
 end
@@ -79,11 +80,11 @@ function encode_query(searcher::Searcher, query::String)
 end
 
 function search(searcher::Searcher, query::String, k::Int)
-    dense_search(searcher, encode_query(searcher, query), k) 
+    dense_search(searcher, encode_query(searcher, query), k)
 end
 
 function dense_search(searcher::Searcher, Q::AbstractArray{Float32}, k::Int)
-    pids, scores = rank(searcher.ranker, searcher.config, Q) 
+    pids, scores = rank(searcher.ranker, searcher.config, Q)
 
     pids[1:k], scores[1:k]
 end

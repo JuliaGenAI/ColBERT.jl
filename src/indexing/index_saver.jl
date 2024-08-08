@@ -29,7 +29,8 @@ function load_codec!(saver::IndexSaver)
     centroids = JLD2.load(joinpath(index_path, "centroids.jld2"), "centroids")
     avg_residual = JLD2.load(joinpath(index_path, "avg_residual.jld2"), "avg_residual")
     buckets = JLD2.load(joinpath(index_path, "buckets.jld2"))
-    saver.codec = ResidualCodec(saver.config, centroids, avg_residual, buckets["bucket_cutoffs"], buckets["bucket_weights"]) 
+    saver.codec = ResidualCodec(saver.config, centroids, avg_residual,
+        buckets["bucket_cutoffs"], buckets["bucket_weights"])
 end
 
 """
@@ -50,18 +51,18 @@ Also see [`train`](@ref).
 """
 function save_codec(saver::IndexSaver)
     index_path = saver.config.indexing_settings.index_path
-    centroids_path = joinpath(index_path, "centroids.jld2") 
-    avg_residual_path = joinpath(index_path, "avg_residual.jld2") 
-    buckets_path = joinpath(index_path, "buckets.jld2") 
+    centroids_path = joinpath(index_path, "centroids.jld2")
+    avg_residual_path = joinpath(index_path, "avg_residual.jld2")
+    buckets_path = joinpath(index_path, "buckets.jld2")
     @info "Saving codec to $(centroids_path), $(avg_residual_path) and $(buckets_path)"
 
     JLD2.save(centroids_path, Dict("centroids" => saver.codec.centroids))
     JLD2.save(avg_residual_path, Dict("avg_residual" => saver.codec.avg_residual))
     JLD2.save(
-        buckets_path, 
+        buckets_path,
         Dict(
             "bucket_cutoffs" => saver.codec.bucket_cutoffs,
-            "bucket_weights" => saver.codec.bucket_weights,
+            "bucket_weights" => saver.codec.bucket_weights
         )
     )
 end
@@ -81,10 +82,11 @@ The codes and compressed residuals for the chunk are saved in files named `<chun
 - `embs`: The embeddings matrix for the current chunk.
 - `doclens`: The document lengths vector for the current chunk.
 """
-function save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int, embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
+function save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int,
+        embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
     codes, residuals = compress(saver.codec, embs)
     path_prefix = joinpath(saver.config.indexing_settings.index_path, string(chunk_idx))
-    @assert length(codes) == size(embs)[2] "length(codes): $(length(codes)), size(embs): $(size(embs))"
+    @assert length(codes)==size(embs)[2] "length(codes): $(length(codes)), size(embs): $(size(embs))"
 
     # saving the compressed embeddings
     codes_path = "$(path_prefix).codes.jld2"
@@ -94,19 +96,21 @@ function save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int, embs::Abstra
     JLD2.save(residuals_path, Dict("residuals" => residuals))
 
     # saving doclens
-    doclens_path = joinpath(saver.config.indexing_settings.index_path, "doclens.$(chunk_idx).jld2")
+    doclens_path = joinpath(
+        saver.config.indexing_settings.index_path, "doclens.$(chunk_idx).jld2")
     @info "Saving doclens to $(doclens_path)"
     JLD2.save(doclens_path, Dict("doclens" => doclens))
 
     # the metadata
-    metadata_path = joinpath(saver.config.indexing_settings.index_path, "$(chunk_idx).metadata.json")
+    metadata_path = joinpath(
+        saver.config.indexing_settings.index_path, "$(chunk_idx).metadata.json")
     @info "Saving metadata to $(metadata_path)"
     open(metadata_path, "w") do io
         JSON.print(io,
             Dict(
-                 "passage_offset" => offset,
-                 "num_passages" => length(doclens),
-                 "num_embeddings" => length(codes),
+                "passage_offset" => offset,
+                "num_passages" => length(doclens),
+                "num_embeddings" => length(codes)
             ),
             4                                                               # indent
         )

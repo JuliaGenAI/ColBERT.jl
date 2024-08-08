@@ -37,7 +37,8 @@ end
 
 function StridedTensor(packed_tensor::Vector{Int}, lengths::Vector{Int})
     tensor = packed_tensor
-    strides = cat(_select_strides(lengths, [.5, .75, .9, .95]), [max(lengths...)], dims = 1) 
+    strides = cat(
+        _select_strides(lengths, [0.5, 0.75, 0.9, 0.95]), [max(lengths...)], dims = 1)
     strides = Int.(trunc.(strides))
     offsets = cat([0], cumsum(lengths), dims = 1)
 
@@ -95,12 +96,12 @@ Create a view into `tensor`, where each column of the view corresponds to a slic
 An array of shape `(stride, outdim)`, where each column is a slice of size `stride` from the original tensor, and `outdim = length(tensor) - stride + 1`. 
 """
 function _create_view(tensor::Vector{Int}, stride::Int)
-    outdim = length(tensor) - stride + 1 
+    outdim = length(tensor) - stride + 1
     size = (stride, outdim)
     tensor_view = zeros(Int, size)
 
     for column in 1:outdim
-        tensor_view[:, column] = copy(tensor[column:column + stride - 1])
+        tensor_view[:, column] = copy(tensor[column:(column + stride - 1)])
     end
 
     tensor_view

@@ -22,7 +22,7 @@ Base.@kwdef struct RunSettings
     experiment::String = "default"
     index_root::Union{Nothing, String} = nothing
     name::String = Dates.format(now(), "yyyy/mm/dd/HH.MM.SS")
-    use_gpu::Bool = false 
+    use_gpu::Bool = false
     rank::Int = 0
     nranks::Int = 1
 end
@@ -138,6 +138,6 @@ Base.@kwdef struct IndexingSettings
 end
 
 Base.@kwdef struct SearchSettings
-    nprobe::Int = 2 
+    nprobe::Int = 2
     ncandidates::Int = 8192
 end
