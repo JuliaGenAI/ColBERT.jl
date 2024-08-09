@@ -5,8 +5,8 @@ A structure to load/save various indexing components.
 
 # Arguments
 
-- `config`: A [`ColBERTConfig`](@ref). 
-- `codec`: A codec to encode and decode the embeddings. 
+  - `config`: A [`ColBERTConfig`](@ref).
+  - `codec`: A codec to encode and decode the embeddings.
 """
 Base.@kwdef mutable struct IndexSaver
     config::ColBERTConfig
@@ -16,13 +16,13 @@ end
 """
     load_codec!(saver::IndexSaver)
 
-Load a codec from disk into `saver`. 
+Load a codec from disk into `saver`.
 
 The path of of the codec is inferred from the config stored in `saver`.
 
 # Arguments
 
-- `saver`: An [`IndexSaver`](@ref) into which the codec is to be loaded.
+  - `saver`: An [`IndexSaver`](@ref) into which the codec is to be loaded.
 """
 function load_codec!(saver::IndexSaver)
     index_path = saver.config.indexing_settings.index_path
@@ -36,18 +36,19 @@ end
 """
     save_codec(saver::IndexSaver)
 
-Save the codec used by the `saver` to disk. 
+Save the codec used by the `saver` to disk.
 
 This will create three files in the directory specified by the indexing path:
- - `centroids.jld2` containing the centroids.
- - `avg_residual.jld2` containing the average residual.
- - `buckets.jld2` containing the bucket cutoffs and weights.
+
+  - `centroids.jld2` containing the centroids.
+  - `avg_residual.jld2` containing the average residual.
+  - `buckets.jld2` containing the bucket cutoffs and weights.
 
 Also see [`train`](@ref).
 
 # Arguments
 
-- `saver::IndexSaver`: The index saver to use.
+  - `saver::IndexSaver`: The index saver to use.
 """
 function save_codec(saver::IndexSaver)
     index_path = saver.config.indexing_settings.index_path
@@ -76,11 +77,11 @@ The codes and compressed residuals for the chunk are saved in files named `<chun
 
 # Arguments
 
-- `saver`: The [`IndexSaver`](@ref) containing relevant information to save the chunk.
-- `chunk_idx`: The index of the current chunk being saved.
-- `offset`: The offset in the original document collection where this chunk starts.
-- `embs`: The embeddings matrix for the current chunk.
-- `doclens`: The document lengths vector for the current chunk.
+  - `saver`: The [`IndexSaver`](@ref) containing relevant information to save the chunk.
+  - `chunk_idx`: The index of the current chunk being saved.
+  - `offset`: The offset in the original document collection where this chunk starts.
+  - `embs`: The embeddings matrix for the current chunk.
+  - `doclens`: The document lengths vector for the current chunk.
 """
 function save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int,
         embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
@@ -124,12 +125,12 @@ Check if the index chunk exists for the given `chunk_idx`.
 
 # Arguments
 
-- `saver`: The `IndexSaver` object that contains the indexing settings.
-- `chunk_idx`: The index of the chunk to check.
+  - `saver`: The `IndexSaver` object that contains the indexing settings.
+  - `chunk_idx`: The index of the chunk to check.
 
 # Returns
 
-A boolean indicating whether all relevant files for the chunk exist. 
+A boolean indicating whether all relevant files for the chunk exist.
 """
 function check_chunk_exists(saver::IndexSaver, chunk_idx::Int)
     index_path = saver.config.indexing_settings.index_path

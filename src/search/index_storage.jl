@@ -10,11 +10,10 @@ struct IndexScorer
 end
 
 """
-
 # Examples
 
 ```julia-repl
-julia> IndexScorer(index_path) 
+julia> IndexScorer(index_path)
 
 ```
 """
@@ -87,7 +86,6 @@ function IndexScorer(index_path::String)
 end
 
 """
-
 Return a candidate set of `pids` for the query matrix `Q`. This is done as follows: the nearest `nprobe` centroids for each query embedding are found. This list is then flattened and the unique set of these centroids is built. Using the `ivf`, the list of all unique embedding IDs contained in these centroids is computed. Finally, these embedding IDs are converted to `pids` using `emb2pid`. This list of `pids` is the final candidate set.
 """
 function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::AbstractArray{Float32})
@@ -122,7 +120,7 @@ function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::AbstractArray{F
 end
 
 """
-- Get the decompressed embedding matrix for all embeddings in `pids`. Use `doclens` for this.
+  - Get the decompressed embedding matrix for all embeddings in `pids`. Use `doclens` for this.
 """
 function score_pids(ranker::IndexScorer, config::ColBERTConfig,
         Q::AbstractArray{Float32}, pids::Vector{Int})

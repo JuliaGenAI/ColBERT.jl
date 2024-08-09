@@ -5,8 +5,8 @@ Type to perform `ivf` operations efficiently.
 
 # Arguments
 
-- `packed_tensor`: The `ivf`, i.e the centroid to embedding map build during indexing. It is assumed that this map is stored as a `Vector`, wherein the embedding IDs are stored consecutively for each centroid ID.
-- `lengths`: The total number of embeddings for a centroid ID, for each centroid.
+  - `packed_tensor`: The `ivf`, i.e the centroid to embedding map build during indexing. It is assumed that this map is stored as a `Vector`, wherein the embedding IDs are stored consecutively for each centroid ID.
+  - `lengths`: The total number of embeddings for a centroid ID, for each centroid.
 
 # Returns
 
@@ -15,7 +15,6 @@ A [`StridedTensor`](@ref), which computes and stores all relevant data to lookup
 # Examples
 
 ```julia-repl
-
 julia> using JLD2;
 
 julia> ivf_path = joinpath(index_path, "ivf.jld2");
@@ -25,6 +24,7 @@ julia> ivf_dict = load(ivf_path);
 julia> ivf, ivf_lengths = ivf_dict["ivf"], ivf_dict["ivf_lengths"];
 
 julia> ivf = StridedTensor(ivf, ivf_lengths)
+
 ```
 """
 struct StridedTensor
@@ -65,8 +65,8 @@ Get candidate strides computed using `quantiles`  from `lengths`.
 
 # Arguments
 
-- `lengths`: A vector of `ivf` lengths to select candidate stride lengths from. 
-- `quantiles`: The quantiles to be computed.
+  - `lengths`: A vector of `ivf` lengths to select candidate stride lengths from.
+  - `quantiles`: The quantiles to be computed.
 
 # Returns
 
@@ -84,16 +84,16 @@ end
 """
     _create_view(tensor::Vector{Int}, stride::Int)
 
-Create a view into `tensor`, where each column of the view corresponds to a slice of size `stride` in the original tensor. 
+Create a view into `tensor`, where each column of the view corresponds to a slice of size `stride` in the original tensor.
 
 # Arguments
 
-- `tensor`: The input `Vector` to create views of. 
-- `stride`: The number of elements to include in each slice of the output tensor.
+  - `tensor`: The input `Vector` to create views of.
+  - `stride`: The number of elements to include in each slice of the output tensor.
 
 # Returns
 
-An array of shape `(stride, outdim)`, where each column is a slice of size `stride` from the original tensor, and `outdim = length(tensor) - stride + 1`. 
+An array of shape `(stride, outdim)`, where each column is a slice of size `stride` from the original tensor, and `outdim = length(tensor) - stride + 1`.
 """
 function _create_view(tensor::Vector{Int}, stride::Int)
     outdim = length(tensor) - stride + 1

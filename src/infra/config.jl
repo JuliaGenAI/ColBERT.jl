@@ -5,13 +5,13 @@ Structure containing config for running and training various components.
 
 # Arguments
 
-- `run_settings`: Sets the [`RunSettings`](@ref).
-- `tokenizer_settings`: Sets the [`TokenizerSettings`](@ref).
-- `resource_settings`: Sets the [`ResourceSettings`](@ref). 
-- `doc_settings`: Sets the [`DocSettings`](@ref). 
-- `query_settings`: Sets the [`QuerySettings`](@ref).
-- `indexing_settings`: Sets the [`IndexingSettings`](@ref). 
-- `search_settings`: Sets the [`SearchSettings`](@ref).
+  - `run_settings`: Sets the [`RunSettings`](@ref).
+  - `tokenizer_settings`: Sets the [`TokenizerSettings`](@ref).
+  - `resource_settings`: Sets the [`ResourceSettings`](@ref).
+  - `doc_settings`: Sets the [`DocSettings`](@ref).
+  - `query_settings`: Sets the [`QuerySettings`](@ref).
+  - `indexing_settings`: Sets the [`IndexingSettings`](@ref).
+  - `search_settings`: Sets the [`SearchSettings`](@ref).
 
 # Returns
 
@@ -47,27 +47,28 @@ julia> index_name = "short_\$(dataset).\$(datasplit).\$(nbits)bits"
 julia> index_path = joinpath(index_root, index_name)
 
 julia> config = ColBERTConfig(
-            RunSettings(
-                experiment="notebook",
-            ),
-            TokenizerSettings(),
-            ResourceSettings(
-                checkpoint=checkpoint,
-                collection=collection,
-                index_name=index_name,
-            ),
-            DocSettings(
-                doc_maxlen=doc_maxlen,
-            ),
-            QuerySettings(),
-            IndexingSettings(
-                index_path=index_path,
-                index_bsize=3,
-                nbits=nbits,
-                kmeans_niters=20,
-            ),
-            SearchSettings(),
-        );
+           RunSettings(
+               experiment = "notebook",
+           ),
+           TokenizerSettings(),
+           ResourceSettings(
+               checkpoint = checkpoint,
+               collection = collection,
+               index_name = index_name
+           ),
+           DocSettings(
+               doc_maxlen = doc_maxlen,
+           ),
+           QuerySettings(),
+           IndexingSettings(
+               index_path = index_path,
+               index_bsize = 3,
+               nbits = nbits,
+               kmeans_niters = 20
+           ),
+           SearchSettings()
+       );
+
 ```
 """
 Base.@kwdef struct ColBERTConfig

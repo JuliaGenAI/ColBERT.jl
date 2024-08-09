@@ -4,9 +4,10 @@
 Structure which performs all the index-building operations, including sampling initial centroids, clustering, computing document embeddings, compressing and building the `ivf`.
 
 # Arguments
-- `config`: The [`ColBERTConfig`](@ref) used to build the model. 
-- `encoder`: The [`CollectionEncoder`](@ref) to be used for encoding documents. 
-- `saver`: The [`IndexSaver`](@ref), responsible for saving the index to disk.
+
+  - `config`: The [`ColBERTConfig`](@ref) used to build the model.
+  - `encoder`: The [`CollectionEncoder`](@ref) to be used for encoding documents.
+  - `saver`: The [`IndexSaver`](@ref), responsible for saving the index to disk.
 
 # Returns
 
@@ -54,9 +55,11 @@ end
 Sample PIDs from the collection to be used to compute clusters using a ``k``-means clustering algorithm.
 
 # Arguments
-- `indexer`: The collection indexer object containing the collection of passages to be indexed.
+
+  - `indexer`: The collection indexer object containing the collection of passages to be indexed.
 
 # Returns
+
 A `Set` of `Int`s containing the sampled PIDs.
 """
 function _sample_pids(indexer::CollectionIndexer)
@@ -80,8 +83,9 @@ The embeddings for the sampled documents are saved in a file named `sample.jld2`
 Sample the passages with `pid` in `sampled_pids` from the `collection` and compute the average passage length. The function returns a tuple containing the embedded passages and the average passage length.
 
 # Arguments
-- `indexer`: An instance of `CollectionIndexer`.
-- `sampled_pids`: Set of PIDs sampled by [`_sample_pids`](@ref). 
+
+  - `indexer`: An instance of `CollectionIndexer`.
+  - `sampled_pids`: Set of PIDs sampled by [`_sample_pids`](@ref).
 
 # Returns
 
@@ -111,14 +115,14 @@ end
 
 """
      _save_plan(indexer::CollectionIndexer)
- 
-Save the indexing plan to a JSON file. 
+
+Save the indexing plan to a JSON file.
 
 Information about the number of chunks, number of clusters, estimated number of embeddings over all documents and the estimated average document length is saved to a file named `plan.json`, with directory specified by the indexing directory.
 
 # Arguments
 
-- `indexer`: The `CollectionIndexer` object that contains the index plan to be saved.
+  - `indexer`: The `CollectionIndexer` object that contains the index plan to be saved.
 """
 function _save_plan(indexer::CollectionIndexer)
     @info "Saving the index plan to $(indexer.plan_path)."
@@ -144,7 +148,8 @@ Initialize `indexer` by computing some indexing-specific estimates and save the 
 The number of chunks into which the document embeddings will be stored (`indexer.num_chunks`) is simply computed using the number of documents and the size of a chunk obtained from [`get_chunksize`](@ref). A bunch of pids used for initializing the centroids for the embedding clusters are sampled using the [`_sample_pids`](@ref) and [`_sample_embeddings`](@ref) functions, and these samples are used to calculate the average document lengths and the estimated number of embeddings which will be computed across all documents. Finally, the number of clusters (`indexer.num_partitions`) to be used for indexing is computed, and is proportional to ``16\\sqrt{\\text{Estimated number of embeddings}}``, and the indexing plan is saved to `plan.json` (see [`_save_plan`](@ref)) in the indexing directory.
 
 # Arguments
-- `indexer::CollectionIndexer`: The indexer to be initialized.
+
+  - `indexer::CollectionIndexer`: The indexer to be initialized.
 """
 function setup(indexer::CollectionIndexer)
     collection = indexer.config.resource_settings.collection
@@ -175,7 +180,8 @@ Randomly shuffle and split the sampled embeddings.
 The sample embeddings saved by the [`setup`](@ref) function are loaded, shuffled randomly, and then split into a `sample` and a `sample_heldout` set, with `sample_heldout` containing a `0.05` fraction of the original sampled embeddings.
 
 # Arguments
-- `indexer`: The [`CollectionIndexer`](@ref).
+
+  - `indexer`: The [`CollectionIndexer`](@ref).
 
 # Returns
 
@@ -208,9 +214,9 @@ Compute the average residuals and other statistics of the held-out sample embedd
 
 # Arguments
 
-- `indexer`: The underlying [`CollectionIndexer`](@ref). 
-- `centroids`: A matrix containing the centroids of the computed using a ``k``-means clustering algorithm on the sampled embeddings. Has shape `(D, indexer.num_partitions)`, where `D` is the embedding dimension (`128`) and `indexer.num_partitions` is the number of clusters.
-- `heldout`: A matrix containing the held-out embeddings, computed using [`_concatenate_and_split_sample`](@ref).
+  - `indexer`: The underlying [`CollectionIndexer`](@ref).
+  - `centroids`: A matrix containing the centroids of the computed using a ``k``-means clustering algorithm on the sampled embeddings. Has shape `(D, indexer.num_partitions)`, where `D` is the embedding dimension (`128`) and `indexer.num_partitions` is the number of clusters.
+  - `heldout`: A matrix containing the held-out embeddings, computed using [`_concatenate_and_split_sample`](@ref).
 
 # Returns
 
@@ -254,7 +260,7 @@ Average residuals and other compression data is computed via the [`_compute_avg_
 
 # Arguments
 
-- `indexer::CollectionIndexer`: The [`CollectionIndexer`](@ref) to be trained.
+  - `indexer::CollectionIndexer`: The [`CollectionIndexer`](@ref) to be trained.
 """
 function train(indexer::CollectionIndexer)
     sample, heldout = _concatenate_and_split_sample(indexer)
@@ -285,8 +291,8 @@ The documents are processed in batches of size `chunksize` (see [`enumerate_batc
 
 # Arguments
 
-- `indexer`: The [`CollectionIndexer`](@ref) used to build the index.
-- `chunksize`: Size of a chunk into which the index is to be stored. 
+  - `indexer`: The [`CollectionIndexer`](@ref) used to build the index.
+  - `chunksize`: Size of a chunk into which the index is to be stored.
 """
 function index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = missing)
     load_codec!(indexer.saver)                  # load the codec objects
@@ -313,7 +319,8 @@ Finalize the indexing process by saving all files, collecting embedding ID offse
 See [`_check_all_files_are_saved`](@ref), [`_collect_embedding_id_offset`](@ref), [`_build_ivf`](@ref) and [`_update_metadata`](@ref) for more details.
 
 # Arguments
-- `indexer::CollectionIndexer`: The [`CollectionIndexer`](@ref) used to finalize the indexing process. 
+
+  - `indexer::CollectionIndexer`: The [`CollectionIndexer`](@ref) used to finalize the indexing process.
 """
 function finalize(indexer::CollectionIndexer)
     _check_all_files_are_saved(indexer)

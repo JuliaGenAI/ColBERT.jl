@@ -6,8 +6,8 @@ A wrapper around a collection of documents, which stores the underlying collecti
 
 # Arguments
 
-- `path::String`:   A path to the document dataset. It is assumed that `path` refers to a CSV file. Each line of the
-                    the CSV file should be of the form `pid \\t document`, where `pid` is the integer index of the document. `pid`s should be in the range ``[1, N]``, where ``N`` is the number of documents, and should be sorted.
+  - `path::String`:   A path to the document dataset. It is assumed that `path` refers to a CSV file. Each line of the
+    the CSV file should be of the form `pid \\t document`, where `pid` is the integer index of the document. `pid`s should be in the range ``[1, N]``, where ``N`` is the number of documents, and should be sorted.
 
 # Examples
 
@@ -48,15 +48,15 @@ Determine the size of chunks used to store the index, based on the size of the `
 
 # Arguments
 
-- `collection::Collection`: The underlying collection of documents. 
-- `nranks::Int`: Number of available GPUs to compute the index. At this point, the package only supports `nranks = 1`.
+  - `collection::Collection`: The underlying collection of documents.
+  - `nranks::Int`: Number of available GPUs to compute the index. At this point, the package only supports `nranks = 1`.
 
 # Examples
 
 Continuing from the example from the [`Collection`](@ref) constructor:
 
 ```julia-repl
-julia> get_chunksize(collection, 1) 
+julia> get_chunksize(collection, 1)
 11
 ```
 """
@@ -71,9 +71,9 @@ Batch the `collection` into chunks containing tuples of the form `(chunk_idx, of
 
 # Arguments
 
-- `collection::Collection`: The collection to batch.
-- `chunksize::Union{Int, Missing}`: The chunksize to use to batch the collection. Default `missing`. If this is `missing`, then `chunksize` is determined using [`get_chunksize`](@ref) based on the `collection` and `nranks`.
-- `nranks::Union{Int, Missing}`: The number of available GPUs. Default `missing`. Currently the package only supports `nranks = 1`.
+  - `collection::Collection`: The collection to batch.
+  - `chunksize::Union{Int, Missing}`: The chunksize to use to batch the collection. Default `missing`. If this is `missing`, then `chunksize` is determined using [`get_chunksize`](@ref) based on the `collection` and `nranks`.
+  - `nranks::Union{Int, Missing}`: The number of available GPUs. Default `missing`. Currently the package only supports `nranks = 1`.
 
 The `collection` is batched into chunks of uniform size (with the last chunk potentially having a smaller size).
 
@@ -84,7 +84,8 @@ Continuing from the example in the [`Collection`](@ref) constructor.
 ```julia-repl
 julia> enumerate_batches(collection; nranks = 1);
 
-julia> enumerate_batches(collection; chunksize = 3); 
+julia> enumerate_batches(collection; chunksize = 3);
+
 ```
 """
 function enumerate_batches(
