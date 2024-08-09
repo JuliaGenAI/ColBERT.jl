@@ -1,12 +1,13 @@
 """
-    DocTokenizer(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, config::ColBERTConfig)
+    DocTokenizer(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        config::ColBERTConfig)
 
-Construct a `DocTokenizer` from a given tokenizer and configuration. The resulting structure supports functions to perform CoLBERT-style document operations on document texts.  
+Construct a `DocTokenizer` from a given tokenizer and configuration. The resulting structure supports functions to perform CoLBERT-style document operations on document texts.
 
 # Arguments
 
-- `tokenizer`: A tokenizer that has been trained on the BERT vocabulary. Fetched from HuggingFace.
-- `config`: The underlying [`ColBERTConfig`](@ref).
+  - `tokenizer`: A tokenizer that has been trained on the BERT vocabulary. Fetched from HuggingFace.
+  - `config`: The underlying [`ColBERTConfig`](@ref).
 
 # Returns
 
@@ -25,7 +26,9 @@ function DocTokenizer(tokenizer::Transformers.TextEncoders.AbstractTransformerTe
 end
 
 """
-    tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, batch_text::Vector{String}, bsize::Union{Missing, Int})
+    tensorize(doc_tokenizer::DocTokenizer,
+        tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        batch_text::Vector{String}, bsize::Union{Missing, Int})
 
 Convert a collection of documents to tensors in the ColBERT format. 
 
@@ -189,22 +192,23 @@ function tensorize(doc_tokenizer::DocTokenizer,
 end
 
 """
-    _sort_by_length(integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
+    _sort_by_length(
+        integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
 
-Sort sentences by number of attended tokens, if the number of sentences is larger than `bsize`. 
+Sort sentences by number of attended tokens, if the number of sentences is larger than `bsize`.
 
 # Arguments
 
-- `integer_ids`: The token IDs of documents to be sorted.
-- `integer_mask`: The attention masks of the documents to be sorted (attention masks are just bits).
-- `bsize`: The size of batches to be considered.
+  - `integer_ids`: The token IDs of documents to be sorted.
+  - `integer_mask`: The attention masks of the documents to be sorted (attention masks are just bits).
+  - `bsize`: The size of batches to be considered.
 
 # Returns
 
 Depending upon `bsize`, the following are returned:
 
-- If the number of documents (second dimension of `integer_ids`) is atmost `bsize`, then the `integer_ids` and `integer_mask` are returned unchanged. 
-- If the number of documents is larger than `bsize`, then the passages are first sorted by the number of attended tokens (figured out from the `integer_mask`), and then the sorted arrays `integer_ids`, `integer_mask` are returned, along with a list of `reverse_indices`, i.e a mapping from the documents to their indices in the original order.
+  - If the number of documents (second dimension of `integer_ids`) is atmost `bsize`, then the `integer_ids` and `integer_mask` are returned unchanged.
+  - If the number of documents is larger than `bsize`, then the passages are first sorted by the number of attended tokens (figured out from the `integer_mask`), and then the sorted arrays `integer_ids`, `integer_mask` are returned, along with a list of `reverse_indices`, i.e a mapping from the documents to their indices in the original order.
 """
 function _sort_by_length(
         integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
@@ -222,14 +226,15 @@ function _sort_by_length(
 end
 
 """
-    _split_into_batches(integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
+    _split_into_batches(
+        integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
 
 Split the given `integer_ids` and `integer_mask` into batches of size `bsize`.
 
 # Arguments
 
-- `integer_ids`: The array of token IDs to batch. 
-- `integer_mask`: The array of attention masks to batch.
+  - `integer_ids`: The array of token IDs to batch.
+  - `integer_mask`: The array of attention masks to batch.
 
 # Returns
 

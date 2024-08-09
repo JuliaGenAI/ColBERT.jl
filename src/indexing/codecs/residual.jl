@@ -1,17 +1,19 @@
 """
-    ResidualCodec(config::ColBERTConfig, centroids::AbstractMatrix{Float32}, avg_residual::Float32, bucket_cutoffs::AbstractVector{Float32}, bucket_weights::AbstractVector{Float32})
+    ResidualCodec(
+        config::ColBERTConfig, centroids::AbstractMatrix{Float32}, avg_residual::Float32,
+        bucket_cutoffs::AbstractVector{Float32}, bucket_weights::AbstractVector{Float32})
 
-A struct that represents a compressor for ColBERT embeddings. 
+A struct that represents a compressor for ColBERT embeddings.
 
 It stores information about the configuration of the model, the centroids used to quantize the residuals, the average residual value, and the cutoffs and weights used to determine which buckets each residual belongs to.
 
 # Arguments
 
-- `config`: A [`ColBERTConfig`](@ref), representing all configuration parameters related to various ColBERT components.
-- `centroids`: A matrix of centroids used to quantize the residuals. Has shape `(D, N)`, where `D` is the embedding dimension and `N` is the number of clusters.
-- `avg_residual`: The average residual value.
-- `bucket_cutoffs`: A vector of cutoff values used to determine which buckets each residual belongs to.
-- `bucket_weights`: A vector of weights used to determine the importance of each bucket.
+  - `config`: A [`ColBERTConfig`](@ref), representing all configuration parameters related to various ColBERT components.
+  - `centroids`: A matrix of centroids used to quantize the residuals. Has shape `(D, N)`, where `D` is the embedding dimension and `N` is the number of clusters.
+  - `avg_residual`: The average residual value.
+  - `bucket_cutoffs`: A vector of cutoff values used to determine which buckets each residual belongs to.
+  - `bucket_weights`: A vector of weights used to determine the importance of each bucket.
 
 # Returns
 
@@ -26,11 +28,11 @@ mutable struct ResidualCodec
 end
 
 """
-
 # Examples
 
 ```julia-repl
-julia> codec = load_codec(index_path); 
+julia> codec = load_codec(index_path);
+
 ```
 """
 function load_codec(index_path::String)
@@ -45,16 +47,18 @@ end
 """
     compress_into_codes(codec::ResidualCodec, embs::AbstractMatrix{Float32})
 
-Compresses a matrix of embeddings into a vector of codes using the given [`ResidualCodec`](@ref), where the code for each embedding is its nearest centroid ID. 
+Compresses a matrix of embeddings into a vector of codes using the given [`ResidualCodec`](@ref), where the code for each embedding is its nearest centroid ID.
 
 # Arguments
 
-- `codec`: The [`ResidualCodec`](@ref) used to compress the embeddings.
-- `embs`: The matrix of embeddings to be compressed.
+  - `codec`: The [`ResidualCodec`](@ref) used to compress the embeddings.
+  - `embs`: The matrix of embeddings to be compressed.
 
 # Returns
 
 A `Vector{UInt32}` of codes, where each code corresponds to the nearest centroid ID for the embedding.
+
+```
 ```
 """
 function compress_into_codes(codec::ResidualCodec, embs::AbstractMatrix{Float32})
@@ -79,16 +83,16 @@ end
 """
     binarize(codec::ResidualCodec, residuals::AbstractMatrix{Float32})
 
-Convert a matrix of residual vectors into a matrix of integer residual vector using `nbits` bits (specified by the underlying `config`). 
+Convert a matrix of residual vectors into a matrix of integer residual vector using `nbits` bits (specified by the underlying `config`).
 
 # Arguments
 
-- `codec`: A [`ResidualCodec`](@ref) object containing the compression information. 
-- `residuals`: The matrix of residuals to be converted.
+  - `codec`: A [`ResidualCodec`](@ref) object containing the compression information.
+  - `residuals`: The matrix of residuals to be converted.
 
 # Returns
 
-A matrix of compressed integer residual vectors. 
+A matrix of compressed integer residual vectors.
 """
 function binarize(codec::ResidualCodec, residuals::AbstractMatrix{Float32})
     dim = codec.config.doc_settings.dim
@@ -121,14 +125,14 @@ end
 """
     compress(codec::ResidualCodec, embs::AbstractMatrix{Float32})
 
-Compress a matrix of embeddings into a compact representation using the specified [`ResidualCodec`](@ref). 
+Compress a matrix of embeddings into a compact representation using the specified [`ResidualCodec`](@ref).
 
 All embeddings are compressed to their nearest centroid IDs and their quantized residual vectors (where the quantization is done in `nbits` bits, specified by the `config` of  `codec`). If `emb` denotes an embedding and `centroid` is is nearest centroid, the residual vector is defined to be `emb - centroid`.
 
 # Arguments
 
-- `codec`: A [`ResidualCodec`](@ref) object containing the centroids and other parameters for the compression algorithm.
-- `embs`: The input embeddings to be compressed.
+  - `codec`: A [`ResidualCodec`](@ref) object containing the centroids and other parameters for the compression algorithm.
+  - `embs`: The input embeddings to be compressed.
 
 # Returns
 
@@ -235,13 +239,13 @@ end
 """
     load_codes(codec::ResidualCodec, chunk_idx::Int)
 
-Load the codes from disk for a given chunk index. The codes are stored in the file `<chunk_idx>.codes.jld2` located inside the 
+Load the codes from disk for a given chunk index. The codes are stored in the file `<chunk_idx>.codes.jld2` located inside the
 `index_path` provided by the configuration.
 
 # Arguments
 
-- `codec`: The [`ResidualCodec`](@ref) object containing the compression information.
-- `chunk_idx`: The chunk index for which the codes should be loaded.
+  - `codec`: The [`ResidualCodec`](@ref) object containing the compression information.
+  - `chunk_idx`: The chunk index for which the codes should be loaded.
 
 # Returns
 

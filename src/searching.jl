@@ -28,8 +28,8 @@ Encode a search query to a matrix of embeddings using the provided `searcher`. T
 
 # Arguments
 
-- `searcher`: A Searcher object that contains information about the collection and the index.
-- `query`: The search query to encode.
+  - `searcher`: A Searcher object that contains information about the collection and the index.
+  - `query`: The search query to encode.
 
 # Returns
 
@@ -69,7 +69,6 @@ julia> encode_query(searcher, "what are white spots on raspberries?")
  -0.116265    -0.106331    -0.179832    -0.149728    …  -0.0197172   -0.022061    -0.018135
  -0.0443452   -0.192203    -0.0187912   -0.0247794      -0.0699095   -0.0684749   -0.0662904
   0.100019    -0.0618588    0.106134     0.0989047      -0.0556761   -0.0556784   -0.059571
-
 ```
 """
 function encode_query(searcher::Searcher, query::String)
