@@ -69,7 +69,8 @@ function save_codec(saver::IndexSaver)
 end
 
 """
-    save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int, embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
+    save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int,
+        embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
 
 Save a single chunk of compressed embeddings and their relevant metadata to disk.
 

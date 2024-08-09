@@ -1,5 +1,7 @@
 """
-    ResidualCodec(config::ColBERTConfig, centroids::AbstractMatrix{Float32}, avg_residual::Float32, bucket_cutoffs::AbstractVector{Float32}, bucket_weights::AbstractVector{Float32})
+    ResidualCodec(
+        config::ColBERTConfig, centroids::AbstractMatrix{Float32}, avg_residual::Float32,
+        bucket_cutoffs::AbstractVector{Float32}, bucket_weights::AbstractVector{Float32})
 
 A struct that represents a compressor for ColBERT embeddings.
 

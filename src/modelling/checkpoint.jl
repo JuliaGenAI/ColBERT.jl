@@ -1,5 +1,7 @@
 """
-    BaseColBERT(; bert::Transformers.HuggingFace.HGFBertModel, linear::Transformers.Layers.Dense, tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder)
+    BaseColBERT(;
+        bert::Transformers.HuggingFace.HGFBertModel, linear::Transformers.Layers.Dense,
+        tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder)
 
 A struct representing the BERT model, linear layer, and the tokenizer used to compute embeddings for documents and queries.
 
@@ -182,7 +184,8 @@ function Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer,
 end
 
 """
-    mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, integer_ids::AbstractMatrix{Int32}, skiplist::Union{Missing, Vector{Int64}})
+    mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        integer_ids::AbstractMatrix{Int32}, skiplist::Union{Missing, Vector{Int64}})
 
 Create a mask for the given `integer_ids`, based on the provided `skiplist`.
 If the `skiplist` is not missing, then any token IDs in the list will be filtered out along with the padding token.
@@ -231,7 +234,8 @@ function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerT
 end
 
 """
-    doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool})
+    doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
+        integer_mask::AbstractMatrix{Bool})
 
 Compute the hidden state of the BERT and linear layers of ColBERT for documents.
 
@@ -306,7 +310,8 @@ function doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
 end
 
 """
-    docFromText(checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{Missing, Int})
+    docFromText(
+        checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{Missing, Int})
 
 Get ColBERT embeddings for `docs` using `checkpoint`.
 
@@ -382,7 +387,6 @@ julia> doclens
 
 ```
 """
-
 function docFromText(
         checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{Missing, Int})
     if ismissing(bsize)
@@ -426,7 +430,8 @@ function docFromText(
 end
 
 """
-    query(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool})
+    query(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
+        integer_mask::AbstractMatrix{Bool})
 
 Compute the hidden state of the BERT and linear layers of ColBERT for queries.
 
@@ -512,7 +517,8 @@ function query(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
 end
 
 """
-    queryFromText(checkpoint::Checkpoint, queries::Vector{String}, bsize::Union{Missing, Int})
+    queryFromText(
+        checkpoint::Checkpoint, queries::Vector{String}, bsize::Union{Missing, Int})
 
 Get ColBERT embeddings for `queries` using `checkpoint`.
 

@@ -114,7 +114,7 @@ function _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
 end
 
 """
-     _save_plan(indexer::CollectionIndexer)
+    _save_plan(indexer::CollectionIndexer)
 
 Save the indexing plan to a JSON file.
 
@@ -208,7 +208,8 @@ function _concatenate_and_split_sample(indexer::CollectionIndexer)
 end
 
 """
-    _compute_avg_residuals(indexer::CollectionIndexer, centroids::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32})
+    _compute_avg_residuals(indexer::CollectionIndexer, centroids::AbstractMatrix{Float32},
+        heldout::AbstractMatrix{Float32})
 
 Compute the average residuals and other statistics of the held-out sample embeddings.
 

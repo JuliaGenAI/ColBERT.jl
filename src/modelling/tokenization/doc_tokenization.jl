@@ -1,5 +1,6 @@
 """
-    DocTokenizer(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, config::ColBERTConfig)
+    DocTokenizer(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        config::ColBERTConfig)
 
 Construct a `DocTokenizer` from a given tokenizer and configuration. The resulting structure supports functions to perform CoLBERT-style document operations on document texts.
 
@@ -25,7 +26,9 @@ function DocTokenizer(tokenizer::Transformers.TextEncoders.AbstractTransformerTe
 end
 
 """
-    tensorize(doc_tokenizer::DocTokenizer, tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, batch_text::Vector{String}, bsize::Union{Missing, Int})
+    tensorize(doc_tokenizer::DocTokenizer,
+        tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        batch_text::Vector{String}, bsize::Union{Missing, Int})
 
 Convert a collection of documents to tensors in the ColBERT format. 
 
@@ -152,7 +155,6 @@ julia> reverse_indices              # the original order
 
 ```
 """
-
 function tensorize(doc_tokenizer::DocTokenizer,
         tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
         batch_text::Vector{String}, bsize::Union{Missing, Int})
@@ -190,7 +192,8 @@ function tensorize(doc_tokenizer::DocTokenizer,
 end
 
 """
-    _sort_by_length(integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
+    _sort_by_length(
+        integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
 
 Sort sentences by number of attended tokens, if the number of sentences is larger than `bsize`.
 
@@ -223,7 +226,8 @@ function _sort_by_length(
 end
 
 """
-    _split_into_batches(integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
+    _split_into_batches(
+        integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
 
 Split the given `integer_ids` and `integer_mask` into batches of size `bsize`.
 

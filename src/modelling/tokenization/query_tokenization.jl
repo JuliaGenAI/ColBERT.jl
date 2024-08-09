@@ -1,5 +1,6 @@
 """
-    QueryTokenizer(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, config::ColBERTConfig)
+    QueryTokenizer(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        config::ColBERTConfig)
 
 Construct a `QueryTokenizer` from a given tokenizer and configuration. The resulting structure supports functions to perform CoLBERT-style query operations on query texts, including addition of the query marker token (`"[Q]"`) and the `"[MASK]"` token augmentation.
 
@@ -28,7 +29,9 @@ function QueryTokenizer(
 end
 
 """
-    tensorize(query_tokenizer::DocTokenizer, tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder, batch_text::Vector{String}, bsize::Union{Missing, Int})
+    tensorize(query_tokenizer::DocTokenizer,
+        tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        batch_text::Vector{String}, bsize::Union{Missing, Int})
 
 Convert a collection of queries to tensors in the ColBERT format.
 
