@@ -38,7 +38,9 @@ A [`ColBERTConfig`](@ref) object.
 
 Most users will just want to use the defaults for most settings. Here's a minimal example:
 
-```julia-repl
+```jldoctest
+julia> using ColBERT;
+
 julia> config = ColBERTConfig(
            use_gpu = true,
            collection = "/home/codetalker7/documents",
@@ -83,6 +85,30 @@ Base.@kwdef struct ColBERTConfig
     ncandidates::Int = 8192
 end
 
+"""
+    save(config::ColBERTConfig)
+
+Save a [`ColBERTConfig`](@ref) to disk in JSON.
+
+# Arguments
+
+  - `config`: The [`ColBERTConfig`](@ref) to save.
+
+# Examples
+
+```jldoctest
+julia> using ColBERT;
+
+julia> config = ColBERTConfig(
+           use_gpu = true,
+           collection = "/home/codetalker7/documents",
+           index_path = "./local_index"
+       );
+
+julia> ColBERT.save(config);
+
+```
+"""
 function save(config::ColBERTConfig)
     properties = [Pair{String, Any}(string(field), getproperty(config, field))
                   for field in fieldnames(ColBERTConfig)]
@@ -96,7 +122,33 @@ function save(config::ColBERTConfig)
     end
 end
 
-function load(index_path::String)
+"""
+    load_config(index_path::String)
+
+Load a [`ColBERTConfig`](@ref) from disk.
+
+# Arguments
+
+  - `index_path`: The path of the directory where the config resides.
+
+# Examples
+
+```jldoctest
+julia> using ColBERT;
+
+julia> config = ColBERTConfig(
+           use_gpu = true,
+           collection = "/home/codetalker7/documents",
+           index_path = "./local_index"
+       );
+
+julia> ColBERT.save(config);
+
+julia> ColBERT.load_config("./local_index")
+ColBERTConfig(true, 0, 1, "[unused0]", "[unused1]", "[Q]", "[D]", "colbert-ir/colbertv2.0", "/home/codetalker7/documents", 128, 220, true, 32, false, "./local_index", 64, 2, 20, 2, 8192)
+```
+"""
+function load_config(index_path::String)
     config_dict = JSON.parsefile(joinpath(index_path, "config.json"))
     key_vals = collect(zip(Symbol.(keys(config_dict)), values(config_dict)))
     eval(:(ColBERTConfig($([Expr(:kw, :($key), :($val)) for (key, val) in key_vals]...))))
