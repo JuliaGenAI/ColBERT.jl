@@ -17,7 +17,7 @@ Structure containing config for running and training various components.
   - `query_token`: Token used to represent a query token (defaults to `[Q]`).
   - `doc_token`: Token used to represent a document token (defaults to `[D]`).
   - `checkpoint`: The path to the HuggingFace checkpoint of the underlying ColBERT model. Defaults to `"colbert-ir/colbertv2.0"`.
-  - `collection`: Path to the file containing the documents. Default is `""`. 
+  - `collection`: Path to the file containing the documents. Default is `""`.
   - `dim`: The dimension of the document embedding space. Default is 128.
   - `doc_maxlen`: The maximum length of a document before it is trimmed to fit. Default is 220.
   - `mask_punctuation`: Whether or not to mask punctuation characters tokens in the document. Default is true.
@@ -40,9 +40,9 @@ Most users will just want to use the defaults for most settings. Here's a minima
 
 ```julia-repl
 julia> config = ColBERTConfig(
-            use_gpu=true,
-            collection="/home/codetalker7/documents",
-            index_path="./local_index"
+           use_gpu = true,
+           collection = "/home/codetalker7/documents",
+           index_path = "./local_index"
        );
 
 ```
@@ -83,8 +83,21 @@ Base.@kwdef struct ColBERTConfig
     ncandidates::Int = 8192
 end
 
-# # TODO: need to think of a better way to save the config later.
-# function save(config::ColBERTConfig)
-#     config_path = joinpath(config.indexing_settings.index_path, "config.jld2")
-#     JLD2.save(config_path, Dict("config" => config))
-# end
+function save(config::ColBERTConfig)
+    properties = [Pair{String, Any}(string(field), getproperty(config, field))
+                  for field in fieldnames(ColBERTConfig)]
+    isdir(config.index_path) || mkdir(config.index_path)
+    open(joinpath(config.index_path, "config.json"), "w+") do io
+        JSON.print(
+            io,
+            Dict(properties),
+            4
+        )
+    end
+end
+
+function load(index_path::String)
+    config_dict = JSON.parsefile(joinpath(index_path, "config.json"))
+    key_vals = collect(zip(Symbol.(keys(config_dict)), values(config_dict)))
+    eval(:(ColBERTConfig($([Expr(:kw, :($key), :($val)) for (key, val) in key_vals]...))))
+end
