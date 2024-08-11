@@ -185,6 +185,8 @@ and the indexing plan is saved to `plan.json`, with the path being specified by 
   - `collection`: The underlying collection of passages to initialize the index for.
 """
 function setup(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
+    isdir(config.index_path) || mkdir(config.index_path)
+
     chunksize = min(25000, 1 + fld(length(collection), config.nranks))
     num_chunks = cld(length(collection), chunksize)
 
