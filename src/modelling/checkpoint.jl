@@ -17,10 +17,12 @@ A [`BaseColBERT`](@ref) object.
 
 # Examples
 
-The `config` in the below example is taken from the example in [`ColBERTConfig`](@ref).
-
 ```julia-repl
-julia> base_colbert = BaseColBERT(checkpoint, config);
+julia> using ColBERT, CUDA;
+
+julia> config = ColBERTConfig(use_gpu = true);
+
+julia> base_colbert = BaseColBERT(config);
 
 julia> base_colbert.bert
 HGFBertModel(
@@ -52,23 +54,24 @@ HGFBertModel(
       ),
       LayerNorm(768, ϵ = 1.0e-12),      # 1_536 parameters
     ),
-  ),                  # Total: 192 arrays, 85_054_464 parameters, 324.477 MiB.
+  ),                  # Total: 192 arrays, 85_054_464 parameters, 40.422 KiB.
   Branch{(:pooled,) = (:hidden_state,)}(
     BertPooler(Dense(σ = NNlib.tanh_fast, W = (768, 768), b = true)),  # 590_592 parameters
   ),
-)                   # Total: 199 arrays, 109_482_240 parameters, 417.664 MiB.
+)                   # Total: 199 arrays, 109_482_240 parameters, 43.578 KiB.
 
 julia> base_colbert.linear
 Dense(W = (768, 128), b = true)  # 98_432 parameters
 
 julia> base_colbert.tokenizer
-BertTextEncoder(
+TrfTextEncoder(
 ├─ TextTokenizer(MatchTokenization(WordPieceTokenization(bert_uncased_tokenizer, WordPiece(vocab_size = 30522, unk = [UNK], max_char = 100)), 5 patterns)),
 ├─ vocab = Vocab{String, SizedArray}(size = 30522, unk = [UNK], unki = 101),
-├─ startsym = [CLS],
-├─ endsym = [SEP],
-├─ padsym = [PAD],
-├─ trunc = 512,
+├─ config = @NamedTuple{startsym::String, endsym::String, padsym::String, trunc::Union{Nothing, Int64}}(("[CLS]", "[SEP]", "[PAD]", 512)),
+├─ annotate = annotate_strings,
+├─ onehot = lookup_first,
+├─ decode = nestedcall(remove_conti_prefix),
+├─ textprocess = Pipelines(target[token] := join_text(source); target[token] := nestedcall(cleanup ∘ remove_prefix_space, target.token); target := (target.token)),
 └─ process = Pipelines:
   ╰─ target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
   ╰─ target[token] := Transformers.TextEncoders.grouping_sentence(target.token)
@@ -78,7 +81,9 @@ BertTextEncoder(
   ╰─ target[token] := TextEncodeBase.nested2batch(target.token)
   ╰─ target[segment] := TextEncodeBase.trunc_and_pad(512, 1, tail, tail)(target.segment)
   ╰─ target[segment] := TextEncodeBase.nested2batch(target.segment)
-  ╰─ target := (target.token, target.segment, target.attention_mask)
+  ╰─ target[sequence_mask] := identity(target.attention_mask)
+  ╰─ target := (target.token, target.segment, target.attention_mask, target.sequence_mask)
+
 ```
 """
 struct BaseColBERT
@@ -87,9 +92,10 @@ struct BaseColBERT
     tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder
 end
 
-function BaseColBERT(checkpoint::String, config::ColBERTConfig)
+function BaseColBERT(config::ColBERTConfig)
     # since Transformers.jl doesn't support local loading
-    # we manually load the linear layer
+    # we manually load the linear layers
+    checkpoint = config.checkpoint
     bert_config = Transformers.load_config(checkpoint)
     bert_state_dict = HuggingFace.load_state_dict(checkpoint)
     bert_model = HuggingFace.load_model(
