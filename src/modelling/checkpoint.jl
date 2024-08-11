@@ -84,7 +84,6 @@ TrfTextEncoder(
   ╰─ target[segment] := TextEncodeBase.nested2batch(target.segment)
   ╰─ target[sequence_mask] := identity(target.attention_mask)
   ╰─ target := (target.token, target.segment, target.attention_mask, target.sequence_mask)
-
 ```
 """
 struct BaseColBERT
@@ -205,25 +204,34 @@ An array of booleans indicating whether the corresponding token ID is included i
 
 # Examples
 
-Continuing with the example for [`tensorize`](@ref) and the `skiplist` from the example in [`Checkpoint`](@ref).
+Continuing with the example for [`tensorize_docs`](@ref) and the `skiplist` from the example in [`Checkpoint`](@ref).
 
 ```julia-repl
-julia> mask_skiplist(checkPoint.model.tokenizer, integer_ids, checkPoint.skiplist)
-14×4 BitMatrix:
- 1  1  1  1
- 1  1  1  1
- 1  1  1  1
- 1  1  1  1
- 1  0  0  1
- 0  1  0  1
- 0  0  0  1
- 0  0  0  0
- 0  0  0  1
- 0  0  0  1
- 0  0  0  1
- 0  0  0  1
- 0  0  0  1
- 0  0  0  1
+julia> integer_ids = batches[1][1];
+
+julia> ColBERT.mask_skiplist(checkpoint.model.tokenizer, integer_ids, checkpoint.skiplist)
+21×3 BitMatrix:
+ 1  1  1
+ 1  1  1
+ 1  1  1
+ 1  1  1
+ 0  1  0
+ 0  0  1
+ 0  0  0
+ 0  0  0
+ 0  0  0
+ 0  0  0
+ 0  0  0
+ 0  0  0
+ 0  0  0
+ 0  0  0
+ 0  0  0
+ 0  0  0
+ 0  0  0
+ 0  0  0
+ 0  0  0
+ 0  0  0
+ 0  0  0
 ```
 """
 function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
@@ -236,13 +244,15 @@ function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerT
 end
 
 """
-    doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
+    doc(
+        config::ColBERTConfig, checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
         integer_mask::AbstractMatrix{Bool})
 
 Compute the hidden state of the BERT and linear layers of ColBERT for documents.
 
 # Arguments
 
+  - `config`: The [`ColBERTConfig`](@ref) being used. 
   - `checkpoint`: The [`Checkpoint`](@ref) containing the layers to compute the embeddings.
   - `integer_ids`: An array of token IDs to be fed into the BERT model.
   - `integer_mask`: An array of corresponding attention masks. Should have the same shape as `integer_ids`.
@@ -256,30 +266,31 @@ A tuple `D, mask`, where:
 
 # Examples
 
-Continuing from the example in [`tensorize`](@ref) and [`Checkpoint`](@ref):
+Continuing from the example in [`tensorize_docs`](@ref) and [`Checkpoint`](@ref):
 
 ```julia-repl
-julia> D, mask = doc(checkPoint, integer_ids, integer_mask);
+julia> integer_ids, integer_mask = batches[1]
+
+julia> D, mask = ColBERT.doc(config, checkpoint, integer_ids, integer_mask);
+
+julia> typeof(D), size(D)
+(CuArray{Float32, 3, CUDA.DeviceMemory}, (128, 21, 3))
 
 julia> mask
-1×14×4 BitArray{3}:
+1×21×3 CuArray{Bool, 3, CUDA.DeviceMemory}:
 [:, :, 1] =
- 1  1  1  1  1  0  0  0  0  0  0  0  0  0
+ 1  1  1  1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
 
 [:, :, 2] =
- 1  1  1  1  0  1  0  0  0  0  0  0  0  0
+ 1  1  1  1  1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
 
 [:, :, 3] =
- 1  1  1  1  0  0  0  0  0  0  0  0  0  0
-
-[:, :, 4] =
- 1  1  1  1  1  1  1  0  1  1  1  1  1  1
+ 1  1  1  1  0  1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
 ```
 """
-function doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
+function doc(
+        config::ColBERTConfig, checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
         integer_mask::AbstractMatrix{Bool})
-    use_gpu = checkpoint.config.use_gpu
-
     integer_ids = integer_ids |> Flux.gpu
     integer_mask = integer_mask |> Flux.gpu
 
@@ -294,7 +305,7 @@ function doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
 
     D = D .* mask                                                                   # clear out embeddings of masked tokens
 
-    if !use_gpu
+    if !config.use_gpu
         # doing this because normalize gives exact results
         D = mapslices(v -> iszero(v) ? v : normalize(v), D, dims = 1)                 # normalize each embedding
     else
@@ -312,8 +323,8 @@ function doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
 end
 
 """
-    docFromText(
-        checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{Missing, Int})
+    docFromText(config::ColBERTConfig, checkpoint::Checkpoint,
+        docs::Vector{String}, bsize::Union{Missing, Int})
 
 Get ColBERT embeddings for `docs` using `checkpoint`.
 
@@ -321,6 +332,7 @@ This function also applies ColBERT-style document pre-processing for each docume
 
 # Arguments
 
+- `config`: The [`ColBERTConfig`](@ref) being used.
 - `checkpoint`: A [`Checkpoint`](@ref) to be used to compute embeddings.  
 - `docs`: A list of documents to get the embeddings for. 
 - `bsize`: A batch size for processing documents in batches. 
@@ -341,44 +353,45 @@ julia> docs = [
     "this is some longer text, so length should be longer",
 ];
 
-julia> embs, doclens = docFromText(checkPoint, docs, config.index_bsize)
+julia> embs, doclens = ColBERT.docFromText(config, checkpoint, docs, config.index_bsize)
 (Float32[0.07590997 0.00056472444 … -0.09958261 -0.03259005; 0.08413661 -0.016337946 … -0.061889287 -0.017708546; … ; -0.11584533 0.016651645 … 0.0073241345 0.09233974; 0.043868616 0.084660925 … -0.0294838 -0.08536169], [5 5 4 13])
 
 julia> embs
 128×27 Matrix{Float32}:
-  0.07591       0.000564724  …  -0.0811892   -0.0995826   -0.0325901
-  0.0841366    -0.0163379       -0.0118506   -0.0618893   -0.0177085
- -0.0301104    -0.0128125        0.0138397   -0.0573847    0.177861
-  0.0375673     0.216562        -0.110819     0.00425483  -0.00131543
-  0.0252677     0.151702        -0.0272065    0.0350983   -0.0381015
-  0.00608629   -0.0415363    …   0.122848     0.0747104    0.0836627
- -0.185256     -0.106582         0.0352982   -0.0405874   -0.064156
- -0.0816655    -0.142809         0.0565001   -0.134649     0.00380807
-  0.00471224    0.00444499       0.0112827    0.0253297    0.0665076
- -0.121564     -0.189994         0.0151938   -0.119054    -0.0980481
-  0.157599      0.0919844    …   0.0330667    0.0205288    0.0184296
-  0.0132481    -0.0430333        0.0404867    0.0575921    0.101702
-  0.0695787     0.0281928       -0.0378472   -0.053183    -0.123457
- -0.0933986    -0.0390347        0.0279156    0.0309749    0.00298161
-  0.0458561     0.0729707        0.103661     0.00905471   0.127777
-  0.00452597    0.05959      …   0.148845     0.0569492    0.293592
-  ⋮                          ⋱                ⋮
-  0.0510929    -0.138272        -0.00646483  -0.0171806   -0.0618908
-  0.128495      0.181198        -0.00408871   0.0274591    0.0343185
- -0.0961544    -0.0223997        0.0117907   -0.0813832    0.038232
-  0.0285498     0.0556695    …  -0.0139291   -0.14533     -0.0176019
-  0.011212     -0.164717         0.071643    -0.0662124    0.164667
- -0.00178153    0.0600864        0.120243     0.0490749    0.0562548
- -0.0261783     0.0343851        0.0469064    0.040038    -0.0536367
- -0.0696538    -0.020624         0.0441996    0.0842775    0.0567261
- -0.0940356    -0.106123     …   0.00334512   0.00795235  -0.0439883
-  0.0567849    -0.0312434       -0.113022     0.0616158   -0.0738149
- -0.0143086     0.105833        -0.142671    -0.0430241   -0.0831739
-  0.044704      0.0783603       -0.0413787    0.0315282   -0.171445
-  0.129225      0.112544         0.120684     0.107231     0.119762
-  0.000207455  -0.124472     …  -0.0930788   -0.0519733    0.0837618
- -0.115845      0.0166516        0.0577464    0.00732413   0.0923397
-  0.0438686     0.0846609       -0.0967041   -0.0294838   -0.0853617
+  0.0759101    0.00056477  -0.0256841     0.0847256   …   0.0321216   -0.0811892   -0.0995827   -0.03259
+  0.0841366   -0.0163379   -0.0573766     0.0125381       0.0838632   -0.0118507   -0.0618893   -0.0177087
+ -0.0301104   -0.0128124    0.0137095     0.00290062      0.0347227    0.0138398   -0.0573847    0.177861
+  0.0375674    0.216562     0.220287     -0.011          -0.0213431   -0.110819     0.00425487  -0.00131534
+  0.0252677    0.151702     0.189658     -0.104252       -0.0654913   -0.0272064    0.0350983   -0.0381015
+  0.00608619  -0.0415363   -0.0479571     0.00884466  …   0.00207629   0.122848     0.0747105    0.0836628
+ -0.185256    -0.106582    -0.0394912    -0.119268        0.163837     0.0352982   -0.0405874   -0.064156
+ -0.0816655   -0.142809    -0.15595      -0.109608        0.0882721    0.0565001   -0.134649     0.00380792
+  0.00471225   0.00444501   0.0144707     0.0682628       0.0386771    0.0112827    0.0253297    0.0665075
+ -0.121564    -0.189994    -0.173724     -0.0678208      -0.0832335    0.0151939   -0.119054    -0.0980481
+  0.157599     0.0919844    0.0748075    -0.122389    …   0.0599421    0.0330669    0.0205288    0.0184296
+  0.0132481   -0.0430333   -0.0679477     0.0918445       0.14166      0.0404866    0.0575921    0.101701
+  0.0695786    0.0281928    0.000234582   0.0570102      -0.137199    -0.0378472   -0.0531831   -0.123457
+ -0.0933987   -0.0390347   -0.0274184    -0.0452961       0.14876      0.0279156    0.0309748    0.00298152
+  0.0458562    0.0729707    0.0336343     0.189599        0.0570071    0.103661     0.00905471   0.127777
+  0.00452595   0.05959      0.0768679    -0.036913    …   0.0768966    0.148845     0.0569493    0.293592
+ -0.0385804   -0.00754613   0.0375564     0.00207589     -0.0161775    0.133667     0.266788     0.0394272
+  ⋮                                                   ⋱                             ⋮
+  0.0510928   -0.138272    -0.111771     -0.192081       -0.0312752   -0.00646487  -0.0171807   -0.0618908
+  0.128495     0.181198     0.131882     -0.064132       -0.00662879  -0.00408871   0.027459     0.0343185
+ -0.0961544   -0.0223997    0.025595     -0.12089         0.0042998    0.0117906   -0.0813832    0.0382321
+  0.0285496    0.0556695    0.0805605    -0.0728611   …   0.138845    -0.0139292   -0.14533     -0.017602
+  0.0112119   -0.164717    -0.188169      0.0315999       0.112653     0.071643    -0.0662124    0.164667
+ -0.0017815    0.0600865    0.0858722     0.00955078     -0.0506793    0.120243     0.0490749    0.0562548
+ -0.0261784    0.0343851    0.0447504    -0.105545       -0.0713677    0.0469064    0.040038    -0.0536368
+ -0.0696538   -0.020624    -0.0465219    -0.121079       -0.0636235    0.0441996    0.0842775    0.0567261
+ -0.0940355   -0.106123    -0.0424943     0.0650131   …   0.00190927   0.00334517   0.00795241  -0.0439884
+  0.0567849   -0.0312434   -0.0715616     0.136271       -0.0648593   -0.113022     0.0616157   -0.0738149
+ -0.0143086    0.105833     0.0762297     0.0102708      -0.162572    -0.142671    -0.0430241   -0.0831737
+  0.0447039    0.0783602    0.0957613     0.0603179       0.0415507   -0.0413788    0.0315282   -0.171445
+  0.129225     0.112544     0.0815397    -0.00357054      0.097503     0.120684     0.107231     0.119762
+  0.00020747  -0.124472    -0.120445     -0.0102294   …  -0.24173     -0.0930788   -0.0519734    0.0837617
+ -0.115845     0.0166517    0.0199255    -0.044735       -0.0353863    0.0577463    0.00732411   0.0923398
+  0.0438687    0.0846609    0.0960215     0.112225       -0.178799    -0.096704    -0.0294837   -0.0853618
 
 julia> doclens
 4-element Vector{Int64}:
@@ -386,19 +399,18 @@ julia> doclens
   5
   4
  13
-
 ```
 """
-function docFromText(
-        checkpoint::Checkpoint, docs::Vector{String}, bsize::Union{Missing, Int})
+function docFromText(config::ColBERTConfig, checkpoint::Checkpoint,
+        docs::Vector{String}, bsize::Union{Missing, Int})
     if ismissing(bsize)
         # integer_ids, integer_mask = tensorize(checkpoint.doc_tokenizer, checkpoint.model.tokenizer, docs, bsize)
         # doc(checkpoint, integer_ids, integer_mask)
         error("Currently bsize cannot be missing!")
     else
-        text_batches, reverse_indices = tensorize(
-            checkpoint.doc_tokenizer, checkpoint.model.tokenizer, docs, bsize)
-        batches = [doc(checkpoint, integer_ids, integer_mask)
+        text_batches, reverse_indices = tensorize_docs(
+            config, checkpoint.model.tokenizer, docs, bsize)
+        batches = [doc(config, checkpoint, integer_ids, integer_mask)
                    for (integer_ids, integer_mask) in text_batches]
 
         # aggregate all embeddings
