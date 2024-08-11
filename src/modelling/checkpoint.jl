@@ -3,7 +3,8 @@
         bert::Transformers.HuggingFace.HGFBertModel, linear::Transformers.Layers.Dense,
         tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder)
 
-A struct representing the BERT model, linear layer, and the tokenizer used to compute embeddings for documents and queries.
+A struct representing the BERT model, linear layer, and the tokenizer used to compute
+embeddings for documents and queries.
 
 # Arguments
 
@@ -111,17 +112,17 @@ function BaseColBERT(config::ColBERTConfig)
 end
 
 """
-    Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer, config::ColBERTConfig)
+    Checkpoint(model::BaseColBERT, config::ColBERTConfig)
 
-A wrapper for [`BaseColBERT`](@ref), which includes a [`ColBERTConfig`](@ref) and tokenization-specific functions via the [`DocTokenizer`](@ref) and [`QueryTokenizer`] types.
+A wrapper for [`BaseColBERT`](@ref), containing information for generating embeddings
+for docs and queries.
 
-If the config's [`DocSettings`](@ref) are configured to mask punctuations, then the `skiplist` property of the created [`Checkpoint`](@ref) will be set to a list of token IDs of punctuations.
+If the `config` is set to mask punctuations, then the `skiplist` property of the created
+[`Checkpoint`](@ref) will be set to a list of token IDs of punctuations. Otherwise, it will be empty.
 
 # Arguments
 
   - `model`: The [`BaseColBERT`](@ref) to be wrapped.
-  - `doc_tokenizer`: A [`DocTokenizer`](@ref) used for functions related to document tokenization.
-  - `query_tokenizer`: A [`QueryTokenizer`](@ref) used for functions related to query tokenization.
   - `config`: The underlying [`ColBERTConfig`](@ref).
 
 # Returns
@@ -133,10 +134,9 @@ The created [`Checkpoint`](@ref).
 Continuing from the example for [`BaseColBERT`](@ref):
 
 ```julia-repl
-julia> checkPoint = Checkpoint(base_colbert, DocTokenizer(base_colbert.tokenizer, config),
-           QueryTokenizer(base_colbert.tokenizer, config), config)
+julia> checkpoint = Checkpoint(base_colbert, config)
 
-julia> checkPoint.skiplist              # by default, all punctuations
+julia> checkpoint.skiplist              # by default, all punctuations
 32-element Vector{Int64}:
  1000
  1001
@@ -171,22 +171,18 @@ julia> checkPoint.skiplist              # by default, all punctuations
 """
 struct Checkpoint
     model::BaseColBERT
-    doc_tokenizer::DocTokenizer
-    query_tokenizer::QueryTokenizer
-    config::ColBERTConfig
-    skiplist::Union{Missing, Vector{Int64}}
+    skiplist::Vector{Int64}
 end
 
-function Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer,
-        query_tokenizer::QueryTokenizer, config::ColBERTConfig)
+function Checkpoint(model::BaseColBERT, config::ColBERTConfig)
     if config.mask_punctuation
         punctuation_list = string.(collect("!\"#\$%&\'()*+,-./:;<=>?@[\\]^_`{|}~"))
         skiplist = [TextEncodeBase.lookup(model.tokenizer.vocab, punct)
                     for punct in punctuation_list]
     else
-        skiplist = missing
+        skiplist = Vector{Int64}()
     end
-    Checkpoint(model, doc_tokenizer, query_tokenizer, config, skiplist)
+    Checkpoint(model, skiplist)
 end
 
 """
