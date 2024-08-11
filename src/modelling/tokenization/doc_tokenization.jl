@@ -26,7 +26,10 @@ Finally, the batches along with the list of `reverse_indices` are returned.
 
 A tuple containing the following is returned:
 
-- `batches`: A `Vector` of tuples of arrays of token IDs and masks, sorted in the order of document lengths. Each array in each tuple has shape `(L, N)`, where `L` is the length of the largest document in `batch_text`, and `N` is the number of documents in the batch being considered.
+- `batches`: A `Vector` of tuples of arrays of token IDs and masks, sorted in the order 
+    of document lengths. Each array in each tuple has shape `(L, N)`, where `L` is the length
+    of the largest document in `batch_text`, and `N` is the number of documents in the batch
+    being considered.
 - `reverse_indices`: A `Vector` containing the indices of the documents in their original order.
 
 # Examples
