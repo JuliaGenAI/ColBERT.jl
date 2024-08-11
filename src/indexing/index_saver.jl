@@ -25,7 +25,7 @@ The path of of the codec is inferred from the config stored in `saver`.
   - `saver`: An [`IndexSaver`](@ref) into which the codec is to be loaded.
 """
 function load_codec!(saver::IndexSaver)
-    index_path = saver.config.indexing_settings.index_path
+    index_path = saver.config.index_path
     centroids = JLD2.load(joinpath(index_path, "centroids.jld2"), "centroids")
     avg_residual = JLD2.load(joinpath(index_path, "avg_residual.jld2"), "avg_residual")
     buckets = JLD2.load(joinpath(index_path, "buckets.jld2"))
@@ -51,7 +51,7 @@ Also see [`train`](@ref).
   - `saver::IndexSaver`: The index saver to use.
 """
 function save_codec(saver::IndexSaver)
-    index_path = saver.config.indexing_settings.index_path
+    index_path = saver.config.index_path
     centroids_path = joinpath(index_path, "centroids.jld2")
     avg_residual_path = joinpath(index_path, "avg_residual.jld2")
     buckets_path = joinpath(index_path, "buckets.jld2")
@@ -87,7 +87,7 @@ The codes and compressed residuals for the chunk are saved in files named `<chun
 function save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int,
         embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
     codes, residuals = compress(saver.codec, embs)
-    path_prefix = joinpath(saver.config.indexing_settings.index_path, string(chunk_idx))
+    path_prefix = joinpath(saver.config.index_path, string(chunk_idx))
     @assert length(codes)==size(embs)[2] "length(codes): $(length(codes)), size(embs): $(size(embs))"
 
     # saving the compressed embeddings
@@ -99,13 +99,13 @@ function save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int,
 
     # saving doclens
     doclens_path = joinpath(
-        saver.config.indexing_settings.index_path, "doclens.$(chunk_idx).jld2")
+        saver.config.index_path, "doclens.$(chunk_idx).jld2")
     @info "Saving doclens to $(doclens_path)"
     JLD2.save(doclens_path, Dict("doclens" => doclens))
 
     # the metadata
     metadata_path = joinpath(
-        saver.config.indexing_settings.index_path, "$(chunk_idx).metadata.json")
+        saver.config.index_path, "$(chunk_idx).metadata.json")
     @info "Saving metadata to $(metadata_path)"
     open(metadata_path, "w") do io
         JSON.print(io,
@@ -134,7 +134,7 @@ Check if the index chunk exists for the given `chunk_idx`.
 A boolean indicating whether all relevant files for the chunk exist.
 """
 function check_chunk_exists(saver::IndexSaver, chunk_idx::Int)
-    index_path = saver.config.indexing_settings.index_path
+    index_path = saver.config.index_path
     path_prefix = joinpath(index_path, string(chunk_idx))
     codes_path = "$(path_prefix).codes.jld2"
     residuals_path = "$(path_prefix).residuals.jld2"

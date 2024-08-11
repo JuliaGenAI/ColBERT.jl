@@ -3,14 +3,14 @@ struct Indexer
 end
 
 function index(indexer::Indexer)
-    index_path = indexer.config.indexing_settings.index_path
+    index_path = indexer.config.index_path
     if isdir(index_path)
         @info "Index at $(index_path) already exists! Skipping indexing."
         return
     end
 
     config = indexer.config
-    checkpoint = config.resource_settings.checkpoint
+    checkpoint = config.checkpoint
 
     # loading the models
     @info "Loading ColBERT layers from HuggingFace."

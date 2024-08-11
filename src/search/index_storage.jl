@@ -21,7 +21,7 @@ function IndexScorer(index_path::String)
     @info "Loading the index from {index_path}."
 
     # loading the config from the index path
-    config = JLD2.load(joinpath(index_path, "config.jld2"))["config"]
+    config = load_config(index_path)
 
     # the metadata
     metadata_path = joinpath(index_path, "metadata.json")
@@ -46,7 +46,7 @@ function IndexScorer(index_path::String)
 
     # loading all compressed embeddings
     num_embeddings = metadata["num_embeddings"]
-    dim, nbits = config.doc_settings.dim, config.indexing_settings.nbits
+    dim, nbits = config.dim, config.nbits
     @assert (dim * nbits) % 8==0 "(dim, nbits): $((dim, nbits))"
     codes = zeros(UInt32, num_embeddings)
     residuals = zeros(UInt8, Int((dim / 8) * nbits), num_embeddings)
@@ -89,7 +89,7 @@ end
 Return a candidate set of `pids` for the query matrix `Q`. This is done as follows: the nearest `nprobe` centroids for each query embedding are found. This list is then flattened and the unique set of these centroids is built. Using the `ivf`, the list of all unique embedding IDs contained in these centroids is computed. Finally, these embedding IDs are converted to `pids` using `emb2pid`. This list of `pids` is the final candidate set.
 """
 function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::AbstractArray{Float32})
-    @assert isequal(size(Q)[2], config.query_settings.query_maxlen) "size(Q): $(size(Q)), query_maxlen: $(config.query_settings.query_maxlen)"     # Q: (128, 32, 1)
+    @assert isequal(size(Q)[2], config.query_maxlen) "size(Q): $(size(Q)), query_maxlen: $(config.query_maxlen)"     # Q: (128, 32, 1)
 
     Q = reshape(Q, size(Q)[1:end .!= end]...)           # squeeze out the last dimension 
     @assert isequal(length(size(Q)), 2) "size(Q): $(size(Q))"
@@ -98,7 +98,7 @@ function retrieve(ranker::IndexScorer, config::ColBERTConfig, Q::AbstractArray{F
     cells = Flux.gpu(transpose(Q)) * Flux.gpu(ranker.codec.centroids) |> Flux.cpu
     # TODO: how to take topk entries using GPU code?
     cells = mapslices(
-        row -> partialsortperm(row, 1:(config.search_settings.nprobe), rev = true),
+        row -> partialsortperm(row, 1:(config.nprobe), rev = true),
         cells, dims = 2)          # take top nprobe centroids for each query 
     centroid_ids = sort(unique(vec(cells)))
 
@@ -144,7 +144,7 @@ function score_pids(ranker::IndexScorer, config::ColBERTConfig,
     # decompress these codes and residuals to get the original embeddings
     D_packed = decompress(ranker.codec, codes_packed, residuals_packed)
     @assert ndims(D_packed)==2 "ndims(D_packed): $(ndims(D_packed))"
-    @assert size(D_packed)[1]==config.doc_settings.dim "size(D_packed): $(size(D_packed)), config.doc_settings.dim: $(config.doc_settings.dim)"
+    @assert size(D_packed)[1]==config.dim "size(D_packed): $(size(D_packed)), config.dim: $(config.dim)"
     @assert size(D_packed)[2]==num_embs "size(D_packed): $(size(D_packed)), num_embs: $(num_embs)"
     @assert D_packed isa AbstractMatrix{Float32} "$(typeof(D_packed))"
 

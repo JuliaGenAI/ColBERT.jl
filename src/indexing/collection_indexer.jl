@@ -30,8 +30,8 @@ end
 
 function CollectionIndexer(
         config::ColBERTConfig, encoder::CollectionEncoder, saver::IndexSaver)
-    plan_path = joinpath(config.indexing_settings.index_path, "plan.json")
-    metadata_path = joinpath(config.indexing_settings.index_path, "metadata.json")
+    plan_path = joinpath(config.index_path, "plan.json")
+    metadata_path = joinpath(config.index_path, "metadata.json")
 
     CollectionIndexer(
         config,
@@ -63,7 +63,7 @@ Sample PIDs from the collection to be used to compute clusters using a ``k``-mea
 A `Set` of `Int`s containing the sampled PIDs.
 """
 function _sample_pids(indexer::CollectionIndexer)
-    num_passages = length(indexer.config.resource_settings.collection.data)
+    num_passages = length(indexer.config.collection.data)
     typical_doclen = 120
     num_sampled_pids = 16 * sqrt(typical_doclen * num_passages)
     num_sampled_pids = Int(min(1 + floor(num_sampled_pids), num_passages))
@@ -93,7 +93,7 @@ The average document length (i.e number of attended tokens) computed from the sa
 """
 function _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
     # collect all passages with pids in sampled_pids
-    collection = indexer.config.resource_settings.collection
+    collection = indexer.config.collection
     sorted_sampled_pids = sort(collect(sampled_pids))
     local_sample = collection.data[sorted_sampled_pids]
 
@@ -105,7 +105,7 @@ function _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
     indexer.avg_doclen_est = length(local_sample_doclens) > 0 ?
                              sum(local_sample_doclens) / length(local_sample_doclens) : 0
 
-    sample_path = joinpath(indexer.config.indexing_settings.index_path, "sample.jld2")
+    sample_path = joinpath(indexer.config.index_path, "sample.jld2")
     @info "avg_doclen_est = $(indexer.avg_doclen_est) \t length(local_sample) = $(length(local_sample))"
     @info "Saving sampled embeddings to $(sample_path)."
     JLD2.save(sample_path, Dict("local_sample_embs" => local_sample_embs))
@@ -152,16 +152,16 @@ The number of chunks into which the document embeddings will be stored (`indexer
   - `indexer::CollectionIndexer`: The indexer to be initialized.
 """
 function setup(indexer::CollectionIndexer)
-    collection = indexer.config.resource_settings.collection
+    collection = indexer.config.collection
     indexer.num_chunks = Int(ceil(length(collection.data) / get_chunksize(
-        collection, indexer.config.run_settings.nranks)))
+        collection, indexer.config.nranks)))
 
     # sample passages for training centroids later
     sampled_pids = _sample_pids(indexer)
     avg_doclen_est = _sample_embeddings(indexer, sampled_pids)
 
     # computing the number of partitions, i.e clusters
-    num_passages = length(indexer.config.resource_settings.collection.data)
+    num_passages = length(indexer.config.collection.data)
     indexer.num_embeddings_est = num_passages * avg_doclen_est
     indexer.num_partitions = Int(floor(2^(floor(log2(16 *
                                                      sqrt(indexer.num_embeddings_est))))))
@@ -189,7 +189,7 @@ The tuple `sample, sample_heldout`.
 """
 function _concatenate_and_split_sample(indexer::CollectionIndexer)
     # load the sample embeddings
-    sample_path = joinpath(indexer.config.indexing_settings.index_path, "sample.jld2")
+    sample_path = joinpath(indexer.config.index_path, "sample.jld2")
     sample = JLD2.load(sample_path, "local_sample_embs")
     @debug "Original sample shape: $(size(sample))"
 
@@ -236,7 +236,7 @@ function _compute_avg_residuals(
     avg_residual = mean(abs.(heldout_avg_residual), dims = 2)    # for each dimension, take mean of absolute values of residuals
 
     # computing bucket weights and cutoffs
-    num_options = 2^indexer.config.indexing_settings.nbits
+    num_options = 2^indexer.config.nbits
     quantiles = Vector(0:(num_options - 1)) / num_options
     bucket_cutoffs_quantiles, bucket_weights_quantiles = quantiles[2:end],
     quantiles .+ (0.5 / num_options)
@@ -269,7 +269,7 @@ function train(indexer::CollectionIndexer)
     @assert heldout isa AbstractMatrix{Float32} "$(typeof(heldout))"
 
     centroids = kmeans(sample, indexer.num_partitions,
-        maxiter = indexer.config.indexing_settings.kmeans_niters, display = :iter).centers
+        maxiter = indexer.config.kmeans_niters, display = :iter).centers
     @assert size(centroids)[2]==indexer.num_partitions "size(centroids): $(size(centroids)), indexer.num_partitions: $(indexer.num_partitions)"
     @assert centroids isa AbstractMatrix{Float32} "$(typeof(centroids))"
 
@@ -298,8 +298,8 @@ The documents are processed in batches of size `chunksize` (see [`enumerate_batc
 function index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = missing)
     load_codec!(indexer.saver)                  # load the codec objects
     batches = enumerate_batches(
-        indexer.config.resource_settings.collection, chunksize = chunksize,
-        nranks = indexer.config.run_settings.nranks)
+        indexer.config.collection, chunksize = chunksize,
+        nranks = indexer.config.nranks)
     for (chunk_idx, offset, passages) in batches
         # TODO: add functionality to not re-write chunks if they already exist! 
         # TODO: add multiprocessing to this step!
@@ -348,7 +348,7 @@ function _collect_embedding_id_offset(indexer::CollectionIndexer)
     embeddings_offsets = Vector{Int}()
     for chunk_idx in 1:(indexer.num_chunks)
         metadata_path = joinpath(
-            indexer.config.indexing_settings.index_path, "$(chunk_idx).metadata.json")
+            indexer.config.index_path, "$(chunk_idx).metadata.json")
 
         chunk_metadata = open(metadata_path, "r") do io
             chunk_metadata = JSON.parse(io)
@@ -387,7 +387,7 @@ function _build_ivf(indexer::CollectionIndexer)
     ivf_lengths = counts(values, 1:(indexer.num_partitions))
 
     @info "Saving the IVF."
-    ivf_path = joinpath(indexer.config.indexing_settings.index_path, "ivf.jld2")
+    ivf_path = joinpath(indexer.config.index_path, "ivf.jld2")
     JLD2.save(ivf_path, Dict(
         "ivf" => ivf,
         "ivf_lengths" => ivf_lengths
@@ -396,7 +396,7 @@ end
 
 function _update_metadata(indexer::CollectionIndexer)
     @info "Saving the indexing metadata."
-    metadata_path = joinpath(indexer.config.indexing_settings.index_path, "metadata.json")
+    metadata_path = joinpath(indexer.config.index_path, "metadata.json")
 
     open(metadata_path, "w") do io
         JSON.print(io,
@@ -406,7 +406,7 @@ function _update_metadata(indexer::CollectionIndexer)
                 "num_partitions" => indexer.num_partitions,
                 "num_embeddings" => indexer.num_embeddings,
                 "avg_doclen" => Int(floor(indexer.num_embeddings /
-                                          length(indexer.config.resource_settings.collection.data)))
+                                          length(indexer.config.collection.data)))
             ),
             4
         )

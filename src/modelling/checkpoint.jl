@@ -95,7 +95,7 @@ function BaseColBERT(checkpoint::String, config::ColBERTConfig)
     bert_model = HuggingFace.load_model(
         :bert, checkpoint, :model, bert_state_dict; config = bert_config)
     linear = HuggingFace._load_dense(bert_state_dict, "linear", bert_config.hidden_size,
-        config.doc_settings.dim, bert_config.initializer_range, true)
+        config.dim, bert_config.initializer_range, true)
     tokenizer = Transformers.load_tokenizer(checkpoint)
 
     bert_model = bert_model |> Flux.gpu
@@ -173,7 +173,7 @@ end
 
 function Checkpoint(model::BaseColBERT, doc_tokenizer::DocTokenizer,
         query_tokenizer::QueryTokenizer, config::ColBERTConfig)
-    if config.doc_settings.mask_punctuation
+    if config.mask_punctuation
         punctuation_list = string.(collect("!\"#\$%&\'()*+,-./:;<=>?@[\\]^_`{|}~"))
         skiplist = [TextEncodeBase.lookup(model.tokenizer.vocab, punct)
                     for punct in punctuation_list]
@@ -276,7 +276,7 @@ julia> mask
 """
 function doc(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
         integer_mask::AbstractMatrix{Bool})
-    use_gpu = checkpoint.config.run_settings.use_gpu
+    use_gpu = checkpoint.config.use_gpu
 
     integer_ids = integer_ids |> Flux.gpu
     integer_mask = integer_mask |> Flux.gpu
@@ -339,7 +339,7 @@ julia> docs = [
     "this is some longer text, so length should be longer",
 ];
 
-julia> embs, doclens = docFromText(checkPoint, docs, config.indexing_settings.index_bsize)
+julia> embs, doclens = docFromText(checkPoint, docs, config.index_bsize)
 (Float32[0.07590997 0.00056472444 … -0.09958261 -0.03259005; 0.08413661 -0.016337946 … -0.061889287 -0.017708546; … ; -0.11584533 0.016651645 … 0.0073241345 0.09233974; 0.043868616 0.084660925 … -0.0294838 -0.08536169], [5 5 4 13])
 
 julia> embs
@@ -478,7 +478,7 @@ julia> query(checkPoint, integer_ids, integer_mask)
 """
 function query(checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
         integer_mask::AbstractMatrix{Bool})
-    use_gpu = checkpoint.config.run_settings.use_gpu
+    use_gpu = checkpoint.config.use_gpu
 
     integer_ids = integer_ids |> Flux.gpu
     integer_mask = integer_mask |> Flux.gpu
@@ -579,7 +579,7 @@ function queryFromText(
     process = tokenizer.process
     truncpad_pipe = Pipeline{:token}(
         TextEncodeBase.trunc_or_pad(
-            checkpoint.config.query_settings.query_maxlen, "[PAD]", :tail, :tail),
+            checkpoint.config.query_maxlen, "[PAD]", :tail, :tail),
         :token)
     process = process[1:4] |> truncpad_pipe |> process[6:end]
     tokenizer = Transformers.TextEncoders.BertTextEncoder(

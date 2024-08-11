@@ -36,7 +36,7 @@ julia> codec = load_codec(index_path);
 ```
 """
 function load_codec(index_path::String)
-    config = load(joinpath(index_path, "config.jld2"), "config")
+    config = load_config(index_path)
     centroids = load(joinpath(index_path, "centroids.jld2"), "centroids")
     avg_residual = load(joinpath(index_path, "avg_residual.jld2"), "avg_residual")
     buckets = load(joinpath(index_path, "buckets.jld2"))
@@ -95,8 +95,8 @@ Convert a matrix of residual vectors into a matrix of integer residual vector us
 A matrix of compressed integer residual vectors.
 """
 function binarize(codec::ResidualCodec, residuals::AbstractMatrix{Float32})
-    dim = codec.config.doc_settings.dim
-    nbits = codec.config.indexing_settings.nbits
+    dim = codec.config.dim
+    nbits = codec.config.nbits
     num_embeddings = size(residuals)[2]
 
     if dim % (nbits * 8) != 0
@@ -165,8 +165,8 @@ function compress(codec::ResidualCodec, embs::AbstractMatrix{Float32})
 end
 
 function decompress_residuals(codec::ResidualCodec, binary_residuals::AbstractMatrix{UInt8})
-    dim = codec.config.doc_settings.dim
-    nbits = codec.config.indexing_settings.nbits
+    dim = codec.config.dim
+    nbits = codec.config.nbits
 
     @assert ndims(binary_residuals)==2 "ndims(binary_residuals): $(ndims(binary_residuals))"
     @assert size(binary_residuals)[1]==(dim / 8) * nbits "size(binary_residuals): $(size(binary_residuals)), (dim / 8) * nbits: $((dim / 8) * nbits)"
@@ -253,14 +253,14 @@ A vector of codes for the specified chunk.
 """
 function load_codes(codec::ResidualCodec, chunk_idx::Int)
     codes_path = joinpath(
-        codec.config.indexing_settings.index_path, "$(chunk_idx).codes.jld2")
+        codec.config.index_path, "$(chunk_idx).codes.jld2")
     codes = JLD2.load(codes_path, "codes")
     codes
 end
 
 function load_residuals(codec::ResidualCodec, chunk_idx::Int)
     residual_path = joinpath(
-        codec.config.indexing_settings.index_path, "$(chunk_idx).residuals.jld2")
+        codec.config.index_path, "$(chunk_idx).residuals.jld2")
     residuals = JLD2.load(residual_path, "residuals")
     residuals
 end

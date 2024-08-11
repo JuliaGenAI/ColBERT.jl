@@ -10,11 +10,11 @@ function Searcher(index_path::String)
     end
 
     # loading the config from the path
-    config = JLD2.load(joinpath(index_path, "config.jld2"))["config"]
+    config = load_config(index_path) 
 
     # loading the model and saving it to prevent multiple loads
     @info "Loading ColBERT layers from HuggingFace."
-    base_colbert = BaseColBERT(config.resource_settings.checkpoint, config)
+    base_colbert = BaseColBERT(config.checkpoint, config)
     checkPoint = Checkpoint(base_colbert, DocTokenizer(base_colbert.tokenizer, config),
         QueryTokenizer(base_colbert.tokenizer, config), config)
 

@@ -23,7 +23,7 @@ function QueryTokenizer(
         tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
         config::ColBERTConfig)
     Q_marker_token_id = TextEncodeBase.lookup(
-        tokenizer.vocab, config.tokenizer_settings.query_token_id)
+        tokenizer.vocab, config.query_token_id)
     mask_token_id = TextEncodeBase.lookup(tokenizer.vocab, "[MASK]")
     QueryTokenizer(Q_marker_token_id, mask_token_id, config)
 end
@@ -60,7 +60,7 @@ julia> tokenizer = base_colbert.tokenizer;
 julia> process = tokenizer.process;
 
 julia> truncpad_pipe = Pipeline{:token}(
-           TextEncodeBase.trunc_or_pad(config.query_settings.query_maxlen, "[PAD]", :tail, :tail),
+           TextEncodeBase.trunc_or_pad(config.query_maxlen, "[PAD]", :tail, :tail),
            :token);
 
 julia> process = process[1:4] |> truncpad_pipe |> process[6:end];
@@ -149,7 +149,7 @@ function tensorize(query_tokenizer::QueryTokenizer,
     integer_mask = NeuralAttentionlib.getmask(mask, ids)[1, :, :]
     @assert isequal(size(integer_ids), size(integer_mask)) "size(integer_ids): $(size(integer_ids)), size(integer_mask): $(size(integer_mask))"
     @assert isequal(
-        size(integer_ids)[1], query_tokenizer.config.query_settings.query_maxlen) "size(integer_ids): $(size(integer_ids)), query_maxlen: $(query_tokenizer.config.query_settings.query_maxlen)"
+        size(integer_ids)[1], query_tokenizer.config.query_maxlen) "size(integer_ids): $(size(integer_ids)), query_maxlen: $(query_tokenizer.config.query_maxlen)"
     @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
     @assert integer_mask isa AbstractMatrix{Bool} "$(typeof(integer_mask))"
 
@@ -157,7 +157,7 @@ function tensorize(query_tokenizer::QueryTokenizer,
     integer_ids[2, :] .= query_tokenizer.Q_marker_token_id
     integer_ids[integer_ids .== 1] .= query_tokenizer.mask_token_id
 
-    if query_tokenizer.config.query_settings.attend_to_mask_tokens
+    if query_tokenizer.config.attend_to_mask_tokens
         integer_mask[integer_ids .== query_tokenizer.mask_token_id] .= 1
         @assert isequal(sum(integer_mask), prod(size(integer_mask))) "sum(integer_mask): $(sum(integer_mask)), prod(size(integer_mask)): $(prod(size(integer_mask)))"
     end
