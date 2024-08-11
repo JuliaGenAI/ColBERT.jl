@@ -36,12 +36,48 @@ julia> codec = load_codec(index_path);
 ```
 """
 function load_codec(index_path::String)
-    config = load_config(index_path)
-    centroids = load(joinpath(index_path, "centroids.jld2"), "centroids")
-    avg_residual = load(joinpath(index_path, "avg_residual.jld2"), "avg_residual")
-    buckets = load(joinpath(index_path, "buckets.jld2"))
-    ResidualCodec(config, centroids, avg_residual,
-        buckets["bucket_cutoffs"], buckets["bucket_weights"])
+    centroids_path = joinpath(index_path, "centroids.jld2")
+    avg_residual_path = joinpath(index_path, "avg_residual.jld2")
+    bucket_cutoffs_path = joinpath(index_path, "bucket_cutoffs.jld2")
+    bucket_weights_path = joinpath(index_path, "bucket_weights.jld2")
+    @info "Loading codec from $(centroids_path), $(avg_residual_path), $(bucket_cutoffs_path) and $(bucket_weights_path)."
+
+    centroids = JLD2.load_object(centroids_path)
+    avg_residual = JLD2.load_object(avg_residual_path)
+    bucket_cutoffs = JLD2.load_object(bucket_cutoffs_path)
+    bucket_weights = JLD2.load_object(bucket_weights_path)
+
+    centroids, avg_residual, bucket_cutoffs, bucket_weights
+end
+
+"""
+    save_codec(saver::IndexSaver)
+
+Save the codec used by the `saver` to disk.
+
+This will create three files in the directory specified by the indexing path:
+
+  - `centroids.jld2` containing the centroids.
+  - `avg_residual.jld2` containing the average residual.
+  - `buckets.jld2` containing the bucket cutoffs and weights.
+
+Also see [`train`](@ref).
+
+# Arguments
+
+  - `saver::IndexSaver`: The index saver to use.
+"""
+function save_codec(index_path::String, centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32}, bucket_weights::Vector{Float32}, avg_residual::Float32)
+    centroids_path = joinpath(index_path, "centroids.jld2")
+    avg_residual_path = joinpath(index_path, "avg_residual.jld2")
+    bucket_cutoffs_path = joinpath(index_path, "bucket_cutoffs.jld2")
+    bucket_weights_path = joinpath(index_path, "bucket_weights.jld2")
+    @info "Saving codec to $(centroids_path), $(avg_residual_path), $(bucket_cutoffs_path) and $(bucket_weights_path)."
+
+    JLD2.save_object(centroids_path, centroids)
+    JLD2.save_object(avg_residual_path, avg_residual)
+    JLD2.save_object(bucket_cutoffs_path, bucket_cutoffs)
+    JLD2.save_object(bucket_weights_path, bucket_weights)
 end
 
 """
