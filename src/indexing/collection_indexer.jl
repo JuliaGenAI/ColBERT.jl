@@ -160,7 +160,7 @@ function _sample_embeddings(config::ColBERTConfig, checkpoint::Checkpoint,
     sample_path = joinpath(config.index_path, "sample.jld2")
     @info "avg_doclen_est = $(avg_doclen_est) \t length(local_sample) = $(length(local_sample))"
     @info "Saving sampled embeddings to $(sample_path)."
-    JLD2.save(sample_path, Dict("local_sample_embs" => local_sample_embs))
+    JLD2.save_object(sample_path, local_sample_embs)
 
     avg_doclen_est
 end
