@@ -228,16 +228,16 @@ The sample embeddings saved by the [`setup`](@ref) function are loaded, shuffled
 
 # Arguments
 
-  - `indexer`: The [`CollectionIndexer`](@ref).
+  - `index_path`: The path of the index. 
 
 # Returns
 
 The tuple `sample, sample_heldout`.
 """
-function _concatenate_and_split_sample(indexer::CollectionIndexer)
+function _concatenate_and_split_sample(index_path::String)
     # load the sample embeddings
-    sample_path = joinpath(indexer.config.index_path, "sample.jld2")
-    sample = JLD2.load(sample_path, "local_sample_embs")
+    sample_path = joinpath(index_path, "sample.jld2")
+    sample = JLD2.load_object(sample_path)
     @debug "Original sample shape: $(size(sample))"
 
     # randomly shuffle embeddings
@@ -271,19 +271,17 @@ Compute the average residuals and other statistics of the held-out sample embedd
 A tuple `bucket_cutoffs, bucket_weights, avg_residual`.
 """
 function _compute_avg_residuals(
-        indexer::CollectionIndexer, centroids::AbstractMatrix{Float32},
+        nbits::Int, centroids::AbstractMatrix{Float32},
         heldout::AbstractMatrix{Float32})
-    compressor = ResidualCodec(
-        indexer.config, centroids, 0.0, Vector{Float32}(), Vector{Float32}())
-    codes = compress_into_codes(compressor, heldout)             # get centroid codes
+    codes = compress_into_codes(centroids, heldout)                         # get centroid codes
     @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
-    heldout_reconstruct = Flux.gpu(compressor.centroids[:, codes])         # get corresponding centroids
-    heldout_avg_residual = Flux.gpu(heldout) - heldout_reconstruct         # compute the residual
+    heldout_reconstruct = Flux.gpu(centroids[:, codes])                     # get corresponding centroids
+    heldout_avg_residual = Flux.gpu(heldout) - heldout_reconstruct          # compute the residual
 
-    avg_residual = mean(abs.(heldout_avg_residual), dims = 2)    # for each dimension, take mean of absolute values of residuals
+    avg_residual = mean(abs.(heldout_avg_residual), dims = 2)               # for each dimension, take mean of absolute values of residuals
 
     # computing bucket weights and cutoffs
-    num_options = 2^indexer.config.nbits
+    num_options = 2^nbits
     quantiles = Vector(0:(num_options - 1)) / num_options
     bucket_cutoffs_quantiles, bucket_weights_quantiles = quantiles[2:end],
     quantiles .+ (0.5 / num_options)
@@ -310,24 +308,24 @@ Average residuals and other compression data is computed via the [`_compute_avg_
 
   - `indexer::CollectionIndexer`: The [`CollectionIndexer`](@ref) to be trained.
 """
-function train(indexer::CollectionIndexer)
-    sample, heldout = _concatenate_and_split_sample(indexer)
+function train(config::ColBERTConfig)
+    sample, heldout = _concatenate_and_split_sample(config.index_path)
     @assert sample isa AbstractMatrix{Float32} "$(typeof(sample))"
     @assert heldout isa AbstractMatrix{Float32} "$(typeof(heldout))"
 
-    centroids = kmeans(sample, indexer.num_partitions,
-        maxiter = indexer.config.kmeans_niters, display = :iter).centers
-    @assert size(centroids)[2]==indexer.num_partitions "size(centroids): $(size(centroids)), indexer.num_partitions: $(indexer.num_partitions)"
+    # loading the indexing plan
+    plan_metadata = JSON.parsefile(joinpath(config.index_path, "plan.json"))
+
+    centroids = kmeans(sample, plan_metadata["num_partitions"],
+        maxiter = config.kmeans_niters, display = :iter).centers
+    @assert size(centroids)[2]==plan_metadata["num_partitions"] "size(centroids): $(size(centroids)), num_partitions: $(plan_metadata["num_partitions"])"
     @assert centroids isa AbstractMatrix{Float32} "$(typeof(centroids))"
 
     bucket_cutoffs, bucket_weights, avg_residual = _compute_avg_residuals(
-        indexer, centroids, heldout)
+        config.nbits, centroids, heldout)
     @info "avg_residual = $(avg_residual)"
 
-    codec = ResidualCodec(
-        indexer.config, centroids, avg_residual, bucket_cutoffs, bucket_weights)
-    indexer.saver.codec = codec
-    save_codec(indexer.saver)
+    save_codec(config.index_path, centroids, bucket_cutoffs, bucket_weights, avg_residual)
 end
 
 """
