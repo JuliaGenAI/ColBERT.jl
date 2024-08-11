@@ -97,14 +97,14 @@ A `Vector{UInt32}` of codes, where each code corresponds to the nearest centroid
 ```
 ```
 """
-function compress_into_codes(codec::ResidualCodec, embs::AbstractMatrix{Float32})
+function compress_into_codes(centroids::AbstractMatrix{Float32}, embs::AbstractMatrix{Float32})
     codes = Vector{UInt32}()
 
-    bsize = Int(floor((1 << 29) / size(codec.centroids)[2]))
+    bsize = Int(floor((1 << 29) / size(centroids)[2]))
     offset = 1
     while (offset <= size(embs)[2])                             # batch on the second dimension
         dot_products = transpose(Flux.gpu(embs[
-            :, offset:min(size(embs)[2], offset + bsize - 1)])) * Flux.gpu(codec.centroids)
+            :, offset:min(size(embs)[2], offset + bsize - 1)])) * Flux.gpu(centroids)
         indices = (cartesian_index -> cartesian_index.I[2]).(argmax(dot_products, dims = 2)[
             :, 1])
         append!(codes, indices)
