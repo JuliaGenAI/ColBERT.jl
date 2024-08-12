@@ -41,6 +41,8 @@ function encode_passages(
         embs_, doclens_ = docFromText(
             config, checkpoint, passages[passage_offset:passage_end_offset],
             config.index_bsize)
+        @assert embs_ isa Matrix{Float32}
+        @assert doclens_ isa Vector{Int}
         push!(embs, embs_)
         append!(doclens, vec(doclens_))
         passage_offset += config.passages_batch_size
