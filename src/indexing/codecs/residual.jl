@@ -28,12 +28,13 @@ mutable struct ResidualCodec
 end
 
 """
-# Examples
+    load_codec(index_path::String)
 
-```julia-repl
-julia> codec = load_codec(index_path);
+Load compression/decompression information from the index path.
 
-```
+# Arguments
+
+  - `index_path`: The path of the index.
 """
 function load_codec(index_path::String)
     centroids_path = joinpath(index_path, "centroids.jld2")
@@ -56,23 +57,23 @@ function load_codec(index_path::String)
 end
 
 """
-    save_codec(saver::IndexSaver)
+    save_codec(
+        index_path::String, centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32},
+        bucket_weights::Vector{Float32}, avg_residual::Float32)
 
-Save the codec used by the `saver` to disk.
-
-This will create three files in the directory specified by the indexing path:
-
-  - `centroids.jld2` containing the centroids.
-  - `avg_residual.jld2` containing the average residual.
-  - `buckets.jld2` containing the bucket cutoffs and weights.
-
-Also see [`train`](@ref).
+Save compression/decompression information from the index path.
 
 # Arguments
 
-  - `saver::IndexSaver`: The index saver to use.
+  - `index_path`: The path of the index.
+  - `centroids`: The matrix of centroids of the index.
+  - `bucket_cutoffs`: Cutoffs used to determine buckets during residual compression.
+  - `bucket_weights`: Weights used to determine the decompressed values during decompression.
+  - `avg_residual`: The average residual value, computed from the heldout set (see [`_compute_avg_residuals`](@ref)).
 """
-function save_codec(index_path::String, centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32}, bucket_weights::Vector{Float32}, avg_residual::Float32)
+function save_codec(
+        index_path::String, centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32},
+        bucket_weights::Vector{Float32}, avg_residual::Float32)
     centroids_path = joinpath(index_path, "centroids.jld2")
     avg_residual_path = joinpath(index_path, "avg_residual.jld2")
     bucket_cutoffs_path = joinpath(index_path, "bucket_cutoffs.jld2")
@@ -86,23 +87,23 @@ function save_codec(index_path::String, centroids::Matrix{Float32}, bucket_cutof
 end
 
 """
-    compress_into_codes(codec::ResidualCodec, embs::AbstractMatrix{Float32})
+    compress_into_codes(
+        centroids::AbstractMatrix{Float32}, embs::AbstractMatrix{Float32})
 
-Compresses a matrix of embeddings into a vector of codes using the given [`ResidualCodec`](@ref), where the code for each embedding is its nearest centroid ID.
+Compresses a matrix of embeddings into a vector of codes using the given `centroids`,
+where the code for each embedding is its nearest centroid ID.
 
 # Arguments
 
-  - `codec`: The [`ResidualCodec`](@ref) used to compress the embeddings.
+  - `centroids`: The matrix of centroids.
   - `embs`: The matrix of embeddings to be compressed.
 
 # Returns
 
 A `Vector{UInt32}` of codes, where each code corresponds to the nearest centroid ID for the embedding.
-
-```
-```
 """
-function compress_into_codes(centroids::AbstractMatrix{Float32}, embs::AbstractMatrix{Float32})
+function compress_into_codes(
+        centroids::AbstractMatrix{Float32}, embs::AbstractMatrix{Float32})
     codes = Vector{UInt32}()
 
     bsize = Int(floor((1 << 29) / size(centroids)[2]))
@@ -122,20 +123,25 @@ function compress_into_codes(centroids::AbstractMatrix{Float32}, embs::AbstractM
 end
 
 """
-    binarize(codec::ResidualCodec, residuals::AbstractMatrix{Float32})
+    binarize(dim::Int, nbits::Int, bucket_cutoffs::Vector{Float32},
+        residuals::AbstractMatrix{Float32})
 
-Convert a matrix of residual vectors into a matrix of integer residual vector using `nbits` bits (specified by the underlying `config`).
+Convert a matrix of residual vectors into a matrix of integer residual vector
+using `nbits` bits.
 
 # Arguments
 
-  - `codec`: A [`ResidualCodec`](@ref) object containing the compression information.
-  - `residuals`: The matrix of residuals to be converted.
+  - `dim`: The embedding dimension (see [`ColBERTConfig`](@ref)).
+  - `nbits`: Number of bits to compress the residuals into.
+  - `bucket_cutoffs`: Cutoffs used to determine residual buckets.
+  - `residuals`: The matrix of residuals ot be compressed.
 
 # Returns
 
-A matrix of compressed integer residual vectors.
+A `AbstractMatrix{UInt8}` of compressed integer residual vectors.
 """
-function binarize(dim::Int, nbits::Int, bucket_cutoffs::Vector{Float32}, residuals::AbstractMatrix{Float32})
+function binarize(dim::Int, nbits::Int, bucket_cutoffs::Vector{Float32},
+        residuals::AbstractMatrix{Float32})
     num_embeddings = size(residuals)[2]
 
     if dim % (nbits * 8) != 0
@@ -162,22 +168,31 @@ function binarize(dim::Int, nbits::Int, bucket_cutoffs::Vector{Float32}, residua
 end
 
 """
-    compress(codec::ResidualCodec, embs::AbstractMatrix{Float32})
+    compress(centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32},
+        dim::Int, nbits::Int, embs::AbstractMatrix{Float32})
 
-Compress a matrix of embeddings into a compact representation using the specified [`ResidualCodec`](@ref).
+Compress a matrix of embeddings into a compact representation.
 
-All embeddings are compressed to their nearest centroid IDs and their quantized residual vectors (where the quantization is done in `nbits` bits, specified by the `config` of  `codec`). If `emb` denotes an embedding and `centroid` is is nearest centroid, the residual vector is defined to be `emb - centroid`.
+All embeddings are compressed to their nearest centroid IDs and
+their quantized residual vectors (where the quantization is done
+in `nbits` bits). If `emb` denotes an embedding and `centroid`
+is is nearest centroid, the residual vector is defined to be
+`emb - centroid`.
 
 # Arguments
 
-  - `codec`: A [`ResidualCodec`](@ref) object containing the centroids and other parameters for the compression algorithm.
+  - `centroids`: The matrix of centroids.
+  - `bucket_cutoffs`: Cutoffs used to determine residual buckets.
+  - `dim`: The embedding dimension (see [`ColBERTConfig`](@ref)).
+  - `nbits`: Number of bits to compress the residuals into.
   - `embs`: The input embeddings to be compressed.
 
 # Returns
 
 A tuple containing a vector of codes and the compressed residuals matrix.
 """
-function compress(centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32}, dim::Int, nbits::Int, embs::AbstractMatrix{Float32})
+function compress(centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32},
+        dim::Int, nbits::Int, embs::AbstractMatrix{Float32})
     codes, residuals = Vector{UInt32}(), Vector{Matrix{UInt8}}()
 
     offset = 1
