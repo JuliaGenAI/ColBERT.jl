@@ -1,36 +1,27 @@
 """
     tensorize_docs(config::ColBERTConfig,
         tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
-        batch_text::Vector{String}, bsize::Union{Missing, Int})
+        batch_text::Vector{String})
 
 Convert a collection of documents to tensors in the ColBERT format. 
 
 This function adds the document marker token at the beginning of each document
 and then converts the text data into integer IDs and masks using the `tokenizer`.
-Some optimizing operations are performed on the documents. First, the arrays of
-token IDs and attention masks are sorted by document lengths (this is for more
-efficient use of GPUs on the batches; see [`_sort_by_length`](@ref)), and a list
-`reverse_indices` is computed, which remembers the original order of the documents
-(to reorder them later). The arrays of token IDs and attention masks are then
-batched into batches of size `bsize` (see [`_split_into_batches`](@ref)).
-Finally, the batches along with the list of `reverse_indices` are returned.
 
 # Arguments
 
 - `config`: The `ColBERTConfig` to be used to fetch the document marker token ID.
 - `tokenizer`: The tokenizer which is used to convert text data into integer IDs.
 - `batch_text`: A document texts that will be converted into tensors of token IDs.
-- `bsize`: The size of the batches to split the `batch_text` into. 
 
 # Returns
 
 A tuple containing the following is returned:
 
-- `batches`: A `Vector` of tuples of arrays of token IDs and masks, sorted in the order 
-    of document lengths. Each array in each tuple has shape `(L, N)`, where `L` is the length
+- `integer_ids`: A `Matrix` of token IDs of shape `(L, N)`, where `L` is the length
     of the largest document in `batch_text`, and `N` is the number of documents in the batch
     being considered.
-- `reverse_indices`: A `Vector` containing the indices of the documents in their original order.
+- `integer_mask`: A `Matrix` of attention masks, of the same shape as `integer_ids`. 
 
 # Examples
 
@@ -49,40 +40,56 @@ julia> batch_text = [
     "this is an even longer document. this is some longer text, so length should be longer",
 ]; 
 
-julia> batches, reverse_indices = ColBERT.tensorize_docs(config, tokenizer, batch_text, 3)
-(Tuple{AbstractMatrix{Int32}, AbstractMatrix{Bool}}[([102 102 102; 3 3 3; … ; 1 1 1; 1 1 1], [1 1 1; 1 1 1; … ; 0 0 0; 0 0 0]), ([102 102; 3 3; … ; 1 2937; 1 103], [1 1; 1 1; … ; 0 1; 0 1])], [2, 3, 1, 4, 5])
+julia> integer_ids, integer_mask = ColBERT.tensorize_docs(config, tokenizer, batch_text)
+(Int32[102 102 … 102 102; 3 3 … 3 3; … ; 1 1 … 1 2937; 1 1 … 1 103], Bool[1 1 … 1 1; 1 1 … 1 1; … ; 0 0 … 0 1; 0 0 … 0 1])
 
-julia> batches[1][1]                # sorted by length 
-21×3 Matrix{Int32}:
-  102   102   102
-    3     3     3
- 1038  7593  4068
-  103  2089  2018
-    1   103  1000
-    1     1   103
-    1     1     1
-    1     1     1
-    1     1     1
-    1     1     1
-    1     1     1
-    1     1     1
-    1     1     1
-    1     1     1
-    1     1     1
-    1     1     1
-    1     1     1
-    1     1     1
-    1     1     1
-    1     1     1
-    1     1     1
+julia> integer_ids 
+21×5 reinterpret(Int32, ::Matrix{PrimitiveOneHot.OneHot{0x0000773a}}):
+  102   102   102   102   102
+    3     3     3     3     3
+ 7593  4068  1038  2024  2024
+ 2089  2018   103  2004  2004
+  103  1000     1  2071  2020
+    1   103     1  2937  2131
+    1     1     1  3794  2937
+    1     1     1  1011  6255
+    1     1     1  2062  1013
+    1     1     1  3092  2024
+    1     1     1  2324  2004
+    1     1     1  2023  2071
+    1     1     1  2937  2937
+    1     1     1   103  3794
+    1     1     1     1  1011
+    1     1     1     1  2062
+    1     1     1     1  3092
+    1     1     1     1  2324
+    1     1     1     1  2023
+    1     1     1     1  2937
+    1     1     1     1   103
 
-julia> reverse_indices              # the original order 
-5-element Vector{Int64}:
- 2
- 3
- 1
- 4
- 5
+julia> integer_mask 
+21×5 Matrix{Bool}:
+ 1  1  1  1  1
+ 1  1  1  1  1
+ 1  1  1  1  1
+ 1  1  1  1  1
+ 1  1  0  1  1
+ 0  1  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1
 
 ```
 """
@@ -102,7 +109,7 @@ function tensorize_docs(config::ColBERTConfig,
     D_marker_token_id = TextEncodeBase.lookup(
         tokenizer.vocab, config.doc_token_id)
     integer_ids[2, :] .= D_marker_token_id
-    
+
     @assert isequal(size(integer_ids), size(integer_mask)) "size(integer_ids): $(size(integer_ids)), size(integer_mask): $(integer_mask)"
     @assert isequal(size(integer_ids)[2], length(batch_text))
     @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"

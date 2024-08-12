@@ -266,12 +266,12 @@ Compute the hidden state of the BERT and linear layers of ColBERT for documents.
 A tuple `D, mask`, where:
 
   - `D` is an array containing the normalized embeddings for each token in each document.
-        It has shape `(D, L, N)`, where `D` is the embedding dimension (`128` for the linear layer
-        of ColBERT), and `(L, N)` is the shape of `integer_ids`, i.e `L` is the maximum length of
-        any document and `N` is the total number of documents.
+    It has shape `(D, L, N)`, where `D` is the embedding dimension (`128` for the linear layer
+    of ColBERT), and `(L, N)` is the shape of `integer_ids`, i.e `L` is the maximum length of
+    any document and `N` is the total number of documents.
   - `mask` is an array containing attention masks for all documents, after masking out any
-        tokens in the `skiplist` of `checkpoint`. It has shape `(1, L, N)`, where `(L, N)`
-        is the same as described above.
+    tokens in the `skiplist` of `checkpoint`. It has shape `(1, L, N)`, where `(L, N)`
+    is the same as described above.
 
 # Examples
 
@@ -434,9 +434,11 @@ function docFromText(config::ColBERTConfig, checkpoint::Checkpoint,
         # aggregate all embeddings
         D, mask = Vector{AbstractArray{Float32}}(), Vector{AbstractArray{Bool}}()
         passage_offset = 1
-        while(passage_offset <= length(docs))
+        while (passage_offset <= length(docs))
             passage_end_offset = min(length(docs), passage_offset + bsize - 1)
-            D_, mask_ = doc(config, checkpoint, integer_ids[:, passage_offset:passage_end_offset], integer_mask[:, passage_offset:passage_end_offset])
+            D_, mask_ = doc(
+                config, checkpoint, integer_ids[:, passage_offset:passage_end_offset],
+                integer_mask[:, passage_offset:passage_end_offset])
             push!(D, D_)
             push!(mask, mask_)
             passage_offset += bsize

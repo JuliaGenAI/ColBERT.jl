@@ -79,7 +79,7 @@ Base.@kwdef struct ColBERTConfig
 
     # indexing settings
     index_path::String = ""
-    index_bsize::Int = 64
+    index_bsize::Int = 32 
     chunksize::Union{Missing, Int} = missing
     passages_batch_size::Int = 300
     nbits::Int = 2

@@ -36,8 +36,11 @@ function encode_passages(
     # batching also occurs inside docFromText to do batch packing optimizations
     passage_offset = 1
     while passage_offset <= length(passages)
-        passage_end_offset = min(length(passages), passage_offset + config.passages_batch_size - 1)
-        embs_, doclens_ = docFromText(config, checkpoint, passages[passage_offset:passage_end_offset], config.index_bsize)
+        passage_end_offset = min(
+            length(passages), passage_offset + config.passages_batch_size - 1)
+        embs_, doclens_ = docFromText(
+            config, checkpoint, passages[passage_offset:passage_end_offset],
+            config.index_bsize)
         push!(embs, embs_)
         append!(doclens, vec(doclens_))
         passage_offset += config.passages_batch_size
