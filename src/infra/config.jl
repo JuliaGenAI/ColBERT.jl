@@ -25,6 +25,8 @@ Structure containing config for running and training various components.
   - `attend_to_mask_tokens`: Whether or not to attend to mask tokens in the query. Default value is false.
   - `index_path`: Path to save the index files.
   - `index_bsize`: Batch size used for some parts of indexing.
+  - `chunksize`: Custom size of a chunk, i.e the number of passages for which data is to be stored in one chunk. Default is `missing`,
+        in which case `chunksize` is determined from the size of the `collection` and `nranks`.
   - `nbits`: Number of bits used to compress residuals.
   - `kmeans_niters`: Number of iterations used for k-means clustering.
   - `nprobe`: The number of nearest centroids to fetch during a search. Default is `2`. Also see [`retrieve`](@ref).
@@ -77,6 +79,7 @@ Base.@kwdef struct ColBERTConfig
     # indexing settings
     index_path::String = ""
     index_bsize::Int = 64
+    chunksize::Union{Missing, Int} = missing
     nbits::Int = 2
     kmeans_niters::Int = 20
 

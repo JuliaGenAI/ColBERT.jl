@@ -187,7 +187,8 @@ and the indexing plan is saved to `plan.json`, with the path being specified by 
 function setup(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
     isdir(config.index_path) || mkdir(config.index_path)
 
-    chunksize = min(25000, 1 + fld(length(collection), config.nranks))
+    chunksize = 0    
+    chunksize = ismissing(config.chunksize) ? min(25000, 1 + fld(length(collection), config.nranks)) : config.chunksize
     num_chunks = cld(length(collection), chunksize)
 
     # sample passages for training centroids later
