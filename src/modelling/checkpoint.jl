@@ -420,16 +420,26 @@ function docFromText(config::ColBERTConfig, checkpoint::Checkpoint,
         # doc(checkpoint, integer_ids, integer_mask)
         error("Currently bsize cannot be missing!")
     else
-        text_batches, reverse_indices = tensorize_docs(
-            config, checkpoint.model.tokenizer, docs, bsize)
-        batches = [doc(config, checkpoint, integer_ids, integer_mask)
-                   for (integer_ids, integer_mask) in text_batches]
+        integer_ids, integer_mask = tensorize_docs(config, checkpoint.model.tokenizer, docs)
+
+        # we sort passages by length to do batch packing for more efficient use of the GPU
+        integer_ids, integer_mask, reverse_indices = _sort_by_length(
+            integer_ids, integer_mask, bsize)
+
+        @assert length(reverse_indices)==length(docs) "length(reverse_indices): $(length(reverse_indices)), length(batch_text): $(length(docs))"
+        @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
+        @assert integer_mask isa AbstractMatrix{Bool} "$(typeof(integer_mask))"
+        @assert reverse_indices isa Vector{Int64} "$(typeof(reverse_indices))"
 
         # aggregate all embeddings
         D, mask = Vector{AbstractArray{Float32}}(), Vector{AbstractArray{Bool}}()
-        for (_D, _mask) in batches
-            push!(D, _D)
-            push!(mask, _mask)
+        passage_offset = 1
+        while(passage_offset <= length(docs))
+            passage_end_offset = min(length(docs), passage_offset + bsize - 1)
+            D_, mask_ = doc(config, checkpoint, integer_ids[:, passage_offset:passage_end_offset], integer_mask[:, passage_offset:passage_end_offset])
+            push!(D, D_)
+            push!(mask, mask_)
+            passage_offset += bsize
         end
 
         # concat embeddings and masks, and put them in the original order
