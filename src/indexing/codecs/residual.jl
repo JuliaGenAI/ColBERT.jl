@@ -290,11 +290,10 @@ Load the codes from disk for a given chunk index. The codes are stored in the fi
 
 A vector of codes for the specified chunk.
 """
-function load_codes(codec::ResidualCodec, chunk_idx::Int)
+function load_codes(index_path::String, chunk_idx::Int)
     codes_path = joinpath(
-        codec.config.index_path, "$(chunk_idx).codes.jld2")
-    codes = JLD2.load(codes_path, "codes")
-    codes
+        index_path, "$(chunk_idx).codes.jld2")
+    JLD2.load_object(codes_path)
 end
 
 function load_residuals(codec::ResidualCodec, chunk_idx::Int)
