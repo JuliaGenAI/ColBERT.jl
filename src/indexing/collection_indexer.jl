@@ -331,6 +331,57 @@ function train(config::ColBERTConfig)
 end
 
 """
+    save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int,
+        embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
+
+Save a single chunk of compressed embeddings and their relevant metadata to disk.
+
+The codes and compressed residuals for the chunk are saved in files named `<chunk_idx>.codec.jld2`. The document lengths are saved in a file named `doclens.<chunk_idx>.jld2`. Relevant metadata, including number of documents in the chunk, number of embeddings and the passage offsets are saved in a file named `<chunk_idx>.metadata.json`.
+
+# Arguments
+
+  - `saver`: The [`IndexSaver`](@ref) containing relevant information to save the chunk.
+  - `chunk_idx`: The index of the current chunk being saved.
+  - `offset`: The offset in the original document collection where this chunk starts.
+  - `embs`: The embeddings matrix for the current chunk.
+  - `doclens`: The document lengths vector for the current chunk.
+"""
+function save_chunk(config::ColBERTConfig, codec::Dict, chunk_idx::Int, passage_offset::Int,
+        embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
+    codes, residuals = compress(codec["centroids"], codec["bucket_cutoffs"], config.dim, config.nbits, embs)
+    path_prefix = joinpath(config.index_path, string(chunk_idx))
+    @assert length(codes)==size(embs)[2] "length(codes): $(length(codes)), size(embs): $(size(embs))"
+
+    # saving the compressed embeddings
+    codes_path = "$(path_prefix).codes.jld2"
+    residuals_path = "$(path_prefix).residuals.jld2"
+    @info "Saving compressed codes to $(codes_path) and residuals to $(residuals_path)"
+    JLD2.save_object(codes_path, codes)
+    JLD2.save_object(residuals_path, residuals)
+
+    # saving doclens
+    doclens_path = joinpath(
+        config.index_path, "doclens.$(chunk_idx).jld2")
+    @info "Saving doclens to $(doclens_path)"
+    JLD2.save_object(doclens_path, doclens)
+
+    # the metadata
+    metadata_path = joinpath(
+        config.index_path, "$(chunk_idx).metadata.json")
+    @info "Saving metadata to $(metadata_path)"
+    open(metadata_path, "w") do io
+        JSON.print(io,
+            Dict(
+                "passage_offset" => passage_offset,
+                "num_passages" => length(doclens),
+                "num_embeddings" => length(codes)
+            ),
+            4                                                               # indent
+        )
+    end
+end
+
+"""
     index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = missing)
 
 Build the index using `indexer`.
@@ -342,20 +393,20 @@ The documents are processed in batches of size `chunksize` (see [`enumerate_batc
   - `indexer`: The [`CollectionIndexer`](@ref) used to build the index.
   - `chunksize`: Size of a chunk into which the index is to be stored.
 """
-function index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = missing)
-    load_codec!(indexer.saver)                  # load the codec objects
-    batches = enumerate_batches(
-        indexer.config.collection, chunksize = chunksize,
-        nranks = indexer.config.nranks)
-    for (chunk_idx, offset, passages) in batches
-        # TODO: add functionality to not re-write chunks if they already exist! 
-        # TODO: add multiprocessing to this step!
-        embs, doclens = encode_passages(indexer.encoder, passages)
+function index(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
+    codec = load_codec(config.index_path)
+    plan_metadata = JSON.parsefile(joinpath(config.index_path, "plan.json"))
+    passage_offset = 1
+    for chunk_idx in 1:plan_metadata["num_chunks"]
+        passage_end_offset = min(length(collection), passage_offset + plan_metadata["chunksize"] - 1) 
+        embs, doclens = encode_passages(config, checkpoint, collection[passage_offset:passage_end_offset])
         @assert embs isa AbstractMatrix{Float32} "$(typeof(embs))"
         @assert doclens isa AbstractVector{Int} "$(typeof(doclens))"
 
-        @info "Saving chunk $(chunk_idx): \t $(length(passages)) passages and $(size(embs)[2]) embeddings. From offset #$(offset) onward."
-        save_chunk(indexer.saver, chunk_idx, offset, embs, doclens)
+        @info "Saving chunk $(chunk_idx): \t $(passage_end_offset - passage_offset + 1) passages and $(size(embs)[2]) embeddings. From passage #$(passage_offset) onward."
+        save_chunk(config, codec, chunk_idx, passage_offset, embs, doclens)
+
+        passage_offset += plan_metadata["chunksize"]
     end
 end
 
