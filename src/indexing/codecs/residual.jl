@@ -47,7 +47,12 @@ function load_codec(index_path::String)
     bucket_cutoffs = JLD2.load_object(bucket_cutoffs_path)
     bucket_weights = JLD2.load_object(bucket_weights_path)
 
-    centroids, avg_residual, bucket_cutoffs, bucket_weights
+    Dict(
+        "centroids" => centroids,
+        "avg_residual" => avg_residual,
+        "bucket_cutoffs" => bucket_cutoffs,
+        "bucket_weights" => bucket_weights
+    )
 end
 
 """
