@@ -135,9 +135,7 @@ Convert a matrix of residual vectors into a matrix of integer residual vector us
 
 A matrix of compressed integer residual vectors.
 """
-function binarize(codec::ResidualCodec, residuals::AbstractMatrix{Float32})
-    dim = codec.config.dim
-    nbits = codec.config.nbits
+function binarize(dim::Int, nbits::Int, bucket_cutoffs::Vector{Float32}, residuals::AbstractMatrix{Float32})
     num_embeddings = size(residuals)[2]
 
     if dim % (nbits * 8) != 0
@@ -145,7 +143,7 @@ function binarize(codec::ResidualCodec, residuals::AbstractMatrix{Float32})
     end
 
     # need to subtract one here, to preserve the number of options (2 ^ nbits) 
-    bucket_indices = (x -> searchsortedfirst(codec.bucket_cutoffs, x)).(residuals) .- 1  # torch.bucketize
+    bucket_indices = (x -> searchsortedfirst(bucket_cutoffs, x)).(residuals) .- 1  # torch.bucketize
     bucket_indices = stack([bucket_indices for i in 1:nbits], dims = 1)                  # add an nbits-wide extra dimension
     positionbits = fill(1, (nbits, 1, 1))
     for i in 1:nbits
@@ -179,18 +177,18 @@ All embeddings are compressed to their nearest centroid IDs and their quantized 
 
 A tuple containing a vector of codes and the compressed residuals matrix.
 """
-function compress(codec::ResidualCodec, embs::AbstractMatrix{Float32})
+function compress(centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32}, dim::Int, nbits::Int, embs::AbstractMatrix{Float32})
     codes, residuals = Vector{UInt32}(), Vector{Matrix{UInt8}}()
 
     offset = 1
     bsize = 1 << 18
     while (offset <= size(embs)[2])                # batch on second dimension
         batch = embs[:, offset:min(size(embs)[2], offset + bsize - 1)]
-        codes_ = compress_into_codes(codec, batch) # get centroid codes
-        centroids_ = codec.centroids[:, codes_]    # get corresponding centroids
+        codes_ = compress_into_codes(centroids, batch) # get centroid codes
+        centroids_ = centroids[:, codes_]    # get corresponding centroids
         residuals_ = batch - centroids_
         append!(codes, codes_)
-        push!(residuals, binarize(codec, residuals_))
+        push!(residuals, binarize(dim, nbits, bucket_cutoffs, residuals_))
         offset += bsize
     end
     residuals = cat(residuals..., dims = 2)
