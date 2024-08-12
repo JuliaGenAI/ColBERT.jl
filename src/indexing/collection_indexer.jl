@@ -207,6 +207,7 @@ function setup(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector
     open(joinpath(config.index_path, "plan.json"), "w") do io
         JSON.print(io,
             Dict(
+                "chunksize" => chunksize,
                 "num_chunks" => num_chunks,
                 "num_partitions" => num_partitions,
                 "num_embeddings_est" => num_embeddings_est,
