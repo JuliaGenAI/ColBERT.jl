@@ -34,11 +34,13 @@ function encode_passages(
     embs, doclens = Vector{AbstractMatrix{Float32}}(), Vector{Int}()
     # batching here to avoid storing intermediate embeddings on GPU
     # batching also occurs inside docFromText to do batch packing optimizations
-    for passages_batch in batch(passages, config.index_bsize * 50)
-        embs_, doclens_ = docFromText(config, checkpoint, passages_batch,
-            config.index_bsize)
+    passage_offset = 1
+    while passage_offset <= length(passages)
+        passage_end_offset = min(length(passages), passage_offset + config.passages_batch_size - 1)
+        embs_, doclens_ = docFromText(config, checkpoint, passages[passage_offset:passage_end_offset], config.index_bsize)
         push!(embs, embs_)
         append!(doclens, vec(doclens_))
+        passage_offset += config.passages_batch_size
     end
     embs = cat(embs..., dims = 2)
     embs, doclens
