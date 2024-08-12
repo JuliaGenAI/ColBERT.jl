@@ -1,55 +1,4 @@
 """
-    CollectionIndexer(config::ColBERTConfig, encoder::CollectionEncoder, saver::IndexSaver)
-
-Structure which performs all the index-building operations, including sampling initial centroids, clustering, computing document embeddings, compressing and building the `ivf`.
-
-# Arguments
-
-  - `config`: The [`ColBERTConfig`](@ref) used to build the model.
-  - `encoder`: The [`CollectionEncoder`](@ref) to be used for encoding documents.
-  - `saver`: The [`IndexSaver`](@ref), responsible for saving the index to disk.
-
-# Returns
-
-A [`CollectionIndexer`](@ref) object, containing all indexing-related information. See the [`setup`](@ref), [`train`](@ref), [`index`](@ref) and [`finalize`](@ref) functions for building the index.
-"""
-mutable struct CollectionIndexer
-    config::ColBERTConfig
-    encoder::CollectionEncoder
-    saver::IndexSaver
-    plan_path::String
-    num_chunks::Int
-    num_embeddings_est::Float64
-    num_partitions::Int
-    num_sample_embs::Int
-    avg_doclen_est::Float64
-    embeddings_offsets::Vector{Int}
-    num_embeddings::Int
-    metadata_path::String
-end
-
-function CollectionIndexer(
-        config::ColBERTConfig, encoder::CollectionEncoder, saver::IndexSaver)
-    plan_path = joinpath(config.index_path, "plan.json")
-    metadata_path = joinpath(config.index_path, "metadata.json")
-
-    CollectionIndexer(
-        config,
-        encoder,
-        saver,
-        plan_path,
-        0,              # num_chunks
-        0.0,            # num_embeddings_est
-        0,              # num_partitions
-        0,              # num_sample_embs
-        0.0,            # avg_doclen_est
-        [],             # embeddings_offsets
-        0,              # num_embeddings
-        metadata_path
-    )
-end
-
-"""
     encode_passages(
         config::ColBERTConfig, checkpoint::Checkpoint, passages::Vector{String})
 
@@ -411,7 +360,7 @@ function index(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector
 end
 
 """
-    finalize(indexer::CollectionIndexer)
+    finalize(indexer)
 
 Finalize the indexing process by saving all files, collecting embedding ID offsets, building IVF, and updating metadata.
 
@@ -421,32 +370,65 @@ See [`_check_all_files_are_saved`](@ref), [`_collect_embedding_id_offset`](@ref)
 
   - `indexer::CollectionIndexer`: The [`CollectionIndexer`](@ref) used to finalize the indexing process.
 """
-function finalize(indexer::CollectionIndexer)
-    _check_all_files_are_saved(indexer)
-    _collect_embedding_id_offset(indexer)
-    _build_ivf(indexer)
-    _update_metadata(indexer)
+function finalize(index_path::String)
+    _check_all_files_are_saved(index_path)
+    _collect_embedding_id_offset(index_path)
+    _build_ivf(index_path)
 end
 
-function _check_all_files_are_saved(indexer::CollectionIndexer)
+"""
+    check_chunk_exists(saver::IndexSaver, chunk_idx::Int)
+
+Check if the index chunk exists for the given `chunk_idx`.
+
+# Arguments
+
+  - `saver`: The `IndexSaver` object that contains the indexing settings.
+  - `chunk_idx`: The index of the chunk to check.
+
+# Returns
+
+A boolean indicating whether all relevant files for the chunk exist.
+"""
+function check_chunk_exists(index_path::String, chunk_idx::Int)
+    path_prefix = joinpath(index_path, string(chunk_idx))
+    codes_path = "$(path_prefix).codes.jld2"
+    residuals_path = "$(path_prefix).residuals.jld2"
+    doclens_path = joinpath(index_path, "doclens.$(chunk_idx).jld2")
+    metadata_path = joinpath(index_path, "$(chunk_idx).metadata.json")
+
+    for file in [codes_path, residuals_path, doclens_path, metadata_path]
+        if !isfile(file)
+            return false
+        end
+    end
+
+    true
+end
+
+function _check_all_files_are_saved(index_path::String)
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
+
     @info "Checking if all files are saved."
-    for chunk_idx in 1:(indexer.num_chunks)
-        if !(check_chunk_exists(indexer.saver, chunk_idx))
-            @error "Could not find chunk $(chunk_idx)!"
+    for chunk_idx in 1:(plan_metadata["num_chunks"])
+        if !(check_chunk_exists(index_path, chunk_idx))
+            @error "Some files for chunk $(chunk_idx) are missing!"
         end
     end
     @info "Found all files!"
 end
 
-function _collect_embedding_id_offset(indexer::CollectionIndexer)
+function _collect_embedding_id_offset(index_path::String)
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
+
     @info "Collecting embedding ID offsets."
     passage_offset = 1
     embedding_offset = 1
 
     embeddings_offsets = Vector{Int}()
-    for chunk_idx in 1:(indexer.num_chunks)
+    for chunk_idx in 1:(plan_metadata["num_chunks"])
         metadata_path = joinpath(
-            indexer.config.index_path, "$(chunk_idx).metadata.json")
+            index_path, "$(chunk_idx).metadata.json")
 
         chunk_metadata = open(metadata_path, "r") do io
             chunk_metadata = JSON.parse(io)
@@ -462,18 +444,32 @@ function _collect_embedding_id_offset(indexer::CollectionIndexer)
             JSON.print(io, chunk_metadata, 4)
         end
     end
+    num_embeddings = embedding_offset - 1
+    @assert length(embeddings_offsets) == plan_metadata["num_chunks"] 
 
-    indexer.num_embeddings = embedding_offset - 1
-    indexer.embeddings_offsets = embeddings_offsets
+    @info "Saving the indexing metadata."
+    metadata_path = joinpath(index_path, "metadata.json")
+    open(metadata_path, "w") do io
+        JSON.print(io,
+            # TODO: export the config here as well!
+            Dict(
+                "num_embeddings" => num_embeddings,
+                "embeddings_offsets" => embeddings_offsets
+            ),
+            4
+        )
+    end
 end
 
-function _build_ivf(indexer::CollectionIndexer)
+function _build_ivf(index_path::String)
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
+
     @info "Building the centroid to embedding IVF."
     codes = Vector{UInt32}()
 
     @info "Loading codes for each embedding."
-    for chunk_idx in 1:(indexer.num_chunks)
-        chunk_codes = load_codes(indexer.saver.codec, chunk_idx)
+    for chunk_idx in 1:(plan_metadata["num_chunks"])
+        chunk_codes = load_codes(index_path, chunk_idx)
         append!(codes, chunk_codes)
     end
     @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
@@ -482,31 +478,11 @@ function _build_ivf(indexer::CollectionIndexer)
     ivf, values = sortperm(codes), sort(codes)
 
     @info "Getting unique codes and their counts."
-    ivf_lengths = counts(values, 1:(indexer.num_partitions))
+    ivf_lengths = counts(values, 1:(plan_metadata["num_partitions"]))
 
     @info "Saving the IVF."
-    ivf_path = joinpath(indexer.config.index_path, "ivf.jld2")
-    JLD2.save(ivf_path, Dict(
-        "ivf" => ivf,
-        "ivf_lengths" => ivf_lengths
-    ))
-end
-
-function _update_metadata(indexer::CollectionIndexer)
-    @info "Saving the indexing metadata."
-    metadata_path = joinpath(indexer.config.index_path, "metadata.json")
-
-    open(metadata_path, "w") do io
-        JSON.print(io,
-            # TODO: export the config here as well!
-            Dict(
-                "num_chunks" => indexer.num_chunks,
-                "num_partitions" => indexer.num_partitions,
-                "num_embeddings" => indexer.num_embeddings,
-                "avg_doclen" => Int(floor(indexer.num_embeddings /
-                                          length(indexer.config.collection.data)))
-            ),
-            4
-        )
-    end
+    ivf_path = joinpath(index_path, "ivf.jld2")
+    ivf_lengths_path = joinpath(index_path, "ivf_lengths.jld2")
+    JLD2.save_object(ivf_path, ivf)
+    JLD2.save_object(ivf_lengths_path, ivf_lengths)
 end
