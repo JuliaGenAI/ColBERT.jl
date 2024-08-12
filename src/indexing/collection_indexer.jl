@@ -136,8 +136,9 @@ and the indexing plan is saved to `plan.json`, with the path being specified by 
 function setup(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
     isdir(config.index_path) || mkdir(config.index_path)
 
-    chunksize = 0    
-    chunksize = ismissing(config.chunksize) ? min(25000, 1 + fld(length(collection), config.nranks)) : config.chunksize
+    chunksize = 0
+    chunksize = ismissing(config.chunksize) ?
+                min(25000, 1 + fld(length(collection), config.nranks)) : config.chunksize
     num_chunks = cld(length(collection), chunksize)
 
     # sample passages for training centroids later
@@ -171,15 +172,17 @@ function setup(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector
 end
 
 """
-    _concatenate_and_split_sample(indexer::CollectionIndexer)
+    _concatenate_and_split_sample(index_path::String)
 
 Randomly shuffle and split the sampled embeddings.
 
-The sample embeddings saved by the [`setup`](@ref) function are loaded, shuffled randomly, and then split into a `sample` and a `sample_heldout` set, with `sample_heldout` containing a `0.05` fraction of the original sampled embeddings.
+The sample embeddings saved by the [`setup`](@ref) function are loaded, shuffled randomly,
+and then split into a `sample` and a `sample_heldout` set, with `sample_heldout` containing
+a `0.05` fraction of the original sampled embeddings.
 
 # Arguments
 
-  - `index_path`: The path of the index. 
+  - `index_path`: The path of the index.
 
 # Returns
 
@@ -206,20 +209,25 @@ function _concatenate_and_split_sample(index_path::String)
 end
 
 """
-    _compute_avg_residuals(indexer::CollectionIndexer, centroids::AbstractMatrix{Float32},
+    _compute_avg_residuals(
+        nbits::Int, centroids::AbstractMatrix{Float32},
         heldout::AbstractMatrix{Float32})
 
 Compute the average residuals and other statistics of the held-out sample embeddings.
 
 # Arguments
 
-  - `indexer`: The underlying [`CollectionIndexer`](@ref).
-  - `centroids`: A matrix containing the centroids of the computed using a ``k``-means clustering algorithm on the sampled embeddings. Has shape `(D, indexer.num_partitions)`, where `D` is the embedding dimension (`128`) and `indexer.num_partitions` is the number of clusters.
-  - `heldout`: A matrix containing the held-out embeddings, computed using [`_concatenate_and_split_sample`](@ref).
+  - `nbits`: The number of bits used to compress the residuals.
+  - `centroids`: A matrix containing the centroids of the computed using a ``k``-means
+    clustering algorithm on the sampled embeddings. Has shape `(D, indexer.num_partitions)`,
+    where `D` is the embedding dimension (`128`) and `indexer.num_partitions` is the number
+    of clusters.
+  - `heldout`: A matrix containing the held-out embeddings, computed using
+    [`_concatenate_and_split_sample`](@ref).
 
 # Returns
 
-A tuple `bucket_cutoffs, bucket_weights, avg_residual`.
+A tuple `bucket_cutoffs, bucket_weights, avg_residual`, which will be used in compression/decompression of residuals.
 """
 function _compute_avg_residuals(
         nbits::Int, centroids::AbstractMatrix{Float32},
@@ -249,15 +257,17 @@ function _compute_avg_residuals(
 end
 
 """
-    train(indexer::CollectionIndexer)
+    train(config::ColBERTConfig)
 
-Train a [`CollectionIndexer`](@ref) by computing centroids using a ``k``-means clustering algorithn, and store the compression information on disk.
+Compute centroids using a ``k``-means clustering algorithn, and store the compression information
+on disk.
 
-Average residuals and other compression data is computed via the [`_compute_avg_residuals`](@ref) function, and the codec is saved on disk using [`save_codec`](@ref).
+Average residuals and other compression data is computed via the [`_compute_avg_residuals`](@ref)
+function, and the codec is saved on disk using [`save_codec`](@ref).
 
 # Arguments
 
-  - `indexer::CollectionIndexer`: The [`CollectionIndexer`](@ref) to be trained.
+  - `config`: The [`ColBERTConfig`](@ref) used to train the indexer.
 """
 function train(config::ColBERTConfig)
     sample, heldout = _concatenate_and_split_sample(config.index_path)
@@ -280,24 +290,30 @@ function train(config::ColBERTConfig)
 end
 
 """
-    save_chunk(saver::IndexSaver, chunk_idx::Int, offset::Int,
+    save_chunk(
+        config::ColBERTConfig, codec::Dict, chunk_idx::Int, passage_offset::Int,
         embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
 
 Save a single chunk of compressed embeddings and their relevant metadata to disk.
 
-The codes and compressed residuals for the chunk are saved in files named `<chunk_idx>.codec.jld2`. The document lengths are saved in a file named `doclens.<chunk_idx>.jld2`. Relevant metadata, including number of documents in the chunk, number of embeddings and the passage offsets are saved in a file named `<chunk_idx>.metadata.json`.
+The codes and compressed residuals for the chunk are saved in files named `<chunk_idx>.codes.jld2`.
+and `<chunk_idx>.residuals.jld2` respectively. The document lengths are saved in a file named
+`doclens.<chunk_idx>.jld2`. Relevant metadata, including number of documents in the chunk,
+number of embeddings and the passage offsets are saved in a file named `<chunk_idx>.metadata.json`.
 
 # Arguments
 
-  - `saver`: The [`IndexSaver`](@ref) containing relevant information to save the chunk.
+  - `config`: The [`ColBERTConfig`](@ref) being used.
   - `chunk_idx`: The index of the current chunk being saved.
-  - `offset`: The offset in the original document collection where this chunk starts.
+  - `passage_offset`: The index of the first passage in the chunk.
   - `embs`: The embeddings matrix for the current chunk.
   - `doclens`: The document lengths vector for the current chunk.
 """
-function save_chunk(config::ColBERTConfig, codec::Dict, chunk_idx::Int, passage_offset::Int,
+function save_chunk(
+        config::ColBERTConfig, codec::Dict, chunk_idx::Int, passage_offset::Int,
         embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
-    codes, residuals = compress(codec["centroids"], codec["bucket_cutoffs"], config.dim, config.nbits, embs)
+    codes, residuals = compress(
+        codec["centroids"], codec["bucket_cutoffs"], config.dim, config.nbits, embs)
     path_prefix = joinpath(config.index_path, string(chunk_idx))
     @assert length(codes)==size(embs)[2] "length(codes): $(length(codes)), size(embs): $(size(embs))"
 
@@ -331,24 +347,30 @@ function save_chunk(config::ColBERTConfig, codec::Dict, chunk_idx::Int, passage_
 end
 
 """
-    index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = missing)
+    index(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
 
 Build the index using `indexer`.
 
-The documents are processed in batches of size `chunksize` (see [`enumerate_batches`](@ref)). Embeddings and document lengths are computed for each batch (see [`encode_passages`](@ref)), and they are saved to disk along with relevant metadata (see [`save_chunk`](@ref)).
+The documents are processed in batches of size `chunksize`, determined by the config
+(see [`ColBERTConfig`](@ref) and [`setup`](@ref)). Embeddings and document lengths are
+computed for each batch (see [`encode_passages`](@ref)), and they are saved to disk
+along with relevant metadata (see [`save_chunk`](@ref)).
 
 # Arguments
 
-  - `indexer`: The [`CollectionIndexer`](@ref) used to build the index.
-  - `chunksize`: Size of a chunk into which the index is to be stored.
+  - `config`: The [`ColBERTConfig`](@ref) being used.
+  - `checkpoint`: The [`Checkpoint`](@ref) to compute embeddings.
+  - `collection`: The collection to index.
 """
 function index(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
     codec = load_codec(config.index_path)
     plan_metadata = JSON.parsefile(joinpath(config.index_path, "plan.json"))
     passage_offset = 1
     for chunk_idx in 1:plan_metadata["num_chunks"]
-        passage_end_offset = min(length(collection), passage_offset + plan_metadata["chunksize"] - 1) 
-        embs, doclens = encode_passages(config, checkpoint, collection[passage_offset:passage_end_offset])
+        passage_end_offset = min(
+            length(collection), passage_offset + plan_metadata["chunksize"] - 1)
+        embs, doclens = encode_passages(
+            config, checkpoint, collection[passage_offset:passage_end_offset])
         @assert embs isa AbstractMatrix{Float32} "$(typeof(embs))"
         @assert doclens isa AbstractVector{Int} "$(typeof(doclens))"
 
@@ -360,15 +382,17 @@ function index(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector
 end
 
 """
-    finalize(indexer)
+    finalize(index_path::String)
 
-Finalize the indexing process by saving all files, collecting embedding ID offsets, building IVF, and updating metadata.
+Finalize the indexing process by saving all files, collecting embedding ID offsets,
+and building the IVF.
 
-See [`_check_all_files_are_saved`](@ref), [`_collect_embedding_id_offset`](@ref), [`_build_ivf`](@ref) and [`_update_metadata`](@ref) for more details.
+See [`_check_all_files_are_saved`](@ref), [`_collect_embedding_id_offset`](@ref),
+[`_build_ivf`](@ref) for more details.
 
 # Arguments
 
-  - `indexer::CollectionIndexer`: The [`CollectionIndexer`](@ref) used to finalize the indexing process.
+  - `index_path`: The path of the index.
 """
 function finalize(index_path::String)
     _check_all_files_are_saved(index_path)
@@ -445,7 +469,7 @@ function _collect_embedding_id_offset(index_path::String)
         end
     end
     num_embeddings = embedding_offset - 1
-    @assert length(embeddings_offsets) == plan_metadata["num_chunks"] 
+    @assert length(embeddings_offsets) == plan_metadata["num_chunks"]
 
     @info "Saving the indexing metadata."
     metadata_path = joinpath(index_path, "metadata.json")
