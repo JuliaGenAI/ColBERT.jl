@@ -19,7 +19,8 @@ See [`docFromText`](@ref) for more details.
 A tuple `embs, doclens` where:
 
   - `embs::AbstractMatrix{Float32}`: The full embedding matrix. Of shape `(D, N)`,
-    where `D` is the embedding dimension and `N` is the total number of embeddings across all the passages.
+    where `D` is the embedding dimension and `N` is the total number of embeddings
+    across all the passages.
   - `doclens::AbstractVector{Int}`: A vector of document lengths for each passage,
     i.e the total number of attended tokens for each document passage.
 """
@@ -54,12 +55,14 @@ end
 """
     _sample_pids(num_documents::Int)
 
-Sample PIDs from the collection to be used to compute clusters using a ``k``-means clustering algorithm.
+Sample PIDs from the collection to be used to compute clusters using a ``k``-means clustering
+algorithm.
 
 # Arguments
 
-  - `num_documents`: The total number of documents in the collection. It is assumed that each document has an ID
-    (aka PID) in the range of integers between `1` and `num_documents` (both inclusive).
+  - `num_documents`: The total number of documents in the collection. It is assumed that each
+        document has an ID (aka PID) in the range of integers between `1` and `num_documents` 
+        (both inclusive).
 
 # Returns
 
@@ -80,8 +83,7 @@ end
 
 Compute embeddings for the PIDs sampled by [`_sample_pids`](@ref).
 
-The embeddings for the sampled documents are saved in a file named `sample.jld2` with it's path
-specified by the indexing directory. This embedding array has shape `(D, N)`, where `D` is the
+The embedding array has shape `(D, N)`, where `D` is the
 embedding dimension (`128`, after applying the linear layer of the ColBERT model) and `N` is the
 total number of embeddings over all documents.
 
@@ -94,7 +96,10 @@ total number of embeddings over all documents.
 
 # Returns
 
-The average document length (i.e number of attended tokens) computed from the sampled documents.
+A `Dict` containing the average document length (i.e number of attended tokens) computed 
+from the sampled documents, and the embedding matrix for the local samples. The matrix has
+shape `(D, N)`, where `D` is the embedding dimension (`128`) and `N` is the total number
+of embeddings over all the sampled passages.
 """
 function _sample_embeddings(config::ColBERTConfig, checkpoint::Checkpoint,
         collection::Vector{String}, sampled_pids::Set{Int})
@@ -116,28 +121,33 @@ function _sample_embeddings(config::ColBERTConfig, checkpoint::Checkpoint,
 
     Dict(
         "avg_doclen_est" => avg_doclen_est,
-        "local_sample_embs" => local_sample_embs 
+        "local_sample_embs" => local_sample_embs
     )
 end
 
 """
     setup(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
 
-Initialize the index by computing some indexing-specific estimates and save the indexing plan to disk.
+Initialize the index by computing some indexing-specific estimates and save the indexing plan
+to disk.
 
-The number of chunks into which the document embeddings will be stored is simply computed using the
-number of documents and the size of a chunk. A bunch of pids used for initializing the centroids for
-the embedding clusters are sampled using the [`_sample_pids`](@ref) and [`_sample_embeddings`](@ref)
-functions, and these samples are used to calculate the average document lengths and the estimated number
-of embeddings which will be computed across all documents. Finally, the number of clusters  to be used
-for indexing is computed, and is proportional to ``16\\sqrt{\\text{Estimated number of embeddings}}``,
-and the indexing plan is saved to `plan.json`, with the path being specified by the indexing directory.
+The number of chunks into which the document embeddings will be stored is simply computed using
+the number of documents and the size of a chunk. A bunch of pids used for initializing the 
+centroids for the embedding clusters are sampled using the [`_sample_pids`](@ref) 
+and [`_sample_embeddings`](@ref) functions, and these samples are used to calculate the 
+average document lengths and the estimated number of embeddings which will be computed across
+all documents. Finally, the number of clusters to be used for indexing is computed, and is 
+proportional to ``16\\sqrt{\\text{Estimated number of embeddings}}``.
 
 # Arguments
 
   - `config`: The [`ColBERTConfig`](@ref) being used to set up the indexing.
   - `checkpoint`: The [`Checkpoint`](@ref) used to compute embeddings.
   - `collection`: The underlying collection of passages to initialize the index for.
+
+# Returns
+
+A `Dict` containing the indexing plan.
 """
 function setup(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
     chunksize = 0
@@ -164,7 +174,7 @@ function setup(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector
         "num_embeddings_est" => num_embeddings_est,
         "avg_doclen_est" => local_sample_dict["avg_doclen_est"],
         "local_sample_embs" => local_sample_dict["local_sample_embs"]
-    ) 
+    )
 end
 
 """
@@ -223,7 +233,8 @@ Compute the average residuals and other statistics of the held-out sample embedd
 
 # Returns
 
-A tuple `bucket_cutoffs, bucket_weights, avg_residual`, which will be used in compression/decompression of residuals.
+A tuple `bucket_cutoffs, bucket_weights, avg_residual`, which will be used in
+compression/decompression of residuals.
 """
 function _compute_avg_residuals(
         nbits::Int, centroids::AbstractMatrix{Float32},
@@ -253,23 +264,32 @@ function _compute_avg_residuals(
 end
 
 """
-    train(config::ColBERTConfig)
+    train(sample::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32},
+        num_partitions::Int, nbits::Int, kmeans_niters::Int)
 
 Compute centroids using a ``k``-means clustering algorithn, and store the compression information
 on disk.
 
 Average residuals and other compression data is computed via the [`_compute_avg_residuals`](@ref)
-function, and the codec is saved on disk using [`save_codec`](@ref).
-
+function.
 # Arguments
 
-  - `config`: The [`ColBERTConfig`](@ref) used to train the indexer.
+  - `sample`: The matrix of sampled embeddings used to compute clusters.
+  - `heldout`: The matrix of sample embeddings used to compute the residual information.
+  - `num_partitions`: The number of clusters to compute.
+  - `nbits`: The number of bits used to encode the residuals.
+  - `kmeans_niters`: The maximum number of iterations in the ``k``-means algorithm. 
+
+# Returns
+
+A `Dict` containing the residual codec, i.e information used to compress/decompress residuals.
 """
-function train(sample::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32}, num_partitions::Int, nbits::Int, kmeans_niters::Int)
+function train(sample::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32},
+        num_partitions::Int, nbits::Int, kmeans_niters::Int)
     centroids = kmeans(sample, num_partitions,
         maxiter = kmeans_niters, display = :iter).centers
-    @assert size(centroids)[2]==num_partitions
-        "size(centroids): $(size(centroids)), num_partitions: $(num_partitions)"
+    @assert size(centroids)[2] == num_partitions
+    "size(centroids): $(size(centroids)), num_partitions: $(num_partitions)"
     @assert centroids isa AbstractMatrix{Float32} "$(typeof(centroids))"
 
     bucket_cutoffs, bucket_weights, avg_residual = _compute_avg_residuals(
@@ -280,7 +300,7 @@ function train(sample::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32}
         "centroids" => centroids,
         "bucket_cutoffs" => bucket_cutoffs,
         "bucket_weights" => bucket_weights,
-        "avg_residual" => avg_residual,
+        "avg_residual" => avg_residual
     )
 end
 
