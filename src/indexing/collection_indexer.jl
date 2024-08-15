@@ -397,25 +397,6 @@ function index(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector
 end
 
 """
-    finalize(index_path::String)
-
-Finalize the indexing process by saving all files, collecting embedding ID offsets,
-and building the IVF.
-
-See [`_check_all_files_are_saved`](@ref), [`_collect_embedding_id_offset`](@ref),
-[`_build_ivf`](@ref) for more details.
-
-# Arguments
-
-  - `index_path`: The path of the index.
-"""
-function finalize(index_path::String)
-    _check_all_files_are_saved(index_path)
-    _collect_embedding_id_offset(index_path)
-    _build_ivf(index_path)
-end
-
-"""
     check_chunk_exists(saver::IndexSaver, chunk_idx::Int)
 
 Check if the index chunk exists for the given `chunk_idx`.
