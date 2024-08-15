@@ -48,6 +48,11 @@ function load_codec(index_path::String)
     bucket_cutoffs = JLD2.load_object(bucket_cutoffs_path)
     bucket_weights = JLD2.load_object(bucket_weights_path)
 
+    @assert centroids isa Matrix{Float32}
+    @assert avg_residual isa Float32
+    @assert bucket_cutoffs isa Vector{Float32}
+    @assert bucket_weights isa Vector{Float32}
+
     Dict(
         "centroids" => centroids,
         "avg_residual" => avg_residual,
