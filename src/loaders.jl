@@ -1,0 +1,108 @@
+"""
+    load_codec(index_path::String)
+
+Load compression/decompression information from the index path.
+
+# Arguments
+
+  - `index_path`: The path of the index.
+"""
+function load_codec(index_path::String)
+    centroids_path = joinpath(index_path, "centroids.jld2")
+    avg_residual_path = joinpath(index_path, "avg_residual.jld2")
+    bucket_cutoffs_path = joinpath(index_path, "bucket_cutoffs.jld2")
+    bucket_weights_path = joinpath(index_path, "bucket_weights.jld2")
+    @info "Loading codec from $(centroids_path), $(avg_residual_path), "*
+        "$(bucket_cutoffs_path) and $(bucket_weights_path)."
+
+    centroids = JLD2.load_object(centroids_path)
+    avg_residual = JLD2.load_object(avg_residual_path)
+    bucket_cutoffs = JLD2.load_object(bucket_cutoffs_path)
+    bucket_weights = JLD2.load_object(bucket_weights_path)
+
+    @assert centroids isa Matrix{Float32}
+    @assert avg_residual isa Float32
+    @assert bucket_cutoffs isa Vector{Float32}
+    @assert bucket_weights isa Vector{Float32}
+
+    Dict(
+        "centroids" => centroids,
+        "avg_residual" => avg_residual,
+        "bucket_cutoffs" => bucket_cutoffs,
+        "bucket_weights" => bucket_weights
+    )
+end
+
+"""
+    load_config(index_path::String)
+
+Load a [`ColBERTConfig`](@ref) from disk.
+
+# Arguments
+
+  - `index_path`: The path of the directory where the config resides.
+
+# Examples
+
+```jldoctest
+julia> using ColBERT;
+
+julia> config = ColBERTConfig(
+           use_gpu = true,
+           collection = "/home/codetalker7/documents",
+           index_path = "./local_index"
+       );
+
+julia> ColBERT.save(config);
+
+julia> ColBERT.load_config("./local_index")
+ColBERTConfig(true, 0, 1, "[unused0]", "[unused1]", "[Q]", "[D]", "colbert-ir/colbertv2.0", "/home/codetalker7/documents", 128, 220, true, 32, false, "./local_index", 64, 2, 20, 2, 8192)
+```
+"""
+function load_config(index_path::String)
+    config_dict = JSON.parsefile(joinpath(index_path, "config.json"))
+    key_vals = collect(zip(Symbol.(keys(config_dict)), values(config_dict)))
+    eval(:(ColBERTConfig($([Expr(:kw, :($key), :($val)) for (key, val) in key_vals]...))))
+end
+
+function load_doclens(index_path::String)
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
+    doclens = Vector{Int}()
+    for chunk_idx in 1:plan_metadata["num_chunks"]
+        doclens_file = joinpath(index_path, "doclens.$(chunk_idx).jld2")
+        chunk_doclens = JLD2.load_object(doclens_file)
+        append!(doclens, chunk_doclens)
+    end
+    @assert isequal(sum(doclens), plan_metadata["num_embeddings"])
+        "sum(doclens): $(sum(doclens)), num_embeddings: $(plan_metadata["num_embeddings"])"
+    doclens
+end
+
+function load_compressed_embs(index_path::String)
+    config = load_config(index_path)
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
+    @assert (config.dim * config.nbits) % 8==0 "(dim, nbits): $((config.dim, config.nbits))"
+
+    codes = zeros(UInt32, plan_metadata["num_embeddings"])
+    residuals = zeros(UInt8, Int((config.dim / 8) * config.nbits), plan_metadata["num_embeddings"])
+    codes_offset = 1
+    for chunk_idx in 1:plan_metadata["num_chunks"]
+        chunk_codes = JLD2.load_object(joinpath(index_path, "$(chunk_idx).codes.jld2"))
+        chunk_residuals = JLD2.load_object(joinpath(index_path, "$(chunk_idx).residuals.jld2"))
+
+        codes_endpos = codes_offset + length(chunk_codes) - 1
+        codes[codes_offset:codes_endpos] = chunk_codes
+        residuals[:, codes_offset:codes_endpos] = chunk_residuals
+
+        codes_offset = codes_offset + length(chunk_codes)
+    end
+    @assert length(codes) == plan_metadata["num_embeddings"] 
+        "length(codes): $(length(codes)), num_embeddings: $(plan_metadata["num_embeddings"])"
+    @assert ndims(residuals) == 2
+    @assert size(residuals)[2] == plan_metadata["num_embeddings"]
+        "size(residuals): $(size(residuals)), num_embeddings: $(plan_metadata["num_embeddings"])"
+    @assert codes isa Vector{UInt32}
+    @assert residuals isa Matrix{UInt8}
+
+    codes, residuals
+end

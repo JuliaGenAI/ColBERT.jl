@@ -37,4 +37,8 @@ include("search/ranking.jl")
 include("searching.jl")
 export Searcher, search
 
+# loaders and savers
+include("loaders.jl")
+include("savers.jl")
+
 end

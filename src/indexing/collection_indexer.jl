@@ -305,63 +305,6 @@ function train(sample::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32}
 end
 
 """
-    save_chunk(
-        config::ColBERTConfig, codec::Dict, chunk_idx::Int, passage_offset::Int,
-        embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
-
-Save a single chunk of compressed embeddings and their relevant metadata to disk.
-
-The codes and compressed residuals for the chunk are saved in files named `<chunk_idx>.codes.jld2`.
-and `<chunk_idx>.residuals.jld2` respectively. The document lengths are saved in a file named
-`doclens.<chunk_idx>.jld2`. Relevant metadata, including number of documents in the chunk,
-number of embeddings and the passage offsets are saved in a file named `<chunk_idx>.metadata.json`.
-
-# Arguments
-
-  - `config`: The [`ColBERTConfig`](@ref) being used.
-  - `chunk_idx`: The index of the current chunk being saved.
-  - `passage_offset`: The index of the first passage in the chunk.
-  - `embs`: The embeddings matrix for the current chunk.
-  - `doclens`: The document lengths vector for the current chunk.
-"""
-function save_chunk(
-        config::ColBERTConfig, codec::Dict, chunk_idx::Int, passage_offset::Int,
-        embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
-    codes, residuals = compress(
-        codec["centroids"], codec["bucket_cutoffs"], config.dim, config.nbits, embs)
-    path_prefix = joinpath(config.index_path, string(chunk_idx))
-    @assert length(codes)==size(embs)[2] "length(codes): $(length(codes)), size(embs): $(size(embs))"
-
-    # saving the compressed embeddings
-    codes_path = "$(path_prefix).codes.jld2"
-    residuals_path = "$(path_prefix).residuals.jld2"
-    @info "Saving compressed codes to $(codes_path) and residuals to $(residuals_path)"
-    JLD2.save_object(codes_path, codes)
-    JLD2.save_object(residuals_path, residuals)
-
-    # saving doclens
-    doclens_path = joinpath(
-        config.index_path, "doclens.$(chunk_idx).jld2")
-    @info "Saving doclens to $(doclens_path)"
-    JLD2.save_object(doclens_path, doclens)
-
-    # the metadata
-    metadata_path = joinpath(
-        config.index_path, "$(chunk_idx).metadata.json")
-    @info "Saving metadata to $(metadata_path)"
-    open(metadata_path, "w") do io
-        JSON.print(io,
-            Dict(
-                "passage_offset" => passage_offset,
-                "num_passages" => length(doclens),
-                "num_embeddings" => length(codes)
-            ),
-            4                                                               # indent
-        )
-    end
-end
-
-"""
     index(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
 
 Build the index using `indexer`.
