@@ -47,11 +47,9 @@ function index(indexer::Indexer)
     # getting and saving the indexing plan
     isdir(indexer.config.index_path) || mkdir(indexer.config.index_path)
     plan_dict = setup(indexer.config, indexer.checkpoint, indexer.collection)
-
     sample_path = joinpath(indexer.config.index_path, "sample.jld2")
     @info "Saving sampled embeddings to $(sample_path)."
     JLD2.save_object(sample_path, plan_dict["local_sample_embs"])
-
     @info "Saving the index plan to $(joinpath(indexer.config.index_path, "plan.json"))."
     open(joinpath(indexer.config.index_path, "plan.json"), "w") do io
         JSON.print(io,
@@ -65,24 +63,30 @@ function index(indexer::Indexer)
             4                                                               # indent
         )
     end
-
     @info "Saving the config to the indexing path."
     ColBERT.save(indexer.config)
+    # plan_dict["local_sample_embs"] = nothing
+    # GC.gc()
 
     # training/clustering
+    @info "Loading the sample embeddings."
     sample, heldout = _concatenate_and_split_sample(indexer.config.index_path)
     @assert sample isa AbstractMatrix{Float32} "$(typeof(sample))"
     @assert heldout isa AbstractMatrix{Float32} "$(typeof(heldout))"
-
+    @info "Training the clusters."
     codec = train(sample, heldout, plan_dict["num_partitions"],
         indexer.config.nbits, indexer.config.kmeans_niters)
     save_codec(indexer.config.index_path, codec["centroids"], codec["bucket_cutoffs"],
         codec["bucket_weights"], codec["avg_residual"])
+    # sample, heldout = nothing, nothing
+    # GC.gc()
 
     # indexing
+    @info "Building the index."
     index(indexer.config, indexer.checkpoint, indexer.collection)
 
     # finalizing
+    @info "Running some final checks."
     _check_all_files_are_saved(indexer.config.index_path)
     _collect_embedding_id_offset(indexer.config.index_path)
     _build_ivf(indexer.config.index_path)
