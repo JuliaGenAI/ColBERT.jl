@@ -1,7 +1,15 @@
 struct Searcher
     config::ColBERTConfig
     checkpoint::Checkpoint
-    ranker::IndexScorer
+    centroids::Matrix{Float32}
+    bucket_cutoffs::Vector{Float32}
+    bucket_weights::Vector{Float32}
+    ivf::Vector{Int}
+    ivf_lengths::Vector{Int}
+    doclens::Vector{Int}
+    codes::Vector{UInt32}
+    residuals::Matrix{UInt8}
+    emb2pid::Vector{Int}
 end
 
 function Searcher(index_path::String)
@@ -10,15 +18,68 @@ function Searcher(index_path::String)
     end
 
     # loading the config from the path
-    config = load_config(index_path) 
+    config = load_config(index_path)
 
     # loading the model and saving it to prevent multiple loads
-    @info "Loading ColBERT layers from HuggingFace."
-    base_colbert = BaseColBERT(config.checkpoint, config)
-    checkPoint = Checkpoint(base_colbert, DocTokenizer(base_colbert.tokenizer, config),
-        QueryTokenizer(base_colbert.tokenizer, config), config)
+    base_colbert = BaseColBERT(config)
+    checkpoint = Checkpoint(base_colbert, config)
+    @info "Loaded ColBERT layers from the $(config.checkpoint) HuggingFace checkpoint."
 
-    Searcher(config, checkPoint, IndexScorer(index_path))
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
+    codec = load_codec(index_path)
+    ivf = JLD2.load_object(joinpath(index_path, "ivf.jld2"))
+    ivf_lengths = JLD2.load_object(joinpath(index_path, "ivf_lengths.jld2"))
+
+    # loading all doclens
+    doclens = Vector{Int}()
+    for chunk_idx in 1:plan_metadata["num_chunks"]
+        doclens_file = joinpath(index_path, "doclens.$(chunk_idx).jld2")
+        chunk_doclens = JLD2.load_object(doclens_file)
+        append!(doclens, chunk_doclens)
+    end
+
+    # loading all compressed embeddings
+    num_embeddings = plan_metadata["num_embeddings"]
+    dim, nbits = config.dim, config.nbits
+    @assert (dim * nbits) % 8==0 "(dim, nbits): $((dim, nbits))"
+    codes = zeros(UInt32, num_embeddings)
+    residuals = zeros(UInt8, Int((dim / 8) * nbits), num_embeddings)
+    codes_offset = 1
+    for chunk_idx in 1:plan_metadata["num_chunks"]
+        chunk_codes = JLD2.load_object(joinpath(index_path, "$(chunk_idx).codes.jld2"))
+        chunk_residuals = JLD2.load_object(joinpath(index_path, "$(chunk_idx).residuals.jld2"))
+
+        codes_endpos = codes_offset + length(chunk_codes) - 1
+        codes[codes_offset:codes_endpos] = chunk_codes
+        residuals[:, codes_offset:codes_endpos] = chunk_residuals
+
+        codes_offset = codes_offset + length(chunk_codes)
+    end
+
+    # the emb2pid mapping
+    @info "Building the emb2pid mapping."
+    @assert isequal(sum(doclens), plan_metadata["num_embeddings"]) "sum(doclens): $(sum(doclens)), num_embeddings: $(plan_metadata["num_embeddings"])"
+    emb2pid = zeros(Int, plan_metadata["num_embeddings"])
+
+    offset_doclens = 1
+    for (pid, dlength) in enumerate(doclens)
+        emb2pid[offset_doclens:(offset_doclens + dlength - 1)] .= pid
+        offset_doclens += dlength
+    end
+    
+    Searcher(
+        config,
+        checkpoint,
+        codec["centroids"],
+        codec["bucket_cutoffs"],
+        codec["bucket_weights"],
+        ivf,
+        ivf_lengths,
+        doclens,
+        codes,
+        residuals,
+        emb2pid
+    )
 end
 
 """
