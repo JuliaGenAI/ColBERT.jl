@@ -16,11 +16,6 @@ using Transformers
 # utils
 include("utils/utils.jl")
 
-# datasets
-include("data/collection.jl")
-include("data/queries.jl")
-export Collection, Queries
-
 # config and other infra
 include("infra/config.jl")
 export ColBERTConfig
