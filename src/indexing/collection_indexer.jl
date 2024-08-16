@@ -439,6 +439,7 @@ function _check_all_files_are_saved(index_path::String)
 end
 
 function _collect_embedding_id_offset(index_path::String)
+    @assert isfile(joinpath(index_path, "plan.json")) "Fatal: plan.json doesn't exist!"
     plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
 
     @info "Collecting embedding ID offsets."
@@ -468,14 +469,11 @@ function _collect_embedding_id_offset(index_path::String)
     @assert length(embeddings_offsets) == plan_metadata["num_chunks"]
 
     @info "Saving the indexing metadata."
-    metadata_path = joinpath(index_path, "metadata.json")
-    open(metadata_path, "w") do io
+    plan_metadata["num_embeddings"] = num_embeddings
+    plan_metadata["embeddings_offsets"] = embeddings_offsets
+    open(joinpath(index_path, "plan.json"), "w") do io
         JSON.print(io,
-            # TODO: export the config here as well!
-            Dict(
-                "num_embeddings" => num_embeddings,
-                "embeddings_offsets" => embeddings_offsets
-            ),
+            plan_metadata,
             4
         )
     end
