@@ -11,7 +11,7 @@ config = ColBERTConfig(
     collection = "./short_collection",
     doc_maxlen = 300,
     index_path = "./short_collection_index/",
-    chunksize = 3 
+    chunksize = 3
 )
 
 indexer = Indexer(config)

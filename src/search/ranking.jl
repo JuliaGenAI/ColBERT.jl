@@ -60,9 +60,9 @@ function maxsim(
         offset_end = min(num_embeddings, offset + num_embs_pids - 1)
         pid_scores = query_doc_scores[:, offset:offset_end]
         scores[idx] = sum(maximum(pid_scores, dims = 2))
-        offset += num_embs_pids 
+        offset += num_embs_pids
     end
-    @assert offset == num_embeddings + 1 "offset: $(offset), num_embs + 1: $(num_embeddings + 1)"
+    @assert offset==num_embeddings + 1 "offset: $(offset), num_embs + 1: $(num_embeddings + 1)"
     scores
 end
 
@@ -78,9 +78,9 @@ function score_pids(config::ColBERTConfig, centroids::Matrix{Float32},
         config.dim, config.nbits, centroids, bucket_weights, codes_packed, residuals_packed)
     @assert ndims(D_packed)==2 "ndims(D_packed): $(ndims(D_packed))"
     @assert size(D_packed)[1] == config.dim
-        "size(D_packed): $(size(D_packed)), config.dim: $(config.dim)"
+    "size(D_packed): $(size(D_packed)), config.dim: $(config.dim)"
     @assert size(D_packed)[2] == sum(doclens[pids])
-        "size(D_packed): $(size(D_packed)), num_embs: $(sum(doclens[pids]))"
+    "size(D_packed): $(size(D_packed)), num_embs: $(sum(doclens[pids]))"
     @assert D_packed isa AbstractMatrix{Float32} "$(typeof(D_packed))"
     maxsim(Q, D_packed, pids, doclens)
 end

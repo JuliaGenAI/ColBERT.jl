@@ -142,7 +142,7 @@ function search(searcher::Searcher, query::String, k::Int)
     end
     @assert size(Q)[3]==1 "size(Q): $(size(Q))"
     @assert isequal(size(Q)[2], searcher.config.query_maxlen)
-        "size(Q): $(size(Q)), query_maxlen: $(searcher.config.query_maxlen)"     # Q: (128, 32, 1)
+    "size(Q): $(size(Q)), query_maxlen: $(searcher.config.query_maxlen)"     # Q: (128, 32, 1)
 
     Q = reshape(Q, size(Q)[1:end .!= end]...)           # squeeze out the last dimension 
     @assert isequal(length(size(Q)), 2) "size(Q): $(size(Q))"
