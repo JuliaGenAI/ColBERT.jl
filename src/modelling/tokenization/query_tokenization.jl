@@ -1,27 +1,25 @@
 """
     tensorize_queries(config::ColBERTConfig,
         tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
-        batch_text::Vector{String}, bsize::Union{Missing, Int})
+        batch_text::Vector{String})
 
-Convert a collection of queries to tensors in the ColBERT format.
+Convert a collection of queries to tensors of token IDs and attention masks. 
 
 This function adds the query marker token at the beginning of each query text
 and then converts the text data into integer IDs and masks using the `tokenizer`.
-The returned tensors are batched into sizes given by the `bsize` argument.
 
 # Arguments
 
   - `config`: The [`ColBERTConfig`](@ref) to be used to figure out the query marker token ID.
   - `tokenizer`: The tokenizer which is used to convert text data into integer IDs.
   - `batch_text`: A document texts that will be converted into tensors of token IDs.
-  - `bsize`: The size of the batches to split the `batch_text` into.
 
 # Returns
 
-`batches`, A `Vector` of tuples of arrays of token IDs and masks corresponding to
-the query texts. Each array in each tuple has shape `(L, N)`, where `L` is the
-maximum query length specified by the config (see [`ColBERTConfig`](@ref)), and `N`
-is the number of queries in the batch being considered.
+A tuple `integer_ids`, `integer_mask` containing the token IDs and the attention mask. Each
+of these two matrices has shape `(L, N)`, where `L` is the maximum query length specified
+by the `config` (see [`ColBERTConfig`](@ref)), and `N` is the number of queries in
+`batch_text`.
 
 # Examples
 
@@ -50,74 +48,87 @@ julia> tokenizer = Transformers.TextEncoders.BertTextEncoder(
            tokenizer.tokenizer, tokenizer.vocab, process; startsym = tokenizer.startsym,
            endsym = tokenizer.endsym, padsym = tokenizer.padsym, trunc = tokenizer.trunc);
 
-julia> queries = ["what are white spots on raspberries?"];
+julia> queries = [
+    "what are white spots on raspberries?",
+    "what do rabbits eat?"
+];
 
-julia> batches = ColBERT.tensorize_queries(config, tokenizer, queries, 128);
+julia> integer_ids, integer_mask = ColBERT.tensorize_queries(config, tokenizer, queries);
 
-julia> integer_ids, integer_mask = batches[1][1], batches[1][2];
-
-julia> integer_ids
-32×1 Matrix{Int32}:
-   102
-     2
-  2055
-  2025
-  2318
-  7517
-  2007
- 20711
-  2362
- 20969
-  1030
-   103
-     ⋮
-   104
-   104
-   104
-   104
-   104
-   104
-   104
-   104
-   104
-   104
-   104
+julia> 32×2 reinterpret(Int32, ::Matrix{OneHot{0x0000773a}}):
+   102    102
+     2      2
+  2055   2055
+  2025   2080
+  2318  20404
+  7517   4522
+  2007   1030
+ 20711    103
+  2362    104
+ 20969    104
+  1030    104
+   103    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
+   104    104
 
 julia> integer_mask
-32×1 Matrix{Bool}:
- 1
- 1
- 1
- 1
- 1
- 1
- 1
- 1
- 1
- 1
- 1
- 1
- ⋮
- 0
- 0
- 0
- 0
- 0
- 0
- 0
- 0
- 0
- 0
- 0
+32×2 Matrix{Bool}:
+ 1  1
+ 1  1
+ 1  1
+ 1  1
+ 1  1
+ 1  1
+ 1  1
+ 1  1
+ 1  0
+ 1  0
+ 1  0
+ 1  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+ 0  0
+
 ```
 """
 function tensorize_queries(config::ColBERTConfig,
         tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
-        batch_text::Vector{String}, bsize::Union{Missing, Int})
-    if ismissing(bsize)
-        error("Currently bsize cannot be missing!")
-    end
-
+        batch_text::Vector{String})
     # placeholder for [Q] marker token
     batch_text = [". " * query for query in batch_text]
 
@@ -144,8 +155,5 @@ function tensorize_queries(config::ColBERTConfig,
         @assert isequal(sum(integer_mask), prod(size(integer_mask))) "sum(integer_mask): $(sum(integer_mask)), prod(size(integer_mask)): $(prod(size(integer_mask)))"
     end
 
-    batches = _split_into_batches(integer_ids, integer_mask, bsize)
-    @assert batches isa Vector{Tuple{AbstractMatrix{Int32}, AbstractMatrix{Bool}}} "$(typeof(batches))"
-
-    batches
+    integer_ids, integer_mask
 end

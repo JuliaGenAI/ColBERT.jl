@@ -493,7 +493,7 @@ the total number of queries.
 Continuing from the queries example for [`tensorize_queries`](@ref) and [`Checkpoint`](@ref):
 
 ```julia-repl
-julia> ColBERT.query(config, checkpoint, integer_ids, integer_mask)
+julia> ColBERT.query(config, checkpoint, integer_ids, integer_mask)[:, :, 1]
 128×32×1 CuArray{Float32, 3, CUDA.DeviceMemory}:
 [:, :, 1] =
   0.0158568    0.169676     0.092745      0.0798617     0.153079    …   0.117006     0.115806     0.115938      0.112977      0.107919
@@ -542,6 +542,7 @@ julia> ColBERT.query(config, checkpoint, integer_ids, integer_mask)
  -0.116265    -0.106331    -0.179832     -0.149728     -0.0913282   …  -0.0287848   -0.0275017   -0.0197172    -0.0220611    -0.018135
  -0.0443452   -0.192203    -0.0187912    -0.0247794    -0.180245       -0.0780865   -0.073571    -0.0699094    -0.0684748    -0.0662903
   0.100019    -0.0618588    0.106134      0.0989047    -0.0885639      -0.0547317   -0.0553563   -0.055676     -0.0556784    -0.0595709
+
 ```
 """
 function query(
@@ -687,10 +688,20 @@ function queryFromText(config::ColBERTConfig,
         endsym = tokenizer.endsym, padsym = tokenizer.padsym, trunc = tokenizer.trunc)
 
     # get ids and masks, embeddings and returning the concatenated tensors
-    batches = tensorize_queries(config, tokenizer, queries, bsize)
-    batches = [query(config, checkpoint, integer_ids, integer_mask)
-               for (integer_ids, integer_mask) in batches]
-    Q = cat(batches..., dims = 3)
+    integer_ids, integer_mask = tensorize_queries(config, tokenizer, queries)
+
+    # aggregate all embeddings
+    Q = Vector{AbstractArray{Float32}}()
+    query_offset = 1
+    while (query_offset <= length(queries))
+        query_end_offset = min(length(queries), query_offset + bsize - 1)
+        Q_ = query(
+            config, checkpoint, integer_ids[:, query_offset:query_end_offset],
+            integer_mask[:, query_offset:query_end_offset])
+        push!(Q, Q_)
+        query_offset += bsize
+    end
+    Q = cat(Q..., dims = 3)
 
     @assert ndims(Q)==3 "ndims(Q): $(ndims(Q))"
     @assert Q isa AbstractArray{Float32} "$(typeof(Q))"
