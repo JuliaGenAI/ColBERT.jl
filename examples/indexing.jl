@@ -8,10 +8,10 @@ Random.seed!(0)
 
 config = ColBERTConfig(
     use_gpu = true,
-    collection = "./cityofaustin",
+    collection = "./short_collection",
     doc_maxlen = 300,
-    index_path = "./cityofaustin_index/",
-    chunksize = 500
+    index_path = "./short_collection_index/",
+    chunksize = 3 
 )
 
 indexer = Indexer(config)
