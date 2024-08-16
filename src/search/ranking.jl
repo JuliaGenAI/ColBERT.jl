@@ -20,7 +20,9 @@ function retrieve(ivf::Vector{Int}, ivf_lengths::Vector{Int}, centroids::Matrix{
         length = ivf_lengths[centroid_id]
         append!(eids, ivf[offset:(offset + length - 1)])
     end
-    @assert isequal(length(eids), sum(ivf_lengths[centroid_ids])) "length(eids): $(length(eids)), sum(ranker.ivf_lengths[centroid_ids]): $(sum(ivf_lengths[centroid_ids]))"
+    @assert isequal(length(eids), sum(ivf_lengths[centroid_ids]))
+    "length(eids): $(length(eids)), sum(ranker.ivf_lengths[centroid_ids]):" *
+    "$(sum(ivf_lengths[centroid_ids]))"
     eids = sort(unique(eids))
 
     # get pids from the emb2pid mapping
@@ -28,18 +30,12 @@ function retrieve(ivf::Vector{Int}, ivf_lengths::Vector{Int}, centroids::Matrix{
     pids
 end
 
-"""
-  - Get the decompressed embedding matrix for all embeddings in `pids`. Use `doclens` for this.
-"""
-function score_pids(config::ColBERTConfig, centroids::Matrix{Float32},
-        bucket_weights::Vector{Float32}, doclens::Vector{Int}, codes::Vector{UInt32},
-        residuals::Matrix{UInt8}, Q::AbstractArray{Float32}, pids::Vector{Int})
-    # get codes and residuals for all embeddings across all pids
-    num_embs = sum(doclens[pids])
-    codes_packed = zeros(UInt32, num_embs)
-    residuals_packed = zeros(UInt8, size(residuals)[1], num_embs)
+function _collect_compressed_embs_for_pids(doclens::Vector{Int}, codes::Vector{UInt32},
+        residuals::Matrix{UInt8}, pids::Vector{Int})
+    num_embeddings = sum(doclens[pids])
+    codes_packed = zeros(UInt32, num_embeddings)
+    residuals_packed = zeros(UInt8, size(residuals)[1], num_embeddings)
     pid_offsets = cat([1], 1 .+ cumsum(doclens)[1:end .!= end], dims = 1)
-
     offset = 1
     for pid in pids
         pid_offset = pid_offsets[pid]
@@ -49,30 +45,42 @@ function score_pids(config::ColBERTConfig, centroids::Matrix{Float32},
             :, pid_offset:(pid_offset + num_embs_pid - 1)]
         offset += num_embs_pid
     end
-    @assert offset==num_embs + 1 "offset: $(offset), num_embs + 1: $(num_embs + 1)"
+    @assert offset==num_embeddings + 1 "offset: $(offset), num_embs + 1: $(num_embeddings + 1)"
+    codes_packed, residuals_packed
+end
 
-    # decompress these codes and residuals to get the original embeddings
+function maxsim(
+        Q::Matrix{Float32}, D::Matrix{Float32}, pids::Vector{Int}, doclens::Vector{Int})
+    scores = zeros(Float32, length(pids))
+    num_embeddings = sum(doclens[pids])
+    query_doc_scores = Flux.gpu(transpose(Q)) * Flux.gpu(D)                    # (num_query_tokens, num_embeddings)
+    offset = 1
+    for (idx, pid) in enumerate(pids)
+        num_embs_pids = doclens[pid]
+        offset_end = min(num_embeddings, offset + num_embs_pids - 1)
+        pid_scores = query_doc_scores[:, offset:offset_end]
+        scores[idx] = sum(maximum(pid_scores, dims = 2))
+        offset += num_embs_pids 
+    end
+    @assert offset == num_embeddings + 1 "offset: $(offset), num_embs + 1: $(num_embeddings + 1)"
+    scores
+end
+
+"""
+  - Get the decompressed embedding matrix for all embeddings in `pids`. Use `doclens` for this.
+"""
+function score_pids(config::ColBERTConfig, centroids::Matrix{Float32},
+        bucket_weights::Vector{Float32}, doclens::Vector{Int}, codes::Vector{UInt32},
+        residuals::Matrix{UInt8}, Q::Matrix{Float32}, pids::Vector{Int})
+    codes_packed, residuals_packed = _collect_compressed_embs_for_pids(
+        doclens, codes, residuals, pids)
     D_packed = decompress(
         config.dim, config.nbits, centroids, bucket_weights, codes_packed, residuals_packed)
     @assert ndims(D_packed)==2 "ndims(D_packed): $(ndims(D_packed))"
-    @assert size(D_packed)[1]==config.dim "size(D_packed): $(size(D_packed)), config.dim: $(config.dim)"
-    @assert size(D_packed)[2]==num_embs "size(D_packed): $(size(D_packed)), num_embs: $(num_embs)"
+    @assert size(D_packed)[1] == config.dim
+        "size(D_packed): $(size(D_packed)), config.dim: $(config.dim)"
+    @assert size(D_packed)[2] == sum(doclens[pids])
+        "size(D_packed): $(size(D_packed)), num_embs: $(sum(doclens[pids]))"
     @assert D_packed isa AbstractMatrix{Float32} "$(typeof(D_packed))"
-
-    # get the max-sim scores
-    Q = reshape(Q, size(Q)[1:2]...)
-
-    scores = Vector{Float32}()
-    query_doc_scores = Flux.gpu(transpose(Q)) * Flux.gpu(D_packed)                    # (num_query_tokens, num_embeddings)
-    offset = 1
-    for pid in pids
-        num_embs_pid = doclens[pid]
-        pid_scores = query_doc_scores[:, offset:min(num_embs, offset + num_embs_pid - 1)]
-        push!(scores, sum(maximum(pid_scores, dims = 2)))
-
-        offset += num_embs_pid
-    end
-    @assert offset==num_embs + 1 "offset: $(offset), num_embs + 1: $(num_embs + 1)"
-
-    scores
+    maxsim(Q, D_packed, pids, doclens)
 end
