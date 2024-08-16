@@ -223,10 +223,8 @@ function compress(centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32},
     codes, residuals
 end
 
-function decompress_residuals(codec::ResidualCodec, binary_residuals::AbstractMatrix{UInt8})
-    dim = codec.config.dim
-    nbits = codec.config.nbits
-
+function decompress_residuals(dim::Int, nbits::Int, bucket_weights::Vector{Float32},
+        binary_residuals::AbstractMatrix{UInt8})
     @assert ndims(binary_residuals)==2 "ndims(binary_residuals): $(ndims(binary_residuals))"
     @assert size(binary_residuals)[1]==(dim / 8) * nbits "size(binary_residuals): $(size(binary_residuals)), (dim / 8) * nbits: $((dim / 8) * nbits)"
 
@@ -252,7 +250,7 @@ function decompress_residuals(codec::ResidualCodec, binary_residuals::AbstractMa
 
     # reshaping to get rid of the nbits wide dimension
     unpacked_bits = reshape(unpacked_bits, size(unpacked_bits)[2:end]...)
-    embeddings = codec.bucket_weights[unpacked_bits]
+    embeddings = bucket_weights[unpacked_bits]
 
     @assert ndims(embeddings)==2 "ndims(embeddings): $(ndims(embeddings))"
     @assert size(embeddings)[2]==size(binary_residuals)[2] "size(embeddings): $(size(embeddings)), size(binary_residuals): $(size(binary_residuals)) "
@@ -262,7 +260,8 @@ function decompress_residuals(codec::ResidualCodec, binary_residuals::AbstractMa
 end
 
 function decompress(
-        codec::ResidualCodec, codes::Vector{UInt32}, residuals::AbstractMatrix{UInt8})
+        dim::Int, nbits::Int, centroids::Matrix{Float32}, bucket_weights::Vector{Float32},
+        codes::Vector{UInt32}, residuals::AbstractMatrix{UInt8})
     @assert ndims(codes)==1 "ndims(codes): $(ndims(codes))"
     @assert ndims(residuals)==2 "ndims(residuals): $(ndims(residuals))"
     @assert length(codes)==size(residuals)[2] "length(codes): $(length(codes)), size(residuals): $(size(residuals))"
@@ -276,8 +275,8 @@ function decompress(
         batch_residuals = residuals[
             :, batch_offset:min(batch_offset + bsize - 1, length(codes))]
 
-        centroids_ = codec.centroids[:, batch_codes]
-        residuals_ = decompress_residuals(codec, batch_residuals)
+        centroids_ = centroids[:, batch_codes]
+        residuals_ = decompress_residuals(dim, nbits, bucket_weights, batch_residuals)
 
         batch_embeddings = centroids_ + residuals_
         batch_embeddings = mapslices(
