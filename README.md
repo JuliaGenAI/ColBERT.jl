@@ -131,8 +131,10 @@ Tl;dr - Yes, it sounds like a possible 1080 fox bait poisoning. Can't be sure th
 
 As of now, the package supports the following:
 
-  - Offline indexing documents using embeddings generated from the `"colbert-ir/colbertv2.0"` HuggingFace checkpoint.
-  - Compression based on the ColBERTv2[^2] compression scheme, i.e using $k$-means centroids and quantized residuals.
+  - Offline indexing of documents using embeddings generated from the `"colbert-ir/colbertv2.0"` (or any other checkpoint supported by [`Transformers.jl`](https://github.com/chengchingwen/Transformers.jl)) HuggingFace checkpoint.
+  - Compression/decompression based on the ColBERTv2[^2] compression scheme, i.e using $k$-means centroids and quantized residuals.
+  - A simple searching/ranking module, which is used to get the top `k`-ranked documents for a query by computing MaxSim[^1] scores.
+  - GPU support using any backend supported by [Flux.jl](https://github.com/FluxML/Flux.jl), both for indexing and searcher.
 
 ## Contributing
 
@@ -140,9 +142,8 @@ Though the package is in it's early stage, PRs and issues are always welcome! St
 
 ## Stay Tuned
 
-We're excited to continue developing and improving [ColBERT.jl](https://github.com/codetalker7/ColBERT.jl), with the following components to be added soon:
+We're excited to continue developing and improving [ColBERT.jl](https://github.com/codetalker7/ColBERT.jl), with the following components to be added soon (in no order of priority):
 
-  - A searching, scoring and ranking module. Used to get the top ranked documents for a query.
   - A training module, to be used to pre-train a ColBERT model from scratch.
   - Adding support for multiple GPUs. Currently the package is designed to support only on GPU.
   - Implementation of multiprocessing and distributed training.
@@ -151,6 +152,19 @@ We're excited to continue developing and improving [ColBERT.jl](https://github.c
   - More documentation! The package needs a lot more documentation and examples.
   - Integration with downstream packages like [AIHelpMe.jl](https://github.com/svilupp/AIHelpMe.jl) and [PromptingTools.jl](https://github.com/svilupp/PromptingTools.jl). This package can be used as a backend for any information retrieval task.
   - Add support for optimization tricks like [vector pooling](https://www.answer.ai/posts/colbert-pooling.html).
+
+## Cite us!
+
+If you find this package to be useful in your research/applications, please cite the package:
+
+    @misc{ColBERT.jl,
+        author  = {Siddhant Chaudhary <urssidd@gmail.com> and contributors},
+        title   = {ColBERT.jl},
+        url     = {https://github.com/codetalker7/ColBERT.jl},
+        version = {v0.1.0},
+        year    = {2024},
+        month   = {5}
+    }
 
 [^1]: [ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT](https://arxiv.org/abs/2004.12832) (SIGIR'20)
 [^2]: [ColBERTv2: Effective and Efficient Retrieval via Lightweight Late Interaction](https://arxiv.org/abs/2112.01488) (NAACL'22).
