@@ -1,33 +1,4 @@
 """
-    ResidualCodec(
-        config::ColBERTConfig, centroids::AbstractMatrix{Float32}, avg_residual::Float32,
-        bucket_cutoffs::AbstractVector{Float32}, bucket_weights::AbstractVector{Float32})
-
-A struct that represents a compressor for ColBERT embeddings.
-
-It stores information about the configuration of the model, the centroids used to quantize the residuals, the average residual value, and the cutoffs and weights used to determine which buckets each residual belongs to.
-
-# Arguments
-
-  - `config`: A [`ColBERTConfig`](@ref), representing all configuration parameters related to various ColBERT components.
-  - `centroids`: A matrix of centroids used to quantize the residuals. Has shape `(D, N)`, where `D` is the embedding dimension and `N` is the number of clusters.
-  - `avg_residual`: The average residual value.
-  - `bucket_cutoffs`: A vector of cutoff values used to determine which buckets each residual belongs to.
-  - `bucket_weights`: A vector of weights used to determine the importance of each bucket.
-
-# Returns
-
-A `ResidualCodec` object.
-"""
-mutable struct ResidualCodec
-    config::ColBERTConfig
-    centroids::AbstractMatrix{Float32}
-    avg_residual::Float32
-    bucket_cutoffs::AbstractVector{Float32}
-    bucket_weights::AbstractVector{Float32}
-end
-
-"""
     load_codec(index_path::String)
 
 Load compression/decompression information from the index path.
