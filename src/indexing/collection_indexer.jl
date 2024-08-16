@@ -487,7 +487,7 @@ function _build_ivf(index_path::String)
 
     @info "Loading codes for each embedding."
     for chunk_idx in 1:(plan_metadata["num_chunks"])
-        chunk_codes = load_codes(index_path, chunk_idx)
+        chunk_codes = JLD2.load_object(joinpath(index_path, "$(chunk_idx).codes.jld2"))
         append!(codes, chunk_codes)
     end
     @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
