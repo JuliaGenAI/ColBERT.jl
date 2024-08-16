@@ -38,8 +38,7 @@ include("indexing/collection_indexer.jl")
 export Indexer, index
 
 # searcher
-include("search/strided_tensor.jl")
-include("search/index_storage.jl")
+include("search/ranking.jl")
 include("searching.jl")
 export Searcher, search
 
