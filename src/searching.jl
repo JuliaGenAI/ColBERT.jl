@@ -12,61 +12,34 @@ struct Searcher
     emb2pid::Vector{Int}
 end
 
-function Searcher(index_path::String)
-    if !isdir(index_path)
-        error("Index at $(index_path) does not exist! Please build the index first and try again.")
-    end
-
-    # loading the config from the path
-    config = load_config(index_path)
-
-    # loading the model and saving it to prevent multiple loads
-    base_colbert = BaseColBERT(config)
-    checkpoint = Checkpoint(base_colbert, config)
-    @info "Loaded ColBERT layers from the $(config.checkpoint) HuggingFace checkpoint."
-
-    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
-    codec = load_codec(index_path)
-    ivf = JLD2.load_object(joinpath(index_path, "ivf.jld2"))
-    ivf_lengths = JLD2.load_object(joinpath(index_path, "ivf_lengths.jld2"))
-
-    # loading all doclens
-    doclens = Vector{Int}()
-    for chunk_idx in 1:plan_metadata["num_chunks"]
-        doclens_file = joinpath(index_path, "doclens.$(chunk_idx).jld2")
-        chunk_doclens = JLD2.load_object(doclens_file)
-        append!(doclens, chunk_doclens)
-    end
-
-    # loading all compressed embeddings
-    num_embeddings = plan_metadata["num_embeddings"]
-    dim, nbits = config.dim, config.nbits
-    @assert (dim * nbits) % 8==0 "(dim, nbits): $((dim, nbits))"
-    codes = zeros(UInt32, num_embeddings)
-    residuals = zeros(UInt8, Int((dim / 8) * nbits), num_embeddings)
-    codes_offset = 1
-    for chunk_idx in 1:plan_metadata["num_chunks"]
-        chunk_codes = JLD2.load_object(joinpath(index_path, "$(chunk_idx).codes.jld2"))
-        chunk_residuals = JLD2.load_object(joinpath(index_path, "$(chunk_idx).residuals.jld2"))
-
-        codes_endpos = codes_offset + length(chunk_codes) - 1
-        codes[codes_offset:codes_endpos] = chunk_codes
-        residuals[:, codes_offset:codes_endpos] = chunk_residuals
-
-        codes_offset = codes_offset + length(chunk_codes)
-    end
-
-    # the emb2pid mapping
-    @info "Building the emb2pid mapping."
-    @assert isequal(sum(doclens), plan_metadata["num_embeddings"]) "sum(doclens): $(sum(doclens)), num_embeddings: $(plan_metadata["num_embeddings"])"
-    emb2pid = zeros(Int, plan_metadata["num_embeddings"])
-
+function _build_emb2pid(doclens::Vector{Int})
+    num_embeddings = sum(doclens)
+    emb2pid = zeros(Int, num_embeddings)
     offset_doclens = 1
     for (pid, dlength) in enumerate(doclens)
         emb2pid[offset_doclens:(offset_doclens + dlength - 1)] .= pid
         offset_doclens += dlength
     end
-    
+    emb2pid
+end
+
+function Searcher(index_path::String)
+    if !isdir(index_path)
+        error("Index at $(index_path) does not exist! Please build the index first and try again.")
+    end
+
+    config = load_config(index_path)
+    base_colbert = BaseColBERT(config)
+    checkpoint = Checkpoint(base_colbert, config)
+    @info "Loaded ColBERT layers from the $(config.checkpoint) HuggingFace checkpoint."
+    codec = load_codec(index_path)
+    ivf = JLD2.load_object(joinpath(index_path, "ivf.jld2"))
+    ivf_lengths = JLD2.load_object(joinpath(index_path, "ivf_lengths.jld2"))
+    doclens = load_doclens(index_path)
+    codes, residuals = load_compressed_embs(index_path)
+    @info "Building the emb2pid mapping."
+    emb2pid = _build_emb2pid(doclens)
+
     Searcher(
         config,
         checkpoint,
