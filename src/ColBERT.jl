@@ -16,36 +16,29 @@ using Transformers
 # utils
 include("utils/utils.jl")
 
-# datasets
-include("data/collection.jl")
-include("data/queries.jl")
-export Collection, Queries
-
 # config and other infra
-include("infra/settings.jl")
 include("infra/config.jl")
-export RunSettings, TokenizerSettings, ResourceSettings,
-       DocSettings, QuerySettings, IndexingSettings,
-       SearchSettings, ColBERTConfig
+export ColBERTConfig
 
 # models, document/query tokenizers
 include("modelling/tokenization/doc_tokenization.jl")
 include("modelling/tokenization/query_tokenization.jl")
 include("modelling/checkpoint.jl")
-export BaseColBERT, Checkpoint, DocTokenizer, QueryTokenizer
+export BaseColBERT, Checkpoint
 
 # indexer
 include("indexing/codecs/residual.jl")
 include("indexing.jl")
-include("indexing/collection_encoder.jl")
-include("indexing/index_saver.jl")
 include("indexing/collection_indexer.jl")
-export Indexer, CollectionIndexer, index
+export Indexer, index
 
 # searcher
-include("search/strided_tensor.jl")
-include("search/index_storage.jl")
+include("search/ranking.jl")
 include("searching.jl")
 export Searcher, search
+
+# loaders and savers
+include("loaders.jl")
+include("savers.jl")
 
 end

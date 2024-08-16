@@ -1,196 +1,203 @@
 """
-    CollectionIndexer(config::ColBERTConfig, encoder::CollectionEncoder, saver::IndexSaver)
+    encode_passages(
+        config::ColBERTConfig, checkpoint::Checkpoint, passages::Vector{String})
 
-Structure which performs all the index-building operations, including sampling initial centroids, clustering, computing document embeddings, compressing and building the `ivf`.
+Encode a list of passages using `checkpoint`.
+
+The given `passages` are run through the underlying BERT model and the linear layer to
+generate the embeddings, after doing relevant document-specific preprocessing.
+See [`docFromText`](@ref) for more details.
 
 # Arguments
 
-  - `config`: The [`ColBERTConfig`](@ref) used to build the model.
-  - `encoder`: The [`CollectionEncoder`](@ref) to be used for encoding documents.
-  - `saver`: The [`IndexSaver`](@ref), responsible for saving the index to disk.
+  - `config`: The [`ColBERTConfig`](@ref) to be used.
+  - `checkpoint`: The [`Checkpoint`](@ref) used to encode the passages.
+  - `passages`: A list of strings representing the passages to be encoded.
 
 # Returns
 
-A [`CollectionIndexer`](@ref) object, containing all indexing-related information. See the [`setup`](@ref), [`train`](@ref), [`index`](@ref) and [`finalize`](@ref) functions for building the index.
+A tuple `embs, doclens` where:
+
+  - `embs::AbstractMatrix{Float32}`: The full embedding matrix. Of shape `(D, N)`,
+    where `D` is the embedding dimension and `N` is the total number of embeddings
+    across all the passages.
+  - `doclens::AbstractVector{Int}`: A vector of document lengths for each passage,
+    i.e the total number of attended tokens for each document passage.
 """
-mutable struct CollectionIndexer
-    config::ColBERTConfig
-    encoder::CollectionEncoder
-    saver::IndexSaver
-    plan_path::String
-    num_chunks::Int
-    num_embeddings_est::Float64
-    num_partitions::Int
-    num_sample_embs::Int
-    avg_doclen_est::Float64
-    embeddings_offsets::Vector{Int}
-    num_embeddings::Int
-    metadata_path::String
-end
+function encode_passages(
+        config::ColBERTConfig, checkpoint::Checkpoint, passages::Vector{String})
+    @info "Encoding $(length(passages)) passages."
 
-function CollectionIndexer(
-        config::ColBERTConfig, encoder::CollectionEncoder, saver::IndexSaver)
-    plan_path = joinpath(config.indexing_settings.index_path, "plan.json")
-    metadata_path = joinpath(config.indexing_settings.index_path, "metadata.json")
+    if length(passages) == 0
+        error("The list of passages to encode is empty!")
+    end
 
-    CollectionIndexer(
-        config,
-        encoder,
-        saver,
-        plan_path,
-        0,              # num_chunks
-        0.0,            # num_embeddings_est
-        0,              # num_partitions
-        0,              # num_sample_embs
-        0.0,            # avg_doclen_est
-        [],             # embeddings_offsets
-        0,              # num_embeddings
-        metadata_path
-    )
+    embs, doclens = Vector{AbstractMatrix{Float32}}(), Vector{Int}()
+    # batching here to avoid storing intermediate embeddings on GPU
+    # batching also occurs inside docFromText to do batch packing optimizations
+    passage_offset = 1
+    while passage_offset <= length(passages)
+        passage_end_offset = min(
+            length(passages), passage_offset + config.passages_batch_size - 1)
+        embs_, doclens_ = docFromText(
+            config, checkpoint, passages[passage_offset:passage_end_offset],
+            config.index_bsize)
+        @assert embs_ isa Matrix{Float32}
+        @assert doclens_ isa Vector{Int}
+        push!(embs, embs_)
+        append!(doclens, vec(doclens_))
+        passage_offset += config.passages_batch_size
+    end
+    embs = cat(embs..., dims = 2)
+    embs, doclens
 end
 
 """
-    _sample_pids(indexer::CollectionIndexer)
+    _sample_pids(num_documents::Int)
 
-Sample PIDs from the collection to be used to compute clusters using a ``k``-means clustering algorithm.
+Sample PIDs from the collection to be used to compute clusters using a ``k``-means clustering
+algorithm.
 
 # Arguments
 
-  - `indexer`: The collection indexer object containing the collection of passages to be indexed.
+  - `num_documents`: The total number of documents in the collection. It is assumed that each
+        document has an ID (aka PID) in the range of integers between `1` and `num_documents` 
+        (both inclusive).
 
 # Returns
 
 A `Set` of `Int`s containing the sampled PIDs.
 """
-function _sample_pids(indexer::CollectionIndexer)
-    num_passages = length(indexer.config.resource_settings.collection.data)
+function _sample_pids(num_documents::Int)
     typical_doclen = 120
-    num_sampled_pids = 16 * sqrt(typical_doclen * num_passages)
-    num_sampled_pids = Int(min(1 + floor(num_sampled_pids), num_passages))
-
-    sampled_pids = Set(sample(1:num_passages, num_sampled_pids))
+    num_sampled_pids = 16 * sqrt(typical_doclen * num_documents)
+    num_sampled_pids = Int(min(1 + floor(num_sampled_pids), num_documents))
+    sampled_pids = Set(sample(1:num_documents, num_sampled_pids))
     @info "# of sampled PIDs = $(length(sampled_pids))"
     sampled_pids
 end
 
 """
-    _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
+    _sample_embeddings(config::ColBERTConfig, checkpoint::Checkpoint,
+        collection::Vector{String}, sampled_pids::Set{Int})
 
-Compute embeddings for the PIDs sampled by [`_sample_pids`](@ref), compute the average document length using the embeddings, and save the sampled embeddings to disk.
+Compute embeddings for the PIDs sampled by [`_sample_pids`](@ref).
 
-The embeddings for the sampled documents are saved in a file named `sample.jld2` with it's path specified by the indexing directory. This embedding array has shape `(D, N)`, where `D` is the embedding dimension (`128`, after applying the linear layer of the ColBERT model) and `N` is the total number of embeddings over all documents.
-
-Sample the passages with `pid` in `sampled_pids` from the `collection` and compute the average passage length. The function returns a tuple containing the embedded passages and the average passage length.
+The embedding array has shape `(D, N)`, where `D` is the
+embedding dimension (`128`, after applying the linear layer of the ColBERT model) and `N` is the
+total number of embeddings over all documents.
 
 # Arguments
 
-  - `indexer`: An instance of `CollectionIndexer`.
+  - `config`: The [`ColBERTConfig`](@ref) to be used.
+  - `checkpoint`: The [`Checkpoint`] used to encode the passages.
+  - `collection`: The underlying collection of passages to get the samples from.
   - `sampled_pids`: Set of PIDs sampled by [`_sample_pids`](@ref).
 
 # Returns
 
-The average document length (i.e number of attended tokens) computed from the sampled documents.
+A `Dict` containing the average document length (i.e number of attended tokens) computed 
+from the sampled documents, and the embedding matrix for the local samples. The matrix has
+shape `(D, N)`, where `D` is the embedding dimension (`128`) and `N` is the total number
+of embeddings over all the sampled passages.
 """
-function _sample_embeddings(indexer::CollectionIndexer, sampled_pids::Set{Int})
+function _sample_embeddings(config::ColBERTConfig, checkpoint::Checkpoint,
+        collection::Vector{String}, sampled_pids::Set{Int})
     # collect all passages with pids in sampled_pids
-    collection = indexer.config.resource_settings.collection
     sorted_sampled_pids = sort(collect(sampled_pids))
-    local_sample = collection.data[sorted_sampled_pids]
+    local_sample = collection[sorted_sampled_pids]
 
-    local_sample_embs, local_sample_doclens = encode_passages(indexer.encoder, local_sample)
+    # get the local sample embeddings
+    local_sample_embs, local_sample_doclens = encode_passages(
+        config, checkpoint, local_sample)
     @debug "Local sample embeddings shape: $(size(local_sample_embs)), \t Local sample doclens: $(local_sample_doclens)"
     @assert size(local_sample_embs)[2]==sum(local_sample_doclens) "size(local_sample_embs): $(size(local_sample_embs)), sum(local_sample_doclens): $(sum(local_sample_doclens))"
+    @assert length(local_sample) == length(local_sample_doclens)
 
-    indexer.num_sample_embs = size(local_sample_embs)[2]
-    indexer.avg_doclen_est = length(local_sample_doclens) > 0 ?
-                             sum(local_sample_doclens) / length(local_sample_doclens) : 0
+    avg_doclen_est = length(local_sample_doclens) > 0 ?
+                     sum(local_sample_doclens) / length(local_sample_doclens) : 0
 
-    sample_path = joinpath(indexer.config.indexing_settings.index_path, "sample.jld2")
-    @info "avg_doclen_est = $(indexer.avg_doclen_est) \t length(local_sample) = $(length(local_sample))"
-    @info "Saving sampled embeddings to $(sample_path)."
-    JLD2.save(sample_path, Dict("local_sample_embs" => local_sample_embs))
+    @info "avg_doclen_est = $(avg_doclen_est) \t length(local_sample) = $(length(local_sample))"
 
-    indexer.avg_doclen_est
+    Dict(
+        "avg_doclen_est" => avg_doclen_est,
+        "local_sample_embs" => local_sample_embs
+    )
 end
 
 """
-    _save_plan(indexer::CollectionIndexer)
+    setup(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
 
-Save the indexing plan to a JSON file.
+Initialize the index by computing some indexing-specific estimates and save the indexing plan
+to disk.
 
-Information about the number of chunks, number of clusters, estimated number of embeddings over all documents and the estimated average document length is saved to a file named `plan.json`, with directory specified by the indexing directory.
-
-# Arguments
-
-  - `indexer`: The `CollectionIndexer` object that contains the index plan to be saved.
-"""
-function _save_plan(indexer::CollectionIndexer)
-    @info "Saving the index plan to $(indexer.plan_path)."
-    # TODO: export the config as json as well
-    open(indexer.plan_path, "w") do io
-        JSON.print(io,
-            Dict(
-                "num_chunks" => indexer.num_chunks,
-                "num_partitions" => indexer.num_partitions,
-                "num_embeddings_est" => indexer.num_embeddings_est,
-                "avg_doclen_est" => indexer.avg_doclen_est
-            ),
-            4                                                               # indent
-        )
-    end
-end
-
-"""
-    setup(indexer::CollectionIndexer)
-
-Initialize `indexer` by computing some indexing-specific estimates and save the indexing plan to disk.
-
-The number of chunks into which the document embeddings will be stored (`indexer.num_chunks`) is simply computed using the number of documents and the size of a chunk obtained from [`get_chunksize`](@ref). A bunch of pids used for initializing the centroids for the embedding clusters are sampled using the [`_sample_pids`](@ref) and [`_sample_embeddings`](@ref) functions, and these samples are used to calculate the average document lengths and the estimated number of embeddings which will be computed across all documents. Finally, the number of clusters (`indexer.num_partitions`) to be used for indexing is computed, and is proportional to ``16\\sqrt{\\text{Estimated number of embeddings}}``, and the indexing plan is saved to `plan.json` (see [`_save_plan`](@ref)) in the indexing directory.
+The number of chunks into which the document embeddings will be stored is simply computed using
+the number of documents and the size of a chunk. A bunch of pids used for initializing the 
+centroids for the embedding clusters are sampled using the [`_sample_pids`](@ref) 
+and [`_sample_embeddings`](@ref) functions, and these samples are used to calculate the 
+average document lengths and the estimated number of embeddings which will be computed across
+all documents. Finally, the number of clusters to be used for indexing is computed, and is 
+proportional to ``16\\sqrt{\\text{Estimated number of embeddings}}``.
 
 # Arguments
 
-  - `indexer::CollectionIndexer`: The indexer to be initialized.
+  - `config`: The [`ColBERTConfig`](@ref) being used to set up the indexing.
+  - `checkpoint`: The [`Checkpoint`](@ref) used to compute embeddings.
+  - `collection`: The underlying collection of passages to initialize the index for.
+
+# Returns
+
+A `Dict` containing the indexing plan.
 """
-function setup(indexer::CollectionIndexer)
-    collection = indexer.config.resource_settings.collection
-    indexer.num_chunks = Int(ceil(length(collection.data) / get_chunksize(
-        collection, indexer.config.run_settings.nranks)))
+function setup(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
+    chunksize = 0
+    chunksize = ismissing(config.chunksize) ?
+                min(25000, 1 + fld(length(collection), config.nranks)) : config.chunksize
+    num_chunks = cld(length(collection), chunksize)
 
     # sample passages for training centroids later
-    sampled_pids = _sample_pids(indexer)
-    avg_doclen_est = _sample_embeddings(indexer, sampled_pids)
+    sampled_pids = _sample_pids(length(collection))
+    local_sample_dict = _sample_embeddings(config, checkpoint, collection, sampled_pids)
 
     # computing the number of partitions, i.e clusters
-    num_passages = length(indexer.config.resource_settings.collection.data)
-    indexer.num_embeddings_est = num_passages * avg_doclen_est
-    indexer.num_partitions = Int(floor(2^(floor(log2(16 *
-                                                     sqrt(indexer.num_embeddings_est))))))
+    num_passages = length(collection)
+    num_embeddings_est = num_passages * local_sample_dict["avg_doclen_est"]
+    num_partitions = Int(floor(2^(floor(log2(16 * sqrt(num_embeddings_est))))))
 
-    @info "Creating $(indexer.num_partitions) clusters."
-    @info "Estimated $(indexer.num_embeddings_est) embeddings."
+    @info "Creating $(num_partitions) clusters."
+    @info "Estimated $(num_embeddings_est) embeddings."
 
-    _save_plan(indexer)
+    Dict(
+        "chunksize" => chunksize,
+        "num_chunks" => num_chunks,
+        "num_partitions" => num_partitions,
+        "num_embeddings_est" => num_embeddings_est,
+        "avg_doclen_est" => local_sample_dict["avg_doclen_est"],
+        "local_sample_embs" => local_sample_dict["local_sample_embs"]
+    )
 end
 
 """
-    _concatenate_and_split_sample(indexer::CollectionIndexer)
+    _concatenate_and_split_sample(index_path::String)
 
 Randomly shuffle and split the sampled embeddings.
 
-The sample embeddings saved by the [`setup`](@ref) function are loaded, shuffled randomly, and then split into a `sample` and a `sample_heldout` set, with `sample_heldout` containing a `0.05` fraction of the original sampled embeddings.
+The sample embeddings saved by the [`setup`](@ref) function are loaded, shuffled randomly,
+and then split into a `sample` and a `sample_heldout` set, with `sample_heldout` containing
+a `0.05` fraction of the original sampled embeddings.
 
 # Arguments
 
-  - `indexer`: The [`CollectionIndexer`](@ref).
+  - `index_path`: The path of the index.
 
 # Returns
 
 The tuple `sample, sample_heldout`.
 """
-function _concatenate_and_split_sample(indexer::CollectionIndexer)
+function _concatenate_and_split_sample(index_path::String)
     # load the sample embeddings
-    sample_path = joinpath(indexer.config.indexing_settings.index_path, "sample.jld2")
-    sample = JLD2.load(sample_path, "local_sample_embs")
+    sample_path = joinpath(index_path, "sample.jld2")
+    sample = JLD2.load_object(sample_path)
     @debug "Original sample shape: $(size(sample))"
 
     # randomly shuffle embeddings
@@ -208,35 +215,39 @@ function _concatenate_and_split_sample(indexer::CollectionIndexer)
 end
 
 """
-    _compute_avg_residuals(indexer::CollectionIndexer, centroids::AbstractMatrix{Float32},
+    _compute_avg_residuals(
+        nbits::Int, centroids::AbstractMatrix{Float32},
         heldout::AbstractMatrix{Float32})
 
 Compute the average residuals and other statistics of the held-out sample embeddings.
 
 # Arguments
 
-  - `indexer`: The underlying [`CollectionIndexer`](@ref).
-  - `centroids`: A matrix containing the centroids of the computed using a ``k``-means clustering algorithm on the sampled embeddings. Has shape `(D, indexer.num_partitions)`, where `D` is the embedding dimension (`128`) and `indexer.num_partitions` is the number of clusters.
-  - `heldout`: A matrix containing the held-out embeddings, computed using [`_concatenate_and_split_sample`](@ref).
+  - `nbits`: The number of bits used to compress the residuals.
+  - `centroids`: A matrix containing the centroids of the computed using a ``k``-means
+    clustering algorithm on the sampled embeddings. Has shape `(D, indexer.num_partitions)`,
+    where `D` is the embedding dimension (`128`) and `indexer.num_partitions` is the number
+    of clusters.
+  - `heldout`: A matrix containing the held-out embeddings, computed using
+    [`_concatenate_and_split_sample`](@ref).
 
 # Returns
 
-A tuple `bucket_cutoffs, bucket_weights, avg_residual`.
+A tuple `bucket_cutoffs, bucket_weights, avg_residual`, which will be used in
+compression/decompression of residuals.
 """
 function _compute_avg_residuals(
-        indexer::CollectionIndexer, centroids::AbstractMatrix{Float32},
+        nbits::Int, centroids::AbstractMatrix{Float32},
         heldout::AbstractMatrix{Float32})
-    compressor = ResidualCodec(
-        indexer.config, centroids, 0.0, Vector{Float32}(), Vector{Float32}())
-    codes = compress_into_codes(compressor, heldout)             # get centroid codes
+    codes = compress_into_codes(centroids, heldout)                         # get centroid codes
     @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
-    heldout_reconstruct = Flux.gpu(compressor.centroids[:, codes])         # get corresponding centroids
-    heldout_avg_residual = Flux.gpu(heldout) - heldout_reconstruct         # compute the residual
+    heldout_reconstruct = Flux.gpu(centroids[:, codes])                     # get corresponding centroids
+    heldout_avg_residual = Flux.gpu(heldout) - heldout_reconstruct          # compute the residual
 
-    avg_residual = mean(abs.(heldout_avg_residual), dims = 2)    # for each dimension, take mean of absolute values of residuals
+    avg_residual = mean(abs.(heldout_avg_residual), dims = 2)               # for each dimension, take mean of absolute values of residuals
 
     # computing bucket weights and cutoffs
-    num_options = 2^indexer.config.indexing_settings.nbits
+    num_options = 2^nbits
     quantiles = Vector(0:(num_options - 1)) / num_options
     bucket_cutoffs_quantiles, bucket_weights_quantiles = quantiles[2:end],
     quantiles .+ (0.5 / num_options)
@@ -253,102 +264,135 @@ function _compute_avg_residuals(
 end
 
 """
-    train(indexer::CollectionIndexer)
+    train(sample::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32},
+        num_partitions::Int, nbits::Int, kmeans_niters::Int)
 
-Train a [`CollectionIndexer`](@ref) by computing centroids using a ``k``-means clustering algorithn, and store the compression information on disk.
+Compute centroids using a ``k``-means clustering algorithn, and store the compression information
+on disk.
 
-Average residuals and other compression data is computed via the [`_compute_avg_residuals`](@ref) function, and the codec is saved on disk using [`save_codec`](@ref).
-
+Average residuals and other compression data is computed via the [`_compute_avg_residuals`](@ref)
+function.
 # Arguments
 
-  - `indexer::CollectionIndexer`: The [`CollectionIndexer`](@ref) to be trained.
-"""
-function train(indexer::CollectionIndexer)
-    sample, heldout = _concatenate_and_split_sample(indexer)
-    @assert sample isa AbstractMatrix{Float32} "$(typeof(sample))"
-    @assert heldout isa AbstractMatrix{Float32} "$(typeof(heldout))"
+  - `sample`: The matrix of sampled embeddings used to compute clusters.
+  - `heldout`: The matrix of sample embeddings used to compute the residual information.
+  - `num_partitions`: The number of clusters to compute.
+  - `nbits`: The number of bits used to encode the residuals.
+  - `kmeans_niters`: The maximum number of iterations in the ``k``-means algorithm. 
 
-    centroids = kmeans(sample, indexer.num_partitions,
-        maxiter = indexer.config.indexing_settings.kmeans_niters, display = :iter).centers
-    @assert size(centroids)[2]==indexer.num_partitions "size(centroids): $(size(centroids)), indexer.num_partitions: $(indexer.num_partitions)"
+# Returns
+
+A `Dict` containing the residual codec, i.e information used to compress/decompress residuals.
+"""
+function train(sample::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32},
+        num_partitions::Int, nbits::Int, kmeans_niters::Int)
+    centroids = kmeans(sample, num_partitions,
+        maxiter = kmeans_niters, display = :iter).centers
+    @assert size(centroids)[2] == num_partitions
+    "size(centroids): $(size(centroids)), num_partitions: $(num_partitions)"
     @assert centroids isa AbstractMatrix{Float32} "$(typeof(centroids))"
 
     bucket_cutoffs, bucket_weights, avg_residual = _compute_avg_residuals(
-        indexer, centroids, heldout)
+        nbits, centroids, heldout)
     @info "avg_residual = $(avg_residual)"
 
-    codec = ResidualCodec(
-        indexer.config, centroids, avg_residual, bucket_cutoffs, bucket_weights)
-    indexer.saver.codec = codec
-    save_codec(indexer.saver)
+    Dict(
+        "centroids" => centroids,
+        "bucket_cutoffs" => bucket_cutoffs,
+        "bucket_weights" => bucket_weights,
+        "avg_residual" => avg_residual
+    )
 end
 
 """
-    index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = missing)
+    index(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
 
 Build the index using `indexer`.
 
-The documents are processed in batches of size `chunksize` (see [`enumerate_batches`](@ref)). Embeddings and document lengths are computed for each batch (see [`encode_passages`](@ref)), and they are saved to disk along with relevant metadata (see [`save_chunk`](@ref)).
+The documents are processed in batches of size `chunksize`, determined by the config
+(see [`ColBERTConfig`](@ref) and [`setup`](@ref)). Embeddings and document lengths are
+computed for each batch (see [`encode_passages`](@ref)), and they are saved to disk
+along with relevant metadata (see [`save_chunk`](@ref)).
 
 # Arguments
 
-  - `indexer`: The [`CollectionIndexer`](@ref) used to build the index.
-  - `chunksize`: Size of a chunk into which the index is to be stored.
+  - `config`: The [`ColBERTConfig`](@ref) being used.
+  - `checkpoint`: The [`Checkpoint`](@ref) to compute embeddings.
+  - `collection`: The collection to index.
 """
-function index(indexer::CollectionIndexer; chunksize::Union{Int, Missing} = missing)
-    load_codec!(indexer.saver)                  # load the codec objects
-    batches = enumerate_batches(
-        indexer.config.resource_settings.collection, chunksize = chunksize,
-        nranks = indexer.config.run_settings.nranks)
-    for (chunk_idx, offset, passages) in batches
-        # TODO: add functionality to not re-write chunks if they already exist! 
-        # TODO: add multiprocessing to this step!
-        embs, doclens = encode_passages(indexer.encoder, passages)
+function index(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
+    codec = load_codec(config.index_path)
+    plan_metadata = JSON.parsefile(joinpath(config.index_path, "plan.json"))
+    passage_offset = 1
+    for chunk_idx in 1:plan_metadata["num_chunks"]
+        passage_end_offset = min(
+            length(collection), passage_offset + plan_metadata["chunksize"] - 1)
+        embs, doclens = encode_passages(
+            config, checkpoint, collection[passage_offset:passage_end_offset])
         @assert embs isa AbstractMatrix{Float32} "$(typeof(embs))"
         @assert doclens isa AbstractVector{Int} "$(typeof(doclens))"
 
-        @info "Saving chunk $(chunk_idx): \t $(length(passages)) passages and $(size(embs)[2]) embeddings. From offset #$(offset) onward."
-        save_chunk(indexer.saver, chunk_idx, offset, embs, doclens)
+        @info "Saving chunk $(chunk_idx): \t $(passage_end_offset - passage_offset + 1) passages and $(size(embs)[2]) embeddings. From passage #$(passage_offset) onward."
+        save_chunk(config, codec, chunk_idx, passage_offset, embs, doclens)
+
+        passage_offset += plan_metadata["chunksize"]
     end
 end
 
 """
-    finalize(indexer::CollectionIndexer)
+    check_chunk_exists(saver::IndexSaver, chunk_idx::Int)
 
-Finalize the indexing process by saving all files, collecting embedding ID offsets, building IVF, and updating metadata.
-
-See [`_check_all_files_are_saved`](@ref), [`_collect_embedding_id_offset`](@ref), [`_build_ivf`](@ref) and [`_update_metadata`](@ref) for more details.
+Check if the index chunk exists for the given `chunk_idx`.
 
 # Arguments
 
-  - `indexer::CollectionIndexer`: The [`CollectionIndexer`](@ref) used to finalize the indexing process.
+  - `saver`: The `IndexSaver` object that contains the indexing settings.
+  - `chunk_idx`: The index of the chunk to check.
+
+# Returns
+
+A boolean indicating whether all relevant files for the chunk exist.
 """
-function finalize(indexer::CollectionIndexer)
-    _check_all_files_are_saved(indexer)
-    _collect_embedding_id_offset(indexer)
-    _build_ivf(indexer)
-    _update_metadata(indexer)
+function check_chunk_exists(index_path::String, chunk_idx::Int)
+    path_prefix = joinpath(index_path, string(chunk_idx))
+    codes_path = "$(path_prefix).codes.jld2"
+    residuals_path = "$(path_prefix).residuals.jld2"
+    doclens_path = joinpath(index_path, "doclens.$(chunk_idx).jld2")
+    metadata_path = joinpath(index_path, "$(chunk_idx).metadata.json")
+
+    for file in [codes_path, residuals_path, doclens_path, metadata_path]
+        if !isfile(file)
+            return false
+        end
+    end
+
+    true
 end
 
-function _check_all_files_are_saved(indexer::CollectionIndexer)
+function _check_all_files_are_saved(index_path::String)
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
+
     @info "Checking if all files are saved."
-    for chunk_idx in 1:(indexer.num_chunks)
-        if !(check_chunk_exists(indexer.saver, chunk_idx))
-            @error "Could not find chunk $(chunk_idx)!"
+    for chunk_idx in 1:(plan_metadata["num_chunks"])
+        if !(check_chunk_exists(index_path, chunk_idx))
+            @error "Some files for chunk $(chunk_idx) are missing!"
         end
     end
     @info "Found all files!"
 end
 
-function _collect_embedding_id_offset(indexer::CollectionIndexer)
+function _collect_embedding_id_offset(index_path::String)
+    @assert isfile(joinpath(index_path, "plan.json")) "Fatal: plan.json doesn't exist!"
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
+
     @info "Collecting embedding ID offsets."
     passage_offset = 1
     embedding_offset = 1
 
     embeddings_offsets = Vector{Int}()
-    for chunk_idx in 1:(indexer.num_chunks)
+    for chunk_idx in 1:(plan_metadata["num_chunks"])
         metadata_path = joinpath(
-            indexer.config.indexing_settings.index_path, "$(chunk_idx).metadata.json")
+            index_path, "$(chunk_idx).metadata.json")
 
         chunk_metadata = open(metadata_path, "r") do io
             chunk_metadata = JSON.parse(io)
@@ -364,18 +408,29 @@ function _collect_embedding_id_offset(indexer::CollectionIndexer)
             JSON.print(io, chunk_metadata, 4)
         end
     end
+    num_embeddings = embedding_offset - 1
+    @assert length(embeddings_offsets) == plan_metadata["num_chunks"]
 
-    indexer.num_embeddings = embedding_offset - 1
-    indexer.embeddings_offsets = embeddings_offsets
+    @info "Saving the indexing metadata."
+    plan_metadata["num_embeddings"] = num_embeddings
+    plan_metadata["embeddings_offsets"] = embeddings_offsets
+    open(joinpath(index_path, "plan.json"), "w") do io
+        JSON.print(io,
+            plan_metadata,
+            4
+        )
+    end
 end
 
-function _build_ivf(indexer::CollectionIndexer)
+function _build_ivf(index_path::String)
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
+
     @info "Building the centroid to embedding IVF."
     codes = Vector{UInt32}()
 
     @info "Loading codes for each embedding."
-    for chunk_idx in 1:(indexer.num_chunks)
-        chunk_codes = load_codes(indexer.saver.codec, chunk_idx)
+    for chunk_idx in 1:(plan_metadata["num_chunks"])
+        chunk_codes = JLD2.load_object(joinpath(index_path, "$(chunk_idx).codes.jld2"))
         append!(codes, chunk_codes)
     end
     @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
@@ -384,31 +439,11 @@ function _build_ivf(indexer::CollectionIndexer)
     ivf, values = sortperm(codes), sort(codes)
 
     @info "Getting unique codes and their counts."
-    ivf_lengths = counts(values, 1:(indexer.num_partitions))
+    ivf_lengths = counts(values, 1:(plan_metadata["num_partitions"]))
 
     @info "Saving the IVF."
-    ivf_path = joinpath(indexer.config.indexing_settings.index_path, "ivf.jld2")
-    JLD2.save(ivf_path, Dict(
-        "ivf" => ivf,
-        "ivf_lengths" => ivf_lengths
-    ))
-end
-
-function _update_metadata(indexer::CollectionIndexer)
-    @info "Saving the indexing metadata."
-    metadata_path = joinpath(indexer.config.indexing_settings.index_path, "metadata.json")
-
-    open(metadata_path, "w") do io
-        JSON.print(io,
-            # TODO: export the config here as well!
-            Dict(
-                "num_chunks" => indexer.num_chunks,
-                "num_partitions" => indexer.num_partitions,
-                "num_embeddings" => indexer.num_embeddings,
-                "avg_doclen" => Int(floor(indexer.num_embeddings /
-                                          length(indexer.config.resource_settings.collection.data)))
-            ),
-            4
-        )
-    end
+    ivf_path = joinpath(index_path, "ivf.jld2")
+    ivf_lengths_path = joinpath(index_path, "ivf_lengths.jld2")
+    JLD2.save_object(ivf_path, ivf)
+    JLD2.save_object(ivf_lengths_path, ivf_lengths)
 end
