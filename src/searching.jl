@@ -162,11 +162,21 @@ function encode_query(config::ColBERTConfig, checkpoint::Checkpoint, query::Stri
 end
 
 function search(searcher::Searcher, query::String, k::Int)
-    dense_search(searcher, encode_query(searcher, query), k)
-end
+    Q = encode_query(searcher.config, searcher.checkpoint, query)
 
-function dense_search(searcher::Searcher, Q::AbstractArray{Float32}, k::Int)
-    pids, scores = rank(searcher.ranker, searcher.config, Q)
+    if size(Q)[3] > 1
+        error("Only one query is supported at the moment!")
+    end
+    @assert size(Q)[3]==1 "size(Q): $(size(Q))"
+    @assert isequal(size(Q)[2], searcher.config.query_maxlen) "size(Q): $(size(Q)), query_maxlen: $(searcher.config.query_maxlen)"     # Q: (128, 32, 1)
 
+    Q = reshape(Q, size(Q)[1:end .!= end]...)           # squeeze out the last dimension 
+    @assert isequal(length(size(Q)), 2) "size(Q): $(size(Q))"
+
+    pids = retrieve(searcher.ivf, searcher.ivf_lengths, searcher.centroids, searcher.emb2pid, searcher.config.nprobe, Q)
+    scores = score_pids(searcher.config, searcher.centroids, searcher.bucket_weights, searcher.doclens, searcher.codes, searcher.residuals, Q, pids)
+
+    indices = sortperm(scores, rev = true)
+    pids, scores = pids[indices], scores[indices]
     pids[1:k], scores[1:k]
 end
