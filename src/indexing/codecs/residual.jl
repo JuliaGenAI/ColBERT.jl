@@ -294,31 +294,3 @@ function decompress(
 
     embeddings
 end
-
-"""
-    load_codes(codec::ResidualCodec, chunk_idx::Int)
-
-Load the codes from disk for a given chunk index. The codes are stored in the file `<chunk_idx>.codes.jld2` located inside the
-`index_path` provided by the configuration.
-
-# Arguments
-
-  - `codec`: The [`ResidualCodec`](@ref) object containing the compression information.
-  - `chunk_idx`: The chunk index for which the codes should be loaded.
-
-# Returns
-
-A vector of codes for the specified chunk.
-"""
-function load_codes(index_path::String, chunk_idx::Int)
-    codes_path = joinpath(
-        index_path, "$(chunk_idx).codes.jld2")
-    JLD2.load_object(codes_path)
-end
-
-function load_residuals(codec::ResidualCodec, chunk_idx::Int)
-    residual_path = joinpath(
-        codec.config.index_path, "$(chunk_idx).residuals.jld2")
-    residuals = JLD2.load(residual_path, "residuals")
-    residuals
-end
