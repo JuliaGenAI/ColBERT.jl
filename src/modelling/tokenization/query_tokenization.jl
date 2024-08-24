@@ -1,9 +1,9 @@
 """
     tensorize_queries(config::ColBERTConfig,
-        tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        tokenizer::TextEncoders.AbstractTransformerTextEncoder,
         batch_text::Vector{String})
 
-Convert a collection of queries to tensors of token IDs and attention masks. 
+Convert a collection of queries to tensors of token IDs and attention masks.
 
 This function adds the query marker token at the beginning of each query text
 and then converts the text data into integer IDs and masks using the `tokenizer`.
@@ -44,7 +44,7 @@ julia> truncpad_pipe = Pipeline{:token}(
 
 julia> process = process[1:4] |> truncpad_pipe |> process[6:end];
 
-julia> tokenizer = Transformers.TextEncoders.BertTextEncoder(
+julia> tokenizer = TextEncoders.BertTextEncoder(
            tokenizer.tokenizer, tokenizer.vocab, process; startsym = tokenizer.startsym,
            endsym = tokenizer.endsym, padsym = tokenizer.padsym, trunc = tokenizer.trunc);
 
@@ -127,7 +127,7 @@ julia> integer_mask
 ```
 """
 function tensorize_queries(config::ColBERTConfig,
-        tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        tokenizer::TextEncoders.AbstractTransformerTextEncoder,
         batch_text::Vector{String})
     # placeholder for [Q] marker token
     batch_text = [". " * query for query in batch_text]

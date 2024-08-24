@@ -12,6 +12,7 @@ using Random
 using StatsBase
 using TextEncodeBase
 using Transformers
+const HF = HuggingFace
 
 # utils
 include("utils/utils.jl")
@@ -21,6 +22,7 @@ include("infra/config.jl")
 export ColBERTConfig
 
 # models, document/query tokenizers
+include("local_loading.jl")
 include("modelling/tokenization/doc_tokenization.jl")
 include("modelling/tokenization/query_tokenization.jl")
 include("modelling/checkpoint.jl")

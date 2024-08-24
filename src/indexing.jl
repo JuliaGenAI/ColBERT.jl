@@ -19,7 +19,7 @@ An [`Indexer`] wrapping a [`ColBERTConfig`](@ref), a [`Checkpoint`](@ref) and
 a collection of documents to index.
 """
 function Indexer(config::ColBERTConfig)
-    base_colbert = BaseColBERT(config)
+    base_colbert = BaseColBERT(config.checkpoint)
     checkpoint = Checkpoint(base_colbert, config)
     collection = readlines(config.collection)
 

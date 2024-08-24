@@ -1,9 +1,9 @@
 """
     tensorize_docs(config::ColBERTConfig,
-        tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        tokenizer::TextEncoders.AbstractTransformerTextEncoder,
         batch_text::Vector{String})
 
-Convert a collection of documents to tensors in the ColBERT format. 
+Convert a collection of documents to tensors in the ColBERT format.
 
 This function adds the document marker token at the beginning of each document
 and then converts the text data into integer IDs and masks using the `tokenizer`.
@@ -21,7 +21,7 @@ A tuple containing the following is returned:
 - `integer_ids`: A `Matrix` of token IDs of shape `(L, N)`, where `L` is the length
     of the largest document in `batch_text`, and `N` is the number of documents in the batch
     being considered.
-- `integer_mask`: A `Matrix` of attention masks, of the same shape as `integer_ids`. 
+- `integer_mask`: A `Matrix` of attention masks, of the same shape as `integer_ids`.
 
 # Examples
 
@@ -30,7 +30,7 @@ julia> using ColBERT, Transformers;
 
 julia> config = ColBERTConfig();
 
-julia> tokenizer = Transformers.load_tokenizer(config.checkpoint); 
+julia> tokenizer = Transformers.load_tokenizer(config.checkpoint);
 
 julia> batch_text = [
     "hello world",
@@ -38,12 +38,12 @@ julia> batch_text = [
     "a",
     "this is some longer text, so length should be longer",
     "this is an even longer document. this is some longer text, so length should be longer",
-]; 
+];
 
 julia> integer_ids, integer_mask = ColBERT.tensorize_docs(config, tokenizer, batch_text)
 (Int32[102 102 … 102 102; 3 3 … 3 3; … ; 1 1 … 1 2937; 1 1 … 1 103], Bool[1 1 … 1 1; 1 1 … 1 1; … ; 0 0 … 0 1; 0 0 … 0 1])
 
-julia> integer_ids 
+julia> integer_ids
 21×5 reinterpret(Int32, ::Matrix{PrimitiveOneHot.OneHot{0x0000773a}}):
   102   102   102   102   102
     3     3     3     3     3
@@ -67,7 +67,7 @@ julia> integer_ids
     1     1     1     1  2937
     1     1     1     1   103
 
-julia> integer_mask 
+julia> integer_mask
 21×5 Matrix{Bool}:
  1  1  1  1  1
  1  1  1  1  1
@@ -94,7 +94,7 @@ julia> integer_mask
 ```
 """
 function tensorize_docs(config::ColBERTConfig,
-        tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+        tokenizer::TextEncoders.AbstractTransformerTextEncoder,
         batch_text::Vector{String})
     # placeholder for [D] marker token
     batch_text = [". " * doc for doc in batch_text]
