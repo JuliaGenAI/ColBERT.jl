@@ -83,6 +83,54 @@ Building the index is even easier than creating a config; just build an `Indexer
 julia>  indexer = Indexer(config);
 
 julia>  @time index(indexer)
+[ Info: # of sampled PIDs = 636
+[ Info: Encoding 636 passages.
+[ Info: avg_doclen_est = 233.25157232704402      length(local_sample) = 636
+[ Info: Creating 4096 clusters.
+[ Info: Estimated 233251.572327044 embeddings.
+[ Info: Saving the index plan to ./1kcollection_index/plan.json.
+[ Info: Saving the config to the indexing path.
+[ Info: Training the clusters.
+[ Info: Iteration 1/20, max delta: 0.26976448
+[ Info: Iteration 2/20, max delta: 0.17742664
+[ Info: Iteration 3/20, max delta: 0.16281573
+[ Info: Iteration 4/20, max delta: 0.120501295
+[ Info: Iteration 5/20, max delta: 0.08808214
+[ Info: Iteration 6/20, max delta: 0.14226294
+[ Info: Iteration 7/20, max delta: 0.07096822
+[ Info: Iteration 8/20, max delta: 0.081315234
+[ Info: Iteration 9/20, max delta: 0.06760075
+[ Info: Iteration 10/20, max delta: 0.07043305
+[ Info: Iteration 11/20, max delta: 0.060436506
+[ Info: Iteration 12/20, max delta: 0.048092205
+[ Info: Iteration 13/20, max delta: 0.052080974
+[ Info: Iteration 14/20, max delta: 0.055756018
+[ Info: Iteration 15/20, max delta: 0.057068985
+[ Info: Iteration 16/20, max delta: 0.05717972
+[ Info: Iteration 17/20, max delta: 0.02952642
+[ Info: Iteration 18/20, max delta: 0.025388952
+[ Info: Iteration 19/20, max delta: 0.034007154
+[ Info: Iteration 20/20, max delta: 0.047712516
+[ Info: Got bucket_cutoffs_quantiles = [0.25, 0.5, 0.75] and bucket_weights_quantiles = [0.125, 0.375, 0.625, 0.875]
+[ Info: Got bucket_cutoffs = Float32[-0.023658333, -9.9312514f-5, 0.023450013] and bucket_weights = Float32[-0.044035435, -0.010775891, 0.010555617, 0.043713447]
+[ Info: avg_residual = 0.031616904
+[ Info: Saving codec to ./1kcollection_index/centroids.jld2, ./1kcollection_index/avg_residual.jld2, ./1kcollection_index/bucket_cutoffs.jld2 and ./1kcollection_index/bucket_weights.jld2.
+[ Info: Building the index.
+[ Info: Loading codec from ./1kcollection_index/centroids.jld2, ./1kcollection_index/avg_residual.jld2, ./1kcollection_index/bucket_cutoffs.jld2 and ./1kcollection_index/bucket_weights.jld2.
+[ Info: Encoding 200 passages.
+[ Info: Saving chunk 1:          200 passages and 36218 embeddings. From passage #1 onward.
+[ Info: Saving compressed codes to ./1kcollection_index/1.codes.jld2 and residuals to ./1kcollection_index/1.residuals.jld2
+[ Info: Saving doclens to ./1kcollection_index/doclens.1.jld2
+[ Info: Saving metadata to ./1kcollection_index/1.metadata.json
+[ Info: Encoding 200 passages.
+[ Info: Saving chunk 2:          200 passages and 45064 embeddings. From passage #201 onward.
+[ Info: Saving compressed codes to ./1kcollection_index/2.codes.jld2 and residuals to ./1kcollection_index/2.residuals.jld2
+[ Info: Saving doclens to ./1kcollection_index/doclens.2.jld2
+[ Info: Saving metadata to ./1kcollection_index/2.metadata.json
+[ Info: Encoding 200 passages.
+[ Info: Saving chunk 3:          200 passages and 50956 embeddings. From passage #401 onward.
+[ Info: Saving compressed codes to ./1kcollection_index/3.codes.jld2 and residuals to ./1kcollection_index/3.residuals.jld2
+[ Info: Saving doclens to ./1kcollection_index/doclens.3.jld2
 [ Info: Saving metadata to ./1kcollection_index/3.metadata.json
 [ Info: Encoding 200 passages.
 [ Info: Saving chunk 4:          200 passages and 49415 embeddings. From passage #601 onward.
@@ -104,7 +152,7 @@ julia>  @time index(indexer)
 [ Info: Sorting the codes.
 [ Info: Getting unique codes and their counts.
 [ Info: Saving the IVF.
-397.647997 seconds (137.12 M allocations: 34.834 GiB, 7.85% gc time, 11.96% compilation time: <1% of which was recompilation)
+151.833047 seconds (78.15 M allocations: 28.871 GiB, 41.12% gc time, 0.51% compilation time: <1% of which was recompilation)
 ```
 
 ### Searching
@@ -122,9 +170,9 @@ Next, simply feed a query to the `search` function, and get the top-`k` best doc
 ```julia
 julia>  query = "what is 1080 fox bait poisoning?";
 
-julia>  @time pids, scores = search(searcher, query, 10)
-0.425458 seconds (3.51 M allocations: 430.293 MiB, 13.95% gc time, 1.12% compilation time)
-([999, 383, 378, 386, 547, 384, 385, 963, 323, 344], Float32[8.543619, 7.804471, 7.039251, 6.7534733, 6.523997, 6.1977453, 6.131935, 6.086709, 6.0386653, 5.7597084])
+julia>  @time pids, scores = search(searcher, query, 10)            # second run statistics
+  0.136773 seconds (1.95 M allocations: 240.648 MiB, 0.00% compilation time)
+([999, 383, 386, 323, 547, 385, 384, 344, 963, 833], Float32[8.754782, 7.6871076, 6.8440857, 6.365711, 6.323611, 6.1222105, 5.92911, 5.708316, 5.597268, 5.4987035])
 ```
 
 You can now use these `pids` to see which documents match the best against your query:
