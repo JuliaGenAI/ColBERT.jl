@@ -200,7 +200,8 @@ Continuing with the example for [`tensorize_docs`](@ref) and the
 ```julia-repl
 julia> integer_ids = batches[1][1];
 
-julia> ColBERT.mask_skiplist(checkpoint.model.tokenizer, integer_ids, checkpoint.skiplist)
+julia> ColBERT.mask_skiplist(
+           checkpoint.model.tokenizer, integer_ids, checkpoint.skiplist)
 21×3 BitMatrix:
  1  1  1
  1  1  1
@@ -225,9 +226,12 @@ julia> ColBERT.mask_skiplist(checkpoint.model.tokenizer, integer_ids, checkpoint
  0  0  0
 ```
 """
-function mask_skiplist(tokenizer::TextEncoders.AbstractTransformerTextEncoder,
-        integer_ids::AbstractMatrix{Int32}, skiplist::Union{Missing, Vector{Int64}})
-    filter = integer_ids .!= TextEncodeBase.lookup(tokenizer.vocab, tokenizer.padsym)
+function mask_skiplist(
+        tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+        integer_ids::AbstractMatrix{Int32}, skiplist::Union{
+            Missing, Vector{Int64}})
+    filter = integer_ids .!=
+             TextEncodeBase.lookup(tokenizer.vocab, tokenizer.padsym)
     for token_id in skiplist
         filter = filter .& (integer_ids .!= token_id)
     end
@@ -294,9 +298,11 @@ function doc(
         attention_mask = NeuralAttentionlib.GenericSequenceMask(integer_mask))).hidden_state
     D = checkpoint.model.linear(D)
 
-    mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, checkpoint.skiplist)
+    mask = mask_skiplist(
+        checkpoint.model.tokenizer, integer_ids, checkpoint.skiplist)
     mask = reshape(mask, (1, size(mask)...))                                        # equivalent of unsqueeze
-    @assert isequal(size(mask)[2:end], size(D)[2:end]) "size(mask): $(size(mask)), size(D): $(size(D))"
+    @assert isequal(size(mask)[2:end], size(D)[2:end])
+    "size(mask): $(size(mask)), size(D): $(size(D))"
     @assert mask isa AbstractArray{Bool} "$(typeof(mask))"
 
     D = D .* mask                                                                   # clear out embeddings of masked tokens
@@ -407,28 +413,31 @@ function docFromText(config::ColBERTConfig, checkpoint::Checkpoint,
         # doc(checkpoint, integer_ids, integer_mask)
         error("Currently bsize cannot be missing!")
     else
-        integer_ids, integer_mask = tensorize_docs(config, checkpoint.model.tokenizer, docs)
+        integer_ids, integer_mask = tensorize_docs(
+            config, checkpoint.model.tokenizer, docs)
 
         # we sort passages by length to do batch packing for more efficient use of the GPU
         integer_ids, integer_mask, reverse_indices = _sort_by_length(
             integer_ids, integer_mask, bsize)
 
-        @assert length(reverse_indices)==length(docs) "length(reverse_indices): $(length(reverse_indices)), length(batch_text): $(length(docs))"
+        @assert length(reverse_indices) == length(docs)
+        "length(reverse_indices): $(length(reverse_indices)), length(batch_text): $(length(docs))"
         @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
         @assert integer_mask isa AbstractMatrix{Bool} "$(typeof(integer_mask))"
         @assert reverse_indices isa Vector{Int64} "$(typeof(reverse_indices))"
 
         # aggregate all embeddings
-        D, mask = Vector{AbstractArray{Float32}}(), Vector{AbstractArray{Bool}}()
-        passage_offset = 1
-        while (passage_offset <= length(docs))
+        D, mask = Vector{AbstractArray{Float32}}(),
+        Vector{AbstractArray{Bool}}()
+        for passage_offset in 1:bsize:length(docs)
             passage_end_offset = min(length(docs), passage_offset + bsize - 1)
             D_, mask_ = doc(
-                config, checkpoint, integer_ids[:, passage_offset:passage_end_offset],
+                config, checkpoint, integer_ids[
+                    :, passage_offset:passage_end_offset],
                 integer_mask[:, passage_offset:passage_end_offset])
             push!(D, D_)
             push!(mask, mask_)
-            passage_offset += bsize
+            D_, mask_ = nothing, nothing
         end
 
         # concat embeddings and masks, and put them in the original order
@@ -542,9 +551,11 @@ function query(
     Q = checkpoint.model.linear(Q)
 
     # only skip the pad symbol, i.e an empty skiplist
-    mask = mask_skiplist(checkpoint.model.tokenizer, integer_ids, Vector{Int64}())
+    mask = mask_skiplist(
+        checkpoint.model.tokenizer, integer_ids, Vector{Int64}())
     mask = reshape(mask, (1, size(mask)...))                                        # equivalent of unsqueeze
-    @assert isequal(size(mask)[2:end], size(Q)[2:end]) "size(mask): $(size(mask)), size(Q): $(size(Q))"
+    @assert isequal(size(mask)[2:end], size(Q)[2:end])
+    "size(mask): $(size(mask)), size(Q): $(size(Q))"
     @assert mask isa AbstractArray{Bool} "$(typeof(mask))"
 
     Q = Q .* mask
@@ -564,7 +575,8 @@ function query(
     end
 
     @assert ndims(Q)==3 "ndims(Q): $(ndims(Q))"
-    @assert isequal(size(Q)[2:end], size(integer_ids)) "size(Q): $(size(Q)), size(integer_ids): $(size(integer_ids))"
+    @assert isequal(size(Q)[2:end], size(integer_ids))
+    "size(Q): $(size(Q)), size(integer_ids): $(size(integer_ids))"
     @assert Q isa AbstractArray{Float32} "$(typeof(Q))"
 
     Q
@@ -656,7 +668,8 @@ julia> ColBERT.queryFromText(config, checkpoint, queries, 128)
 ```
 """
 function queryFromText(config::ColBERTConfig,
-        checkpoint::Checkpoint, queries::Vector{String}, bsize::Union{Missing, Int})
+        checkpoint::Checkpoint, queries::Vector{String}, bsize::Union{
+            Missing, Int})
     if ismissing(bsize)
         error("Currently bsize cannot be missing!")
     end
@@ -678,14 +691,13 @@ function queryFromText(config::ColBERTConfig,
 
     # aggregate all embeddings
     Q = Vector{AbstractArray{Float32}}()
-    query_offset = 1
-    while (query_offset <= length(queries))
+    for query_offset in 1:bsize:length(queries)
         query_end_offset = min(length(queries), query_offset + bsize - 1)
         Q_ = query(
             config, checkpoint, integer_ids[:, query_offset:query_end_offset],
             integer_mask[:, query_offset:query_end_offset])
         push!(Q, Q_)
-        query_offset += bsize
+        Q_ = nothing
     end
     Q = cat(Q..., dims = 3)
 
