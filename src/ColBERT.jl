@@ -15,7 +15,7 @@ using Transformers
 const HF = HuggingFace
 
 # utils
-include("utils/utils.jl")
+include("utils.jl")
 
 # config and other infra
 include("infra/config.jl")
