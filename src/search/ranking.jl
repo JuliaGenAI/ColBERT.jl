@@ -1,7 +1,8 @@
 """
 Return a candidate set of `pids` for the query matrix `Q`. This is done as follows: the nearest `nprobe` centroids for each query embedding are found. This list is then flattened and the unique set of these centroids is built. Using the `ivf`, the list of all unique embedding IDs contained in these centroids is computed. Finally, these embedding IDs are converted to `pids` using `emb2pid`. This list of `pids` is the final candidate set.
 """
-function retrieve(ivf::Vector{Int}, ivf_lengths::Vector{Int}, centroids::Matrix{Float32},
+function retrieve(
+        ivf::Vector{Int}, ivf_lengths::Vector{Int}, centroids::Matrix{Float32},
         emb2pid::Vector{Int}, nprobe::Int, Q::AbstractMatrix{Float32})
     # score of each query embedding with each centroid and take top nprobe centroids
     cells = Flux.gpu(transpose(Q)) * Flux.gpu(centroids) |> Flux.cpu
@@ -30,7 +31,8 @@ function retrieve(ivf::Vector{Int}, ivf_lengths::Vector{Int}, centroids::Matrix{
     pids
 end
 
-function _collect_compressed_embs_for_pids(doclens::Vector{Int}, codes::Vector{UInt32},
+function _collect_compressed_embs_for_pids(
+        doclens::Vector{Int}, codes::Vector{UInt32},
         residuals::Matrix{UInt8}, pids::Vector{Int})
     num_embeddings = sum(doclens[pids])
     codes_packed = zeros(UInt32, num_embeddings)
@@ -75,7 +77,8 @@ function score_pids(config::ColBERTConfig, centroids::Matrix{Float32},
     codes_packed, residuals_packed = _collect_compressed_embs_for_pids(
         doclens, codes, residuals, pids)
     D_packed = decompress(
-        config.dim, config.nbits, centroids, bucket_weights, codes_packed, residuals_packed)
+        config.dim, config.nbits, centroids, bucket_weights,
+        codes_packed, residuals_packed)
     @assert ndims(D_packed)==2 "ndims(D_packed): $(ndims(D_packed))"
     @assert size(D_packed)[1] == config.dim
     "size(D_packed): $(size(D_packed)), config.dim: $(config.dim)"

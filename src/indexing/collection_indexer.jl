@@ -35,8 +35,7 @@ function encode_passages(
     embs, doclens = Vector{AbstractMatrix{Float32}}(), Vector{Int}()
     # batching here to avoid storing intermediate embeddings on GPU
     # batching also occurs inside docFromText to do batch packing optimizations
-    passage_offset = 1
-    while passage_offset <= length(passages)
+    for passage_offset in 1:(config.passages_batch_size):length(passages)
         passage_end_offset = min(
             length(passages), passage_offset + config.passages_batch_size - 1)
         embs_, doclens_ = docFromText(
@@ -46,7 +45,7 @@ function encode_passages(
         @assert doclens_ isa Vector{Int}
         push!(embs, embs_)
         append!(doclens, vec(doclens_))
-        passage_offset += config.passages_batch_size
+        embs_, doclens_ = nothing, nothing
     end
     embs = cat(embs..., dims = 2)
     embs, doclens
@@ -61,8 +60,8 @@ algorithm.
 # Arguments
 
   - `num_documents`: The total number of documents in the collection. It is assumed that each
-        document has an ID (aka PID) in the range of integers between `1` and `num_documents` 
-        (both inclusive).
+    document has an ID (aka PID) in the range of integers between `1` and `num_documents`
+    (both inclusive).
 
 # Returns
 
@@ -96,7 +95,7 @@ total number of embeddings over all documents.
 
 # Returns
 
-A `Dict` containing the average document length (i.e number of attended tokens) computed 
+A `Dict` containing the average document length (i.e number of attended tokens) computed
 from the sampled documents, and the embedding matrix for the local samples. The matrix has
 shape `(D, N)`, where `D` is the embedding dimension (`128`) and `N` is the total number
 of embeddings over all the sampled passages.
@@ -115,14 +114,10 @@ function _sample_embeddings(config::ColBERTConfig, checkpoint::Checkpoint,
     @assert length(local_sample) == length(local_sample_doclens)
 
     avg_doclen_est = length(local_sample_doclens) > 0 ?
-                     sum(local_sample_doclens) / length(local_sample_doclens) : 0
-
+                     sum(local_sample_doclens) / length(local_sample_doclens) :
+                     0
     @info "avg_doclen_est = $(avg_doclen_est) \t length(local_sample) = $(length(local_sample))"
-
-    Dict(
-        "avg_doclen_est" => avg_doclen_est,
-        "local_sample_embs" => local_sample_embs
-    )
+    avg_doclen_est, local_sample_embs
 end
 
 """
@@ -132,11 +127,11 @@ Initialize the index by computing some indexing-specific estimates and save the 
 to disk.
 
 The number of chunks into which the document embeddings will be stored is simply computed using
-the number of documents and the size of a chunk. A bunch of pids used for initializing the 
-centroids for the embedding clusters are sampled using the [`_sample_pids`](@ref) 
-and [`_sample_embeddings`](@ref) functions, and these samples are used to calculate the 
+the number of documents and the size of a chunk. A bunch of pids used for initializing the
+centroids for the embedding clusters are sampled using the [`_sample_pids`](@ref)
+and [`_sample_embeddings`](@ref) functions, and these samples are used to calculate the
 average document lengths and the estimated number of embeddings which will be computed across
-all documents. Finally, the number of clusters to be used for indexing is computed, and is 
+all documents. Finally, the number of clusters to be used for indexing is computed, and is
 proportional to ``16\\sqrt{\\text{Estimated number of embeddings}}``.
 
 # Arguments
@@ -149,69 +144,53 @@ proportional to ``16\\sqrt{\\text{Estimated number of embeddings}}``.
 
 A `Dict` containing the indexing plan.
 """
-function setup(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
+function setup(config::ColBERTConfig, checkpoint::Checkpoint,
+        collection::Vector{String})
     chunksize = 0
     chunksize = ismissing(config.chunksize) ?
-                min(25000, 1 + fld(length(collection), config.nranks)) : config.chunksize
+                min(25000, 1 + fld(length(collection), config.nranks)) :
+                config.chunksize
     num_chunks = cld(length(collection), chunksize)
 
     # sample passages for training centroids later
     sampled_pids = _sample_pids(length(collection))
-    local_sample_dict = _sample_embeddings(config, checkpoint, collection, sampled_pids)
+    avg_doclen_est, local_sample_embs = _sample_embeddings(
+        config, checkpoint, collection, sampled_pids)
+
+    # splitting the local sample into heldout set
+    num_local_sample_embs = size(local_sample_embs, 2)
+    local_sample_embs = local_sample_embs[
+        :, shuffle(1:num_local_sample_embs)]
+
+    # split the sample to get a heldout set
+    heldout_fraction = 0.05
+    heldout_size = Int(max(
+        1, floor(min(
+            50000, heldout_fraction * num_local_sample_embs))))
+    sample, sample_heldout = local_sample_embs[
+        :, 1:(num_local_sample_embs - heldout_size)],
+    local_sample_embs[
+        :, (num_local_sample_embs - heldout_size + 1):num_local_sample_embs]
+    @debug "Split sample sizes: sample size: $(size(sample)), \t sample_heldout size: $(size(sample_heldout))"
 
     # computing the number of partitions, i.e clusters
     num_passages = length(collection)
-    num_embeddings_est = num_passages * local_sample_dict["avg_doclen_est"]
-    num_partitions = Int(floor(2^(floor(log2(16 * sqrt(num_embeddings_est))))))
+    num_embeddings_est = num_passages * avg_doclen_est
+    num_partitions = Int(min(size(sample, 2),
+        floor(2^(floor(log2(16 * sqrt(num_embeddings_est)))))))
 
     @info "Creating $(num_partitions) clusters."
     @info "Estimated $(num_embeddings_est) embeddings."
 
+    sample, sample_heldout,
     Dict(
         "chunksize" => chunksize,
         "num_chunks" => num_chunks,
         "num_partitions" => num_partitions,
+        "num_documents" => length(collection),
         "num_embeddings_est" => num_embeddings_est,
-        "avg_doclen_est" => local_sample_dict["avg_doclen_est"],
-        "local_sample_embs" => local_sample_dict["local_sample_embs"]
+        "avg_doclen_est" => avg_doclen_est
     )
-end
-
-"""
-    _concatenate_and_split_sample(index_path::String)
-
-Randomly shuffle and split the sampled embeddings.
-
-The sample embeddings saved by the [`setup`](@ref) function are loaded, shuffled randomly,
-and then split into a `sample` and a `sample_heldout` set, with `sample_heldout` containing
-a `0.05` fraction of the original sampled embeddings.
-
-# Arguments
-
-  - `index_path`: The path of the index.
-
-# Returns
-
-The tuple `sample, sample_heldout`.
-"""
-function _concatenate_and_split_sample(index_path::String)
-    # load the sample embeddings
-    sample_path = joinpath(index_path, "sample.jld2")
-    sample = JLD2.load_object(sample_path)
-    @debug "Original sample shape: $(size(sample))"
-
-    # randomly shuffle embeddings
-    num_local_sample_embs = size(sample)[2]
-    sample = sample[:, shuffle(1:num_local_sample_embs)]
-
-    # split the sample to get a heldout set
-    heldout_fraction = 0.05
-    heldout_size = Int(floor(min(50000, heldout_fraction * num_local_sample_embs)))
-    sample, sample_heldout = sample[:, 1:(num_local_sample_embs - heldout_size)],
-    sample[:, (num_local_sample_embs - heldout_size + 1):num_local_sample_embs]
-
-    @debug "Split sample sizes: sample size: $(size(sample)), \t sample_heldout size: $(size(sample_heldout))"
-    sample, sample_heldout
 end
 
 """
@@ -252,8 +231,10 @@ function _compute_avg_residuals(
     bucket_cutoffs_quantiles, bucket_weights_quantiles = quantiles[2:end],
     quantiles .+ (0.5 / num_options)
 
-    bucket_cutoffs = Float32.(quantile(heldout_avg_residual, bucket_cutoffs_quantiles))
-    bucket_weights = Float32.(quantile(heldout_avg_residual, bucket_weights_quantiles))
+    bucket_cutoffs = Float32.(quantile(
+        heldout_avg_residual, bucket_cutoffs_quantiles))
+    bucket_weights = Float32.(quantile(
+        heldout_avg_residual, bucket_weights_quantiles))
     @assert bucket_cutoffs isa AbstractVector{Float32} "$(typeof(bucket_cutoffs))"
     @assert bucket_weights isa AbstractVector{Float32} "$(typeof(bucket_weights))"
 
@@ -272,36 +253,38 @@ on disk.
 
 Average residuals and other compression data is computed via the [`_compute_avg_residuals`](@ref)
 function.
+
 # Arguments
 
   - `sample`: The matrix of sampled embeddings used to compute clusters.
   - `heldout`: The matrix of sample embeddings used to compute the residual information.
   - `num_partitions`: The number of clusters to compute.
   - `nbits`: The number of bits used to encode the residuals.
-  - `kmeans_niters`: The maximum number of iterations in the ``k``-means algorithm. 
+  - `kmeans_niters`: The maximum number of iterations in the ``k``-means algorithm.
 
 # Returns
 
 A `Dict` containing the residual codec, i.e information used to compress/decompress residuals.
 """
-function train(sample::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32},
+function train(
+        sample::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32},
         num_partitions::Int, nbits::Int, kmeans_niters::Int)
-    centroids = kmeans(sample, num_partitions,
-        maxiter = kmeans_niters, display = :iter).centers
-    @assert size(centroids)[2] == num_partitions
+    _, n = size(sample)
+    sample = sample |> Flux.gpu
+    centroids = sample[:, randperm(n)[1:num_partitions]]
+    # TODO: put point_bsize in the config!
+    kmeans_gpu_onehot!(
+        sample, centroids, num_partitions; max_iters = kmeans_niters)
+    @assert size(centroids, 2) == num_partitions
     "size(centroids): $(size(centroids)), num_partitions: $(num_partitions)"
     @assert centroids isa AbstractMatrix{Float32} "$(typeof(centroids))"
 
+    centroids = centroids |> Flux.cpu
     bucket_cutoffs, bucket_weights, avg_residual = _compute_avg_residuals(
         nbits, centroids, heldout)
     @info "avg_residual = $(avg_residual)"
 
-    Dict(
-        "centroids" => centroids,
-        "bucket_cutoffs" => bucket_cutoffs,
-        "bucket_weights" => bucket_weights,
-        "avg_residual" => avg_residual
-    )
+    centroids, bucket_cutoffs, bucket_weights, avg_residual
 end
 
 """
@@ -320,11 +303,12 @@ along with relevant metadata (see [`save_chunk`](@ref)).
   - `checkpoint`: The [`Checkpoint`](@ref) to compute embeddings.
   - `collection`: The collection to index.
 """
-function index(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
+function index(config::ColBERTConfig, checkpoint::Checkpoint,
+        collection::Vector{String})
     codec = load_codec(config.index_path)
     plan_metadata = JSON.parsefile(joinpath(config.index_path, "plan.json"))
-    passage_offset = 1
-    for chunk_idx in 1:plan_metadata["num_chunks"]
+    for (chunk_idx, passage_offset) in zip(1:plan_metadata["num_chunks"],
+        1:plan_metadata["chunksize"]:length(collection))
         passage_end_offset = min(
             length(collection), passage_offset + plan_metadata["chunksize"] - 1)
         embs, doclens = encode_passages(
@@ -334,8 +318,7 @@ function index(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector
 
         @info "Saving chunk $(chunk_idx): \t $(passage_end_offset - passage_offset + 1) passages and $(size(embs)[2]) embeddings. From passage #$(passage_offset) onward."
         save_chunk(config, codec, chunk_idx, passage_offset, embs, doclens)
-
-        passage_offset += plan_metadata["chunksize"]
+        embs, doclens = nothing, nothing
     end
 end
 
@@ -386,9 +369,7 @@ function _collect_embedding_id_offset(index_path::String)
     plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
 
     @info "Collecting embedding ID offsets."
-    passage_offset = 1
     embedding_offset = 1
-
     embeddings_offsets = Vector{Int}()
     for chunk_idx in 1:(plan_metadata["num_chunks"])
         metadata_path = joinpath(
@@ -401,7 +382,6 @@ function _collect_embedding_id_offset(index_path::String)
         chunk_metadata["embedding_offset"] = embedding_offset
         push!(embeddings_offsets, embedding_offset)
 
-        passage_offset += chunk_metadata["num_passages"]
         embedding_offset += chunk_metadata["num_embeddings"]
 
         open(metadata_path, "w") do io
@@ -430,7 +410,8 @@ function _build_ivf(index_path::String)
 
     @info "Loading codes for each embedding."
     for chunk_idx in 1:(plan_metadata["num_chunks"])
-        chunk_codes = JLD2.load_object(joinpath(index_path, "$(chunk_idx).codes.jld2"))
+        chunk_codes = JLD2.load_object(joinpath(
+            index_path, "$(chunk_idx).codes.jld2"))
         append!(codes, chunk_codes)
     end
     @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"

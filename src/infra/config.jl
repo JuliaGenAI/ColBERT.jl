@@ -26,8 +26,8 @@ Structure containing config for running and training various components.
   - `index_path`: Path to save the index files.
   - `index_bsize`: Batch size used for some parts of indexing.
   - `chunksize`: Custom size of a chunk, i.e the number of passages for which data is to be stored in one chunk. Default is `missing`,
-        in which case `chunksize` is determined from the size of the `collection` and `nranks`.
-  -  `passages_batch_size`: The number of passages sent as a batch to encoding functions. Default is `300`.
+    in which case `chunksize` is determined from the size of the `collection` and `nranks`.
+  - `passages_batch_size`: The number of passages sent as a batch to encoding functions. Default is `300`.
   - `nbits`: Number of bits used to compress residuals.
   - `kmeans_niters`: Number of iterations used for k-means clustering.
   - `nprobe`: The number of nearest centroids to fetch during a search. Default is `2`. Also see [`retrieve`](@ref).
@@ -70,7 +70,7 @@ Base.@kwdef struct ColBERTConfig
 
     # doc settings
     dim::Int = 128
-    doc_maxlen::Int = 220
+    doc_maxlen::Int = 300
     mask_punctuation::Bool = true
 
     # query settings
@@ -79,9 +79,9 @@ Base.@kwdef struct ColBERTConfig
 
     # indexing settings
     index_path::String = ""
-    index_bsize::Int = 32
-    chunksize::Union{Missing, Int} = missing
-    passages_batch_size::Int = 300
+    index_bsize::Int = 64
+    chunksize::Union{Missing, Int} = 25000
+    passages_batch_size::Int = 5000
     nbits::Int = 2
     kmeans_niters::Int = 20
 

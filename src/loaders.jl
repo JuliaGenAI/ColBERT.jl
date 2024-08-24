@@ -62,7 +62,8 @@ ColBERTConfig(true, 0, 1, "[unused0]", "[unused1]", "[Q]", "[D]", "colbert-ir/co
 function load_config(index_path::String)
     config_dict = JSON.parsefile(joinpath(index_path, "config.json"))
     key_vals = collect(zip(Symbol.(keys(config_dict)), values(config_dict)))
-    eval(:(ColBERTConfig($([Expr(:kw, :($key), :($val)) for (key, val) in key_vals]...))))
+    eval(:(ColBERTConfig($([Expr(:kw, :($key), :($val))
+                            for (key, val) in key_vals]...))))
 end
 
 function load_doclens(index_path::String)
@@ -88,7 +89,8 @@ function load_compressed_embs(index_path::String)
         UInt8, Int((config.dim / 8) * config.nbits), plan_metadata["num_embeddings"])
     codes_offset = 1
     for chunk_idx in 1:plan_metadata["num_chunks"]
-        chunk_codes = JLD2.load_object(joinpath(index_path, "$(chunk_idx).codes.jld2"))
+        chunk_codes = JLD2.load_object(joinpath(
+            index_path, "$(chunk_idx).codes.jld2"))
         chunk_residuals = JLD2.load_object(joinpath(
             index_path, "$(chunk_idx).residuals.jld2"))
 
