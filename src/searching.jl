@@ -129,7 +129,8 @@ julia> encode_query(config, checkpoint, "what are white spots on raspberries?")
   0.100019    -0.0618588    0.106134      0.0989047       -0.055676     -0.0556784    -0.0595709
 ```
 """
-function encode_query(config::ColBERTConfig, checkpoint::Checkpoint, query::String)
+function encode_query(
+        config::ColBERTConfig, checkpoint::Checkpoint, query::String)
     queries = [query]
     queryFromText(config, checkpoint, queries, config.index_bsize)
 end
@@ -149,7 +150,8 @@ function search(searcher::Searcher, query::String, k::Int)
 
     pids = retrieve(searcher.ivf, searcher.ivf_lengths, searcher.centroids,
         searcher.emb2pid, searcher.config.nprobe, Q)
-    scores = score_pids(searcher.config, searcher.centroids, searcher.bucket_weights,
+    scores = score_pids(
+        searcher.config, searcher.centroids, searcher.bucket_weights,
         searcher.doclens, searcher.codes, searcher.residuals, Q, pids)
 
     indices = sortperm(scores, rev = true)
