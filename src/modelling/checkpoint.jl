@@ -1,7 +1,7 @@
 """
     BaseColBERT(;
-        bert::Transformers.HuggingFace.HGFBertModel, linear::Transformers.Layers.Dense,
-        tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder)
+        bert::HuggingFace.HGFBertModel, linear::Layers.Dense,
+        tokenizer::TextEncoders.AbstractTransformerTextEncoder)
 
 A struct representing the BERT model, linear layer, and the tokenizer used to compute
 embeddings for documents and queries.
@@ -21,9 +21,7 @@ A [`BaseColBERT`](@ref) object.
 ```julia-repl
 julia> using ColBERT, CUDA;
 
-julia> config = ColBERTConfig(use_gpu = true);
-
-julia> base_colbert = BaseColBERT(config);
+julia> base_colbert = BaseColBERT("/home/codetalker7/models/colbertv2.0/");
 
 julia> base_colbert.bert
 HGFBertModel(
@@ -87,26 +85,15 @@ TrfTextEncoder(
 ```
 """
 struct BaseColBERT
-    bert::Transformers.HuggingFace.HGFBertModel
-    linear::Transformers.Layers.Dense
-    tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder
+    bert::HF.HGFBertModel
+    linear::Layers.Dense
+    tokenizer::TextEncoders.AbstractTransformerTextEncoder
 end
 
-function BaseColBERT(config::ColBERTConfig)
-    # since Transformers.jl doesn't support local loading
-    # we manually load the linear layers
-    checkpoint = config.checkpoint
-    bert_config = Transformers.load_config(checkpoint)
-    bert_state_dict = HuggingFace.load_state_dict(checkpoint)
-    bert_model = HuggingFace.load_model(
-        :bert, checkpoint, :model, bert_state_dict; config = bert_config)
-    linear = HuggingFace._load_dense(bert_state_dict, "linear", bert_config.hidden_size,
-        config.dim, bert_config.initializer_range, true)
-    tokenizer = Transformers.load_tokenizer(checkpoint)
-
+function BaseColBERT(modelpath::AbstractString)
+    tokenizer, bert_model, linear = load_hgf_pretrained_local(modelpath)
     bert_model = bert_model |> Flux.gpu
     linear = linear |> Flux.gpu
-
     BaseColBERT(bert_model, linear, tokenizer)
 end
 
@@ -185,7 +172,7 @@ function Checkpoint(model::BaseColBERT, config::ColBERTConfig)
 end
 
 """
-    mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+    mask_skiplist(tokenizer::TextEncoders.AbstractTransformerTextEncoder,
         integer_ids::AbstractMatrix{Int32}, skiplist::Union{Missing, Vector{Int64}})
 
 Create a mask for the given `integer_ids`, based on the provided `skiplist`.
@@ -238,7 +225,7 @@ julia> ColBERT.mask_skiplist(checkpoint.model.tokenizer, integer_ids, checkpoint
  0  0  0
 ```
 """
-function mask_skiplist(tokenizer::Transformers.TextEncoders.AbstractTransformerTextEncoder,
+function mask_skiplist(tokenizer::TextEncoders.AbstractTransformerTextEncoder,
         integer_ids::AbstractMatrix{Int32}, skiplist::Union{Missing, Vector{Int64}})
     filter = integer_ids .!= TextEncodeBase.lookup(tokenizer.vocab, tokenizer.padsym)
     for token_id in skiplist
@@ -342,9 +329,9 @@ This function also applies ColBERT-style document pre-processing for each docume
 # Arguments
 
 - `config`: The [`ColBERTConfig`](@ref) being used.
-- `checkpoint`: A [`Checkpoint`](@ref) to be used to compute embeddings.  
-- `docs`: A list of documents to get the embeddings for. 
-- `bsize`: A batch size for processing documents in batches. 
+- `checkpoint`: A [`Checkpoint`](@ref) to be used to compute embeddings.
+- `docs`: A list of documents to get the embeddings for.
+- `bsize`: A batch size for processing documents in batches.
 
 # Returns
 
@@ -542,7 +529,6 @@ julia> ColBERT.query(config, checkpoint, integer_ids, integer_mask)[:, :, 1]
  -0.116265    -0.106331    -0.179832     -0.149728     -0.0913282   …  -0.0287848   -0.0275017   -0.0197172    -0.0220611    -0.018135
  -0.0443452   -0.192203    -0.0187912    -0.0247794    -0.180245       -0.0780865   -0.073571    -0.0699094    -0.0684748    -0.0662903
   0.100019    -0.0618588    0.106134      0.0989047    -0.0885639      -0.0547317   -0.0553563   -0.055676     -0.0556784    -0.0595709
-
 ```
 """
 function query(

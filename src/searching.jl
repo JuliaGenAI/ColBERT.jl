@@ -29,7 +29,7 @@ function Searcher(index_path::String)
     end
 
     config = load_config(index_path)
-    base_colbert = BaseColBERT(config)
+    base_colbert = BaseColBERT(config.checkpoint)
     checkpoint = Checkpoint(base_colbert, config)
     @info "Loaded ColBERT layers from the $(config.checkpoint) HuggingFace checkpoint."
     codec = load_codec(index_path)

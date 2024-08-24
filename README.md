@@ -50,19 +50,26 @@ We now have our collection of documents to index!
 
 ### The `ColBERTConfig`
 
+To start off, make sure you download a ColBERT checkpoint somewhere in your system; for this example, I'll download the `colbert-ir/colbertv2.0` checkpoint in `$HOME/models`:
+    
+    git lfs install 
+    cd $HOME/models
+    git clone https://huggingface.co/colbert-ir/colbertv2.0
+
 The next step is to create a configuration object containing details about all parameters used during indexing/searching using ColBERT. All this information is contained in a type called `ColBERTConfig`. Creating a `ColBERTConfig` is easy; it has the right defaults for most users, and one can change the settings using simple kwargs. In this example, we'll create a config for the collection `1kcollection.txt` we just created, and we'll also use [`CUDA.jl`](https://github.com/JuliaGPU/CUDA.jl) for GPU support (you can use any GPU backend supported by [Flux.jl](https://github.com/FluxML/Flux.jl))!
 
 ```julia
 julia>  using ColBERT, CUDA, Random;
 
-julia>  Random.seed!(0)                     # global seed for a reproducible index
+julia>  Random.seed!(0)                                                 # global seed for a reproducible index
 
 julia>  config = ColBERTConfig(
             use_gpu = true,
-            collection = "./1kcollection.txt",
-            doc_maxlen = 300,               # max length beyond which docs are truncated
-            index_path = "./1kcollection_index/",
-            chunksize = 200                 # number of docs to store in a chunk
+            checkpoint = "/home/codetalker7/models/colbertv2.0",        # local path to the colbert checkpoint
+            collection = "./1kcollection.txt",                          # local path to the collection
+            doc_maxlen = 300,                                           # max length beyond which docs are truncated
+            index_path = "./1kcollection_index/",                       # local directory to save the index in
+            chunksize = 200                                             # number of docs to store in a chunk
         );
 ```
 
