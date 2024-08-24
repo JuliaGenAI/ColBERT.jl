@@ -13,24 +13,70 @@ where the code for each embedding is its nearest centroid ID.
 # Returns
 
 A `Vector{UInt32}` of codes, where each code corresponds to the nearest centroid ID for the embedding.
+
+# Examples
+
+```julia-repl
+julia> using ColBERT, Flux, CUDA;
+
+julia> centroids = rand(Float32, 128, 500);
+
+julia> embs = rand(Float32, 128, 10000);
+
+julia> ColBERT.compress_into_codes(centroids, embs)
+10000-element Vector{UInt32}:
+ 0x000000e0
+ 0x000000fe
+ 0x0000015b
+ 0x00000183
+ 0x0000017b
+ 0x0000002b
+ 0x000001ab
+ 0x00000160
+ 0x000001ab
+ 0x000000c4
+ 0x000000fe
+ 0x000000e0
+ 0x000000e0
+ 0x00000174
+ 0x00000186
+ 0x000000e0
+ 0x000000e0
+          ⋮
+ 0x000000fe
+ 0x000001ec
+ 0x00000105
+ 0x00000174
+ 0x000000e0
+ 0x0000015b
+ 0x00000008
+ 0x00000174
+ 0x00000147
+ 0x000000e0
+ 0x0000002b
+ 0x000000e0
+ 0x000000b4
+ 0x00000011
+ 0x00000186
+ 0x00000008
+ 0x000000fe
+```
 """
 function compress_into_codes(
         centroids::AbstractMatrix{Float32}, embs::AbstractMatrix{Float32})
+    _, n = size(embs)
     codes = Vector{UInt32}()
-
-    bsize = Int(floor((1 << 29) / size(centroids)[2]))
-    offset = 1
-    while (offset <= size(embs)[2])                             # batch on the second dimension
-        dot_products = transpose(Flux.gpu(embs[
-            :, offset:min(size(embs)[2], offset + bsize - 1)])) * Flux.gpu(centroids)
-        indices = (cartesian_index -> cartesian_index.I[2]).(argmax(dot_products, dims = 2)[
-            :, 1])
+    bsize = div(1 << 29, size(centroids)[2])
+    for offset in 1:bsize:n                         # batch on the second dimension
+        offset_end = min(n, offset + bsize - 1)
+        dot_products = (Flux.gpu(embs[
+            :, offset:offset_end]))' * Flux.gpu(centroids)
+        indices = getindex.(argmax(dot_products, dims = 2), 2) |> Flux.cpu
         append!(codes, indices)
-        offset += bsize
     end
-    @assert length(codes)==size(embs)[2] "length(codes): $(length(codes)), size(embs): $(size(embs))"
+    @assert length(codes) == n
+    "length(codes): $(length(codes)), size(embs): $(size(embs))"
     @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
-
     codes
 end
 
@@ -61,7 +107,8 @@ function binarize(dim::Int, nbits::Int, bucket_cutoffs::Vector{Float32},
     end
 
     # need to subtract one here, to preserve the number of options (2 ^ nbits) 
-    bucket_indices = (x -> searchsortedfirst(bucket_cutoffs, x)).(residuals) .- 1  # torch.bucketize
+    bucket_indices = (x -> searchsortedfirst(bucket_cutoffs, x)).(residuals) .-
+                     1  # torch.bucketize
     bucket_indices = stack([bucket_indices for i in 1:nbits], dims = 1)                  # add an nbits-wide extra dimension
     positionbits = fill(1, (nbits, 1, 1))
     for i in 1:nbits
@@ -71,9 +118,12 @@ function binarize(dim::Int, nbits::Int, bucket_cutoffs::Vector{Float32},
     bucket_indices = Int.(floor.(bucket_indices ./ positionbits))                        # divide by 2^bit for each bit position
     bucket_indices = bucket_indices .& 1                                                 # apply mod 1 to binarize
     residuals_packed = reinterpret(UInt8, BitArray(vec(bucket_indices)).chunks)          # flatten out the bits, and pack them into UInt8
-    residuals_packed = reshape(residuals_packed, (Int(dim / 8) * nbits, num_embeddings)) # reshape back to get compressions for each embedding
-    @assert ndims(residuals_packed)==2 "ndims(residuals_packed): $(ndims(residuals_packed))"
-    @assert size(residuals_packed)[2]==size(residuals)[2] "size(residuals_packed): $(size(residuals_packed)), size(residuals): $(size(residuals))"
+    residuals_packed = reshape(
+        residuals_packed, (Int(dim / 8) * nbits, num_embeddings)) # reshape back to get compressions for each embedding
+    @assert ndims(residuals_packed) == 2
+    "ndims(residuals_packed): $(ndims(residuals_packed))"
+    @assert size(residuals_packed)[2] == size(residuals)[2]
+    "size(residuals_packed): $(size(residuals_packed)), size(residuals): $(size(residuals))"
     @assert residuals_packed isa AbstractMatrix{UInt8} "$(typeof(residuals_packed))"
 
     residuals_packed
@@ -106,17 +156,14 @@ A tuple containing a vector of codes and the compressed residuals matrix.
 function compress(centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32},
         dim::Int, nbits::Int, embs::AbstractMatrix{Float32})
     codes, residuals = Vector{UInt32}(), Vector{Matrix{UInt8}}()
-
-    offset = 1
     bsize = 1 << 18
-    while (offset <= size(embs)[2])                # batch on second dimension
+    for offset in 1:bsize:size(embs)[2]         # batch on second dimension
         batch = embs[:, offset:min(size(embs)[2], offset + bsize - 1)]
         codes_ = compress_into_codes(centroids, batch) # get centroid codes
-        centroids_ = centroids[:, codes_]    # get corresponding centroids
+        centroids_ = centroids[:, codes_]       # get corresponding centroids
         residuals_ = batch - centroids_
         append!(codes, codes_)
         push!(residuals, binarize(dim, nbits, bucket_cutoffs, residuals_))
-        offset += bsize
     end
     residuals = cat(residuals..., dims = 2)
 
@@ -130,7 +177,8 @@ function compress(centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32},
     codes, residuals
 end
 
-function decompress_residuals(dim::Int, nbits::Int, bucket_weights::Vector{Float32},
+function decompress_residuals(
+        dim::Int, nbits::Int, bucket_weights::Vector{Float32},
         binary_residuals::AbstractMatrix{UInt8})
     @assert ndims(binary_residuals)==2 "ndims(binary_residuals): $(ndims(binary_residuals))"
     @assert size(binary_residuals)[1]==(dim / 8) * nbits "size(binary_residuals): $(size(binary_residuals)), (dim / 8) * nbits: $((dim / 8) * nbits)"
@@ -142,7 +190,8 @@ function decompress_residuals(dim::Int, nbits::Int, bucket_weights::Vector{Float
     end
 
     # reshaping into dims (nbits, dim, num_embeddings); inverse of what binarize does
-    unpacked_bits = reshape(unpacked_bits, nbits, dim, size(binary_residuals)[2])
+    unpacked_bits = reshape(
+        unpacked_bits, nbits, dim, size(binary_residuals)[2])
 
     # get decimal value for coordinate of the nbits-wide dimension; again, inverse of binarize
     positionbits = fill(1, (nbits, 1, 1))
@@ -167,7 +216,8 @@ function decompress_residuals(dim::Int, nbits::Int, bucket_weights::Vector{Float
 end
 
 function decompress(
-        dim::Int, nbits::Int, centroids::Matrix{Float32}, bucket_weights::Vector{Float32},
+        dim::Int, nbits::Int, centroids::Matrix{Float32},
+        bucket_weights::Vector{Float32},
         codes::Vector{UInt32}, residuals::AbstractMatrix{UInt8})
     @assert ndims(codes)==1 "ndims(codes): $(ndims(codes))"
     @assert ndims(residuals)==2 "ndims(residuals): $(ndims(residuals))"
@@ -176,21 +226,20 @@ function decompress(
     # decompress in batches
     D = Vector{AbstractMatrix{Float32}}()
     bsize = 1 << 15
-    batch_offset = 1
-    while batch_offset <= length(codes)
-        batch_codes = codes[batch_offset:min(batch_offset + bsize - 1, length(codes))]
+    for batch_offset in 1:bsize:length(codes)
+        batch_codes = codes[batch_offset:min(
+            batch_offset + bsize - 1, length(codes))]
         batch_residuals = residuals[
             :, batch_offset:min(batch_offset + bsize - 1, length(codes))]
 
         centroids_ = centroids[:, batch_codes]
-        residuals_ = decompress_residuals(dim, nbits, bucket_weights, batch_residuals)
+        residuals_ = decompress_residuals(
+            dim, nbits, bucket_weights, batch_residuals)
 
         batch_embeddings = centroids_ + residuals_
         batch_embeddings = mapslices(
             v -> iszero(v) ? v : normalize(v), batch_embeddings, dims = 1)
         push!(D, batch_embeddings)
-
-        batch_offset += bsize
     end
     embeddings = cat(D..., dims = 2)
 
