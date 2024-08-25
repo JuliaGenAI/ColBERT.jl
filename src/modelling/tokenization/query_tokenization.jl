@@ -1,5 +1,6 @@
 """
-    tensorize_queries(query_token_id::String, attend_to_mask_tokens::Bool,
+using TextEncodeBase: tokenize
+    tensorize_queries(query_token::String, attend_to_mask_tokens::Bool,
         tokenizer::TextEncoders.AbstractTransformerTextEncoder,
         batch_text::Vector{String})
 
@@ -34,7 +35,7 @@ julia> using ColBERT: tensorize_queries, load_hgf_pretrained_local;
 
 julia> using Transformers, Transformers.TextEncoders, TextEncodeBase;
 
-julia> tokenizer = load_hgf_pretrained_local("/home/codetalker7/models/colbertv2.0/:tokenizer")
+julia> tokenizer = load_hgf_pretrained_local("/home/codetalker7/models/colbertv2.0/:tokenizer");
 
 # configure the tokenizers maxlen and padding/truncation
 julia> query_maxlen = 32;
@@ -60,7 +61,7 @@ julia> batch_text = [
     "this makes this a nice query as an example."
 ];
 
-julia> integer_ids, integer_mask = tensorize_queries(
+julia> integer_ids, bitmask = tensorize_queries(
     "[unused0]", false, tokenizer, batch_text);
 (Int32[102 102 102; 2 2 2; … ; 104 104 8792; 104 104 2095], Bool[1 1 1; 1 1 1; … ; 0 0 1; 0 0 1])
 
@@ -99,7 +100,7 @@ julia> integer_ids
    104    104   8792
    104    104   2095
 
-julia> integer_mask
+julia> bitmask 
 32×3 Matrix{Bool}:
  1  1  1
  1  1  1
@@ -170,38 +171,27 @@ julia> TextEncoders.decode(tokenizer, integer_ids)
  "[MASK]"     "[MASK]"     "##d"
 ```
 """
-function tensorize_queries(query_token_id::String, attend_to_mask_tokens::Bool,
+function tensorize_queries(query_token::String, attend_to_mask_tokens::Bool,
         tokenizer::TextEncoders.AbstractTransformerTextEncoder,
         batch_text::Vector{String})
     # we assume that tokenizer is configured to have maxlen: query_maxlen - 1
-    # getting the integer ids and masks
-    encoded_text = Transformers.TextEncoders.encode(tokenizer, batch_text)
-    ids, mask = encoded_text.token, encoded_text.attention_mask
-    integer_ids = reinterpret(Int32, ids)
-    integer_mask = NeuralAttentionlib.getmask(mask, ids)[1, :, :]
+    integer_ids, bitmask = _integer_ids_and_mask(tokenizer, batch_text)
 
     # adding the [Q] marker token ID and [MASK] augmentation
     Q_marker_token_id = TextEncodeBase.lookup(
-        tokenizer.vocab, query_token_id) |> Int32
+        tokenizer.vocab, query_token) |> Int32
     mask_token_id = TextEncodeBase.lookup(tokenizer.vocab, "[MASK]") |> Int32
     pad_token_id = TextEncodeBase.lookup(
         tokenizer.vocab, tokenizer.config.padsym) |> Int32
-    integer_ids = [integer_ids[begin:1, :];
-                   fill(Q_marker_token_id, (1, length(batch_text)));
-                   integer_ids[2:end, :]]
+    integer_ids = _add_marker_row(integer_ids, Q_marker_token_id)
+    bitmask = _add_marker_row(bitmask, true)
     integer_ids[integer_ids .== pad_token_id] .= mask_token_id
-    integer_mask = [integer_mask[begin:1, :];
-                    fill(true, (1, length(batch_text))); integer_mask[2:end, :]]
 
     if attend_to_mask_tokens
-        integer_mask[integer_ids .== mask_token_id] .= 1
-        @assert isequal(sum(integer_mask), prod(size(integer_mask)))
-        "sum(integer_mask): $(sum(integer_mask)), prod(size(integer_mask)): $(prod(size(integer_mask)))"
+        bitmask[integer_ids .== mask_token_id] .= true
+        @assert isequal(sum(bitmask), prod(size(bitmask)))
+        "sum(integer_mask): $(sum(bitmask)), prod(size(integer_mask)): $(prod(size(bitmask)))"
     end
 
-    @assert isequal(size(integer_ids), size(integer_mask))
-    "size(integer_ids): $(size(integer_ids)), size(integer_mask): $(size(integer_mask))"
-    @assert integer_ids isa Matrix{Int32} "$(typeof(integer_ids))"
-    @assert integer_mask isa Matrix{Bool} "$(typeof(integer_mask))"
-    integer_ids, integer_mask
+    integer_ids, bitmask
 end
