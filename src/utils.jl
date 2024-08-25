@@ -23,18 +23,16 @@ Depending upon `bsize`, the following are returned:
     order.
 """
 function _sort_by_length(
-        integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
-    batch_size = size(integer_ids)[2]
-    if batch_size <= bsize
-        # if the number of passages fits the batch size, do nothing
-        integer_ids, integer_mask, Vector(1:batch_size)
-    end
-
-    lengths = vec(sum(integer_mask; dims = 1))              # number of attended tokens in each passage
+        integer_ids::AbstractMatrix{Int32}, bitmask::AbstractMatrix{Bool}, batch_size::Int)
+    size(integer_ids, 2) <= batch_size &&
+        return integer_ids, bitmask, Vector(1:size(integer_ids, 2))
+    lengths = vec(sum(bitmask; dims = 1))                   # number of attended tokens in each passage
     indices = sortperm(lengths)                             # get the indices which will sort lengths
     reverse_indices = sortperm(indices)                     # invert the indices list
-
-    integer_ids[:, indices], integer_mask[:, indices], reverse_indices
+    @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
+    @assert bitmask isa BitMatrix "$(typeof(bitmask))"
+    @assert reverse_indices isa Vector{Int} "$(typeof(reverse_indices))"
+    integer_ids[:, indices], bitmask[:, indices], reverse_indices
 end
 
 function compute_distances_kernel!(batch_distances::AbstractMatrix{Float32},
@@ -293,4 +291,12 @@ function kmeans_gpu_onehot!(
     end
 
     Flux.cpu(assignments)
+end
+
+function _normalize_array!(
+        X::AbstractArray{T}; dims::Int = 1) where {T <: AbstractFloat}
+    norms = sqrt.(sum(abs2, X, dims = dims))
+    epsilon = eps(T)
+    X ./= (norms .+ epsilon)
+    
 end
