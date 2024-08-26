@@ -594,6 +594,7 @@ function encode_passages(bert::HF.HGFBertModel, linear::Layers.Dense,
         D = _remove_masked_tokens(D, mask)                          # (dim, total_num_masked_embeddings)
 
         @assert ndims(D)==2 "ndims(D): $(ndims(D))"
+        @assert size(D, 1) == dim "size(D): $(size(D)), dim: $(dim)"
         @assert size(D, 2)==sum(doclens_) "size(D): $(size(D)), sum(doclens): $(sum(doclens_))"
         @assert D isa AbstractMatrix{Float32} "$(typeof(D))"
         @assert doclens_ isa AbstractVector{Int64} "$(typeof(doclens_))"
