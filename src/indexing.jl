@@ -64,11 +64,24 @@ function index(indexer::Indexer)
         @info "Index at $(indexer.config.index_path) already exists! Skipping indexing."
         return
     end
-
-    # getting and saving the indexing plan
     isdir(indexer.config.index_path) || mkdir(indexer.config.index_path)
-    sample, sample_heldout, plan_dict = setup(
-        indexer.config, indexer.checkpoint, indexer.collection)
+
+    # sampling passages and getting their embedings
+    @info "Sampling PIDs for clustering and generating their embeddings."
+    @time avg_doclen_est, sample = _sample_embeddings(
+        indexer.bert, indexer.linear, indexer.tokenizer,
+        indexer.config.dim, indexer.config.index_bsize,
+        indexer.config.doc_token_id, indexer.skiplist, indexer.collection)
+
+    # splitting the sample to a clustering set and a heldout set
+    @info "Splitting the sampled embeddings to a heldout set."
+    @time sample, sample_heldout = _heldout_split(sample)
+    @assert sample isa AbstractMatrix{Float32} "$(typeof(sample))"
+    @assert sample_heldout isa AbstractMatrix{Float32} "$(typeof(sample_heldout))"
+
+    # generating the indexing setup
+    plan_dict = setup(indexer.collection, avg_doclen_est, size(sample, 2),
+        indexer.config.chunksize, indexer.config.nranks)
     @info "Saving the index plan to $(joinpath(indexer.config.index_path, "plan.json"))."
     open(joinpath(indexer.config.index_path, "plan.json"), "w") do io
         JSON.print(io,
@@ -80,10 +93,8 @@ function index(indexer::Indexer)
     ColBERT.save(indexer.config)
 
     # training/clustering
-    @assert sample isa AbstractMatrix{Float32} "$(typeof(sample))"
-    @assert sample_heldout isa AbstractMatrix{Float32} "$(typeof(sample_heldout))"
     @info "Training the clusters."
-    centroids, bucket_cutoffs, bucket_weights, avg_residual = train(
+    @time centroids, bucket_cutoffs, bucket_weights, avg_residual = train(
         sample, sample_heldout, plan_dict["num_partitions"],
         indexer.config.nbits, indexer.config.kmeans_niters)
     save_codec(
