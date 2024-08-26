@@ -1,6 +1,8 @@
 struct Indexer
     config::ColBERTConfig
-    checkpoint::Checkpoint
+    bert::HF.HGFBertModel
+    linear::Layers.Dense
+    tokenizer::TextEncoders.AbstractTransformerTextEncoder
     collection::Vector{String}
 end
 
@@ -19,14 +21,15 @@ An [`Indexer`] wrapping a [`ColBERTConfig`](@ref), a [`Checkpoint`](@ref) and
 a collection of documents to index.
 """
 function Indexer(config::ColBERTConfig)
-    base_colbert = BaseColBERT(config.checkpoint)
-    checkpoint = Checkpoint(base_colbert, config)
+    tokenizer, bert, linear = load_hgf_pretrained_local(config.checkpoint)
+    bert = bert |> Flux.gpu
+    linear = linear |> Flux.gpu
     collection = readlines(config.collection)
 
-    @info "Loaded ColBERT layers from the $(checkpoint) HuggingFace checkpoint."
+    @info "Loaded ColBERT layers from the $(config.checkpoint) HuggingFace checkpoint."
     @info "Loaded $(length(collection)) documents from $(config.collection)."
 
-    Indexer(config, checkpoint, collection)
+    Indexer(config, bert, linear, tokenizer, collection)
 end
 
 """
