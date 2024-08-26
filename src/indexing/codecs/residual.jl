@@ -17,66 +17,60 @@ A `Vector{UInt32}` of codes, where each code corresponds to the nearest centroid
 # Examples
 
 ```julia-repl
-julia> using ColBERT, Flux, CUDA;
+julia> using ColBERT: compress_into_codes;
 
-julia> centroids = rand(Float32, 128, 500);
+julia> using Flux, CUDA, Random;
 
-julia> embs = rand(Float32, 128, 10000);
+julia> Random.seed!(0);
 
-julia> ColBERT.compress_into_codes(centroids, embs)
-10000-element Vector{UInt32}:
- 0x000000e0
- 0x000000fe
- 0x0000015b
- 0x00000183
- 0x0000017b
- 0x0000002b
- 0x000001ab
- 0x00000160
- 0x000001ab
- 0x000000c4
- 0x000000fe
- 0x000000e0
- 0x000000e0
- 0x00000174
- 0x00000186
- 0x000000e0
- 0x000000e0
+julia> centroids = rand(Float32, 128, 500) |> Flux.gpu;
+
+julia> embs = rand(Float32, 128, 10000) |> Flux.gpu;
+
+julia> codes = zeros(UInt32, size(embs, 2)) |> Flux.gpu;
+
+julia> @time compress_into_codes!(codes, centroids, embs)
+  0.003319 seconds (4.51 k allocations: 117.086 KiB)
+10000-element CuArray{UInt32, 1, CUDA.DeviceMemory}:
+ 0x00000194
+ 0x00000194
+ 0x0000000b
+ 0x000001d9
+ 0x0000011f
+ 0x00000098
+ 0x0000014e
+ 0x00000012
+ 0x000000a0
+ 0x00000098
+ 0x000001a7
+ 0x00000098
           ⋮
- 0x000000fe
- 0x000001ec
- 0x00000105
- 0x00000174
- 0x000000e0
- 0x0000015b
- 0x00000008
- 0x00000174
- 0x00000147
- 0x000000e0
- 0x0000002b
- 0x000000e0
- 0x000000b4
- 0x00000011
- 0x00000186
- 0x00000008
- 0x000000fe
+ 0x0000014e
+ 0x000001a7
+ 0x000001a7
+ 0x000001a7
+ 0x000000ec
+ 0x00000098
+ 0x000001d9
+ 0x00000098
+ 0x000001d9
+ 0x000001d9
+ 0x00000012
 ```
 """
-function compress_into_codes(
-        centroids::AbstractMatrix{Float32}, embs::AbstractMatrix{Float32})
+function compress_into_codes!(
+        codes::AbstractVector{UInt32}, centroids::AbstractMatrix{Float32},
+        embs::AbstractMatrix{Float32};
+        bsize::Int = 1000)
     _, n = size(embs)
-    codes = Vector{UInt32}()
-    bsize = div(1 << 29, size(centroids)[2])
-    for offset in 1:bsize:n                         # batch on the second dimension
-        offset_end = min(n, offset + bsize - 1)
-        dot_products = (Flux.gpu(embs[
-            :, offset:offset_end]))' * Flux.gpu(centroids)
-        indices = getindex.(argmax(dot_products, dims = 2), 2) |> Flux.cpu
-        append!(codes, indices)
-    end
     @assert length(codes) == n
     "length(codes): $(length(codes)), size(embs): $(size(embs))"
-    @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
+    for offset in 1:bsize:size(embs, 2)                                     
+        offset_end = min(n, offset + bsize - 1)
+        dot_products = (embs[:, offset:offset_end])' * centroids    # (num_embs, num_centroids)
+        indices = getindex.(argmax(dot_products, dims = 2), 2)
+        codes[offset:offset_end] .= indices
+    end
     codes
 end
 
