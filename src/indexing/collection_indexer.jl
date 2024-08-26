@@ -156,13 +156,14 @@ Compute the average residuals and other statistics of the held-out sample embedd
 A tuple `bucket_cutoffs, bucket_weights, avg_residual`, which will be used in
 compression/decompression of residuals.
 """
-function _compute_avg_residuals(
+function _compute_avg_residuals!(
         nbits::Int, centroids::AbstractMatrix{Float32},
-        heldout::AbstractMatrix{Float32})
-    codes = compress_into_codes(centroids, heldout)                         # get centroid codes
-    @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
-    heldout_reconstruct = Flux.gpu(centroids[:, codes])                     # get corresponding centroids
-    heldout_avg_residual = Flux.gpu(heldout) - heldout_reconstruct          # compute the residual
+        heldout::AbstractMatrix{Float32}, codes::AbstractVector{UInt32})
+    @assert length(codes) == size(heldout, 2)
+
+    compress_into_codes!(codes, centroids, heldout)                         # get centroid codes
+    heldout_reconstruct = centroids[:, codes]                               # get corresponding centroids
+    heldout_avg_residual = heldout - heldout_reconstruct                    # compute the residual
 
     avg_residual = mean(abs.(heldout_avg_residual), dims = 2)               # for each dimension, take mean of absolute values of residuals
 
@@ -210,22 +211,24 @@ A `Dict` containing the residual codec, i.e information used to compress/decompr
 function train(
         sample::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32},
         num_partitions::Int, nbits::Int, kmeans_niters::Int)
-    _, n = size(sample)
+    # computing clusters
     sample = sample |> Flux.gpu
-    centroids = sample[:, randperm(n)[1:num_partitions]]
+    centroids = sample[:, randperm(size(sample, 2))[1:num_partitions]]
     # TODO: put point_bsize in the config!
     kmeans_gpu_onehot!(
         sample, centroids, num_partitions; max_iters = kmeans_niters)
-    @assert size(centroids, 2) == num_partitions
-    "size(centroids): $(size(centroids)), num_partitions: $(num_partitions)"
-    @assert centroids isa AbstractMatrix{Float32} "$(typeof(centroids))"
+    @assert(size(centroids, 2)==num_partitions,
+        "size(centroids): $(size(centroids)), num_partitions: $(num_partitions)")
+    @assert(centroids isa AbstractMatrix{Float32}, "$(typeof(centroids))")
 
-    centroids = centroids |> Flux.cpu
-    bucket_cutoffs, bucket_weights, avg_residual = _compute_avg_residuals(
-        nbits, centroids, heldout)
+    # computing average residuals
+    heldout = heldout |> Flux.gpu
+    codes = zeros(UInt32, size(heldout, 2)) |> Flux.gpu
+    bucket_cutoffs, bucket_weights, avg_residual = _compute_avg_residuals!(
+        nbits, centroids, heldout, codes)
     @info "avg_residual = $(avg_residual)"
 
-    centroids, bucket_cutoffs, bucket_weights, avg_residual
+    Flux.cpu(centroids), bucket_cutoffs, bucket_weights, avg_residual
 end
 
 """

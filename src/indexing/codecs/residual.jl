@@ -29,8 +29,10 @@ julia> embs = rand(Float32, 128, 10000) |> Flux.gpu;
 
 julia> codes = zeros(UInt32, size(embs, 2)) |> Flux.gpu;
 
-julia> @time compress_into_codes!(codes, centroids, embs)
-  0.003319 seconds (4.51 k allocations: 117.086 KiB)
+julia> @time compress_into_codes!(codes, centroids, embs);
+  0.003489 seconds (4.51 k allocations: 117.117 KiB)
+
+julia> codes 
 10000-element CuArray{UInt32, 1, CUDA.DeviceMemory}:
  0x00000194
  0x00000194
@@ -44,7 +46,11 @@ julia> @time compress_into_codes!(codes, centroids, embs)
  0x00000098
  0x000001a7
  0x00000098
+ 0x000001a7
+ 0x00000194
           ⋮
+ 0x00000199
+ 0x000001a7
  0x0000014e
  0x000001a7
  0x000001a7
@@ -71,7 +77,6 @@ function compress_into_codes!(
         indices = getindex.(argmax(dot_products, dims = 2), 2)
         codes[offset:offset_end] .= indices
     end
-    codes
 end
 
 """
