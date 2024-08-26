@@ -4,6 +4,7 @@ struct Indexer
     linear::Layers.Dense
     tokenizer::TextEncoders.AbstractTransformerTextEncoder
     collection::Vector{String}
+    skiplist::Vector{Int}
 end
 
 """
@@ -25,11 +26,28 @@ function Indexer(config::ColBERTConfig)
     bert = bert |> Flux.gpu
     linear = linear |> Flux.gpu
     collection = readlines(config.collection)
+    punctuations_and_padsym = [string.(collect("!\"#\$%&\'()*+,-./:;<=>?@[\\]^_`{|}~"));
+                               tokenizer.padsym]
+    skiplist = config.mask_punctuation ?
+               [lookup(tokenizer.vocab, sym) for sym in punctuations_and_padsym] :
+               [lookup(tokenizer.vocab, tokenizer.padsym)]
+
+    # configuring the tokenizer; using doc_maxlen
+    process = tokenizer.process
+    truncpad_pipe = Pipeline{:token}(
+        TextEncodeBase.trunc_or_pad(
+            config.doc_maxlen - 1, "[PAD]", :tail, :tail),
+        :token)
+    process = process[1:4] |> truncpad_pipe |> process[6:end]
+    tokenizer = TextEncoders.BertTextEncoder(
+        tokenizer.tokenizer, tokenizer.vocab, process;
+        startsym = tokenizer.startsym, endsym = tokenizer.endsym,
+        padsym = tokenizer.padsym, trunc = tokenizer.trunc)
 
     @info "Loaded ColBERT layers from the $(config.checkpoint) HuggingFace checkpoint."
     @info "Loaded $(length(collection)) documents from $(config.collection)."
 
-    Indexer(config, bert, linear, tokenizer, collection)
+    Indexer(config, bert, linear, tokenizer, collection, skiplist)
 end
 
 """
