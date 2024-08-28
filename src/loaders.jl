@@ -110,3 +110,18 @@ function load_compressed_embs(index_path::String)
 
     codes, residuals
 end
+
+function load_chunk_metadata_property(index_path::String, property::String)
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
+    plan_metadata["num_chunks"] > 0 || return []
+    vector = nothing
+    for chunk_idx in 1:plan_metadata["num_chunks"] 
+        chunk_metadata = JSON.parsefile(joinpath(index_path, "$(chunk_idx).metadata.json"))
+        if isnothing(vector)
+            vector = [chunk_metadata[property]]
+        else
+            append!(vector, chunk_metadata[property])
+        end
+    end
+    vector
+end

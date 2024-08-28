@@ -86,7 +86,7 @@ function index(indexer::Indexer)
     open(joinpath(indexer.config.index_path, "plan.json"), "w") do io
         JSON.print(io,
             plan_dict,
-            4                                                               # indent
+            4
         )
     end
     @info "Saving the config to the indexing path."
@@ -110,9 +110,25 @@ function index(indexer::Indexer)
         indexer.skiplist, plan_dict["num_chunks"], plan_dict["chunksize"],
         centroids, bucket_cutoffs, indexer.config.nbits)
 
-    # finalizing
-    @info "Running some final checks."
+    # check if all relevant files are saved
     _check_all_files_are_saved(indexer.config.index_path)
-    _collect_embedding_id_offset(indexer.config.index_path)
+
+    # collect embedding offsets and more metadata for chunks
+    chunk_emb_counts = load_chunk_metadata_property(
+        indexer.config.index_path, "num_embeddings")
+    num_embeddings, embeddings_offsets = _collect_embedding_id_offset(chunk_emb_counts)
+    @info "Updating chunk metadata and indexing plan"
+    plan_dict["num_embeddings"] = num_embeddings
+    plan_dict["embeddings_offsets"] = embeddings_offsets
+    open(joinpath(indexer.config.index_path, "plan.json"), "w") do io
+        JSON.print(io,
+            plan_dict,
+            4
+        )
+    end
+    save_chunk_metadata_property(
+        indexer.config.index_path, "embedding_offset", embeddings_offsets)
+
+    # build and save the ivf
     _build_ivf(indexer.config.index_path)
 end

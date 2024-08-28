@@ -124,7 +124,7 @@ function setup(collection::Vector{String}, avg_doclen_est::Float32,
     @info "Creating $(num_partitions) clusters."
     @info "Estimated $(num_embeddings_est) embeddings."
 
-    Dict(
+    Dict{String, Any}(
         "chunksize" => chunksize,
         "num_chunks" => num_chunks,
         "num_partitions" => num_partitions,
@@ -315,6 +315,13 @@ function _check_all_files_are_saved(index_path::String)
         end
     end
     @info "Found all files!"
+end
+
+function _collect_embedding_id_offset(chunk_emb_counts::Vector{Int})
+    length(chunk_emb_counts) > 0 || return zeros(Int, 1)
+    chunk_embedding_offsets = cat([1], chunk_emb_counts[1:end - 1], dims = 1)
+    chunk_embedding_offsets = cumsum(chunk_embedding_offsets)
+    sum(chunk_emb_counts), chunk_embedding_offsets
 end
 
 function _collect_embedding_id_offset(index_path::String)

@@ -77,7 +77,7 @@ function save_chunk(
                 "num_passages" => length(doclens),
                 "num_embeddings" => length(codes)
             ),
-            4                                                               # indent
+            4
         )
     end
 end
@@ -116,5 +116,22 @@ function save(config::ColBERTConfig)
             Dict(properties),
             4
         )
+    end
+end
+
+function save_chunk_metadata_property(
+        index_path::String, property::String, properties::Vector{T}) where {T}
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
+    @assert plan_metadata["num_chunks"] == length(properties)
+    for chunk_idx in 1:length(properties) 
+        chunk_metadata = JSON.parsefile(joinpath(
+            index_path, "$(chunk_idx).metadata.json"))
+        chunk_metadata[property] = properties[chunk_idx]
+        open("$(chunk_idx).metadata.json", "w") do io
+            JSON.print(io,
+                chunk_metadata,
+                4
+            )
+        end
     end
 end
