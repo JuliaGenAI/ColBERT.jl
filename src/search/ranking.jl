@@ -7,18 +7,13 @@ Get the set of embedding IDs contained in `centroid_ids`.
 function _cids_to_eids!(eids::Vector{Int}, centroid_ids::Vector{Int},
         ivf::Vector{Int}, ivf_lengths::Vector{Int})
     @assert length(eids) == sum(ivf_lengths[centroid_ids])
-
-    # for each centroid, get it's offset in ivf
-    centroid_ivf_offsets = cumsum(cat(
-        [1], ivf_lengths[1:end .!= end], dims = 1))
-
-    # fill in the eids
-    eid_offset = 1
-    for centroid_id in centroid_ids
+    centroid_ivf_offsets = cumsum([1; _head(ivf_lengths)])
+    eid_offsets = cumsum([1; _head(ivf_lengths[centroid_ids])])
+    for (idx, centroid_id) in enumerate(centroid_ids)
+        eid_offset = eid_offsets[idx]
         batch_length = ivf_lengths[centroid_id]
         ivf_offset = centroid_ivf_offsets[centroid_id]
         eids[eid_offset:(eid_offset + batch_length - 1)] .= ivf[ivf_offset:(ivf_offset + batch_length - 1)]
-        eid_offset += batch_length          # batch_length is dynamic, so can't fuse this in for loop?
     end
 end
 

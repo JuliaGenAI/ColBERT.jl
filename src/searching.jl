@@ -45,7 +45,7 @@ function Searcher(index_path::String)
     codec["centroids"] = codec["centroids"] |> Flux.gpu
     codec["bucket_cutoffs"] = codec["bucket_cutoffs"] |> Flux.gpu
     codec["bucket_weights"] = codec["bucket_weights"] |> Flux.gpu
-    
+
     # loading the ivf
     ivf = JLD2.load_object(joinpath(index_path, "ivf.jld2"))
     ivf_lengths = JLD2.load_object(joinpath(index_path, "ivf_lengths.jld2"))
@@ -82,11 +82,12 @@ end
 function _build_emb2pid(doclens::Vector{Int})
     num_embeddings = sum(doclens)
     emb2pid = zeros(Int, num_embeddings)
-    offset_doclens = 1
+    embs2pid_offsets = cumsum([1; _head(doclens)])
     for (pid, dlength) in enumerate(doclens)
-        emb2pid[offset_doclens:(offset_doclens + dlength - 1)] .= pid
-        offset_doclens += dlength
+        offset = embs2pid_offsets[pid]
+        emb2pid[offset:(offset + dlength - 1)] .= pid
     end
+    @assert all(!=(0), emb2pid)
     emb2pid
 end
 
@@ -105,7 +106,7 @@ function search(searcher::Searcher, query::String, k::Int)
     # squeeze out last dim and move to gpu
     Q = reshape(Q, size(Q)[1:end .!= end]...) |> Flux.gpu
 
-    # get candidate pids 
+    # get candidate pids
     pids = retrieve(searcher.ivf, searcher.ivf_lengths, searcher.centroids,
         searcher.emb2pid, searcher.config.nprobe, Q)
 
