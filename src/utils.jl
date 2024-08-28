@@ -306,3 +306,7 @@ function _topk(data::Matrix{T}, k::Int; dims::Int = 1) where {T <: Number}
     @assert dims in [1, 2]
     mapslices(v -> partialsortperm(v, 1:k, rev = true), data, dims = dims)
 end
+
+function _head(v::Vector)
+    length(v) > 0 ? collect(take(v, length(v) - 1)) : similar(v, 0)
+end

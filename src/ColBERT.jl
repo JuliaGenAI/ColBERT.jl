@@ -3,6 +3,7 @@ using Clustering
 using CSV
 using Dates
 using Flux
+using .Iterators
 using JLD2
 using JSON
 using LinearAlgebra
