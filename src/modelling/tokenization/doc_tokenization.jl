@@ -49,7 +49,7 @@ Pipelines:
   target := (target.token, target.segment, target.attention_mask, target.sequence_mask)
 
 julia> truncpad_pipe = Pipeline{:token}(
-           TextEncodeBase.trunc_or_pad(doc_maxlen - 1, "[PAD]", :tail, :tail),
+           TextEncodeBase.trunc_and_pad(doc_maxlen - 1, "[PAD]", :tail, :tail),
            :token);
 
 julia> process = process[1:4] |> truncpad_pipe |> process[6:end];
