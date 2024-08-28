@@ -35,7 +35,7 @@ function Indexer(config::ColBERTConfig)
     # configuring the tokenizer; using doc_maxlen
     process = tokenizer.process
     truncpad_pipe = Pipeline{:token}(
-        TextEncodeBase.trunc_or_pad(
+        TextEncodeBase.trunc_and_pad(
             config.doc_maxlen - 1, "[PAD]", :tail, :tail),
         :token)
     process = process[1:4] |> truncpad_pipe |> process[6:end]
