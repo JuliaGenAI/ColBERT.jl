@@ -319,72 +319,13 @@ end
 
 function _collect_embedding_id_offset(chunk_emb_counts::Vector{Int})
     length(chunk_emb_counts) > 0 || return zeros(Int, 1)
-    chunk_embedding_offsets = cat([1], chunk_emb_counts[1:end - 1], dims = 1)
+    chunk_embedding_offsets = cat([1], chunk_emb_counts[1:(end - 1)], dims = 1)
     chunk_embedding_offsets = cumsum(chunk_embedding_offsets)
     sum(chunk_emb_counts), chunk_embedding_offsets
 end
 
-function _collect_embedding_id_offset(index_path::String)
-    @assert isfile(joinpath(index_path, "plan.json")) "Fatal: plan.json doesn't exist!"
-    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
-
-    @info "Collecting embedding ID offsets."
-    embedding_offset = 1
-    embeddings_offsets = Vector{Int}()
-    for chunk_idx in 1:(plan_metadata["num_chunks"])
-        metadata_path = joinpath(
-            index_path, "$(chunk_idx).metadata.json")
-
-        chunk_metadata = open(metadata_path, "r") do io
-            chunk_metadata = JSON.parse(io)
-        end
-
-        chunk_metadata["embedding_offset"] = embedding_offset
-        push!(embeddings_offsets, embedding_offset)
-
-        embedding_offset += chunk_metadata["num_embeddings"]
-
-        open(metadata_path, "w") do io
-            JSON.print(io, chunk_metadata, 4)
-        end
-    end
-    num_embeddings = embedding_offset - 1
-    @assert length(embeddings_offsets) == plan_metadata["num_chunks"]
-
-    @info "Saving the indexing metadata."
-    plan_metadata["num_embeddings"] = num_embeddings
-    plan_metadata["embeddings_offsets"] = embeddings_offsets
-    open(joinpath(index_path, "plan.json"), "w") do io
-        JSON.print(io,
-            plan_metadata,
-            4
-        )
-    end
-end
-
-function _build_ivf(index_path::String)
-    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
-
-    @info "Building the centroid to embedding IVF."
-    codes = Vector{UInt32}()
-
-    @info "Loading codes for each embedding."
-    for chunk_idx in 1:(plan_metadata["num_chunks"])
-        chunk_codes = JLD2.load_object(joinpath(
-            index_path, "$(chunk_idx).codes.jld2"))
-        append!(codes, chunk_codes)
-    end
-    @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
-
-    @info "Sorting the codes."
+function _build_ivf(codes::Vector{UInt32}, num_partitions::Int)
     ivf, values = sortperm(codes), sort(codes)
-
-    @info "Getting unique codes and their counts."
-    ivf_lengths = counts(values, 1:(plan_metadata["num_partitions"]))
-
-    @info "Saving the IVF."
-    ivf_path = joinpath(index_path, "ivf.jld2")
-    ivf_lengths_path = joinpath(index_path, "ivf_lengths.jld2")
-    JLD2.save_object(ivf_path, ivf)
-    JLD2.save_object(ivf_lengths_path, ivf_lengths)
+    ivf_lengths = counts(values, num_partitions)
+    ivf, ivf_lengths
 end

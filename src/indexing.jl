@@ -130,5 +130,13 @@ function index(indexer::Indexer)
         indexer.config.index_path, "embedding_offset", embeddings_offsets)
 
     # build and save the ivf
-    _build_ivf(indexer.config.index_path)
+    @info "Building the centroid to embedding IVF."
+    codes = load_codes(indexer.config.index_path)
+    ivf, ivf_lengths = _build_ivf(codes, plan_dict["num_partitions"])
+
+    @info "Saving the IVF."
+    ivf_path = joinpath(indexer.config.index_path, "ivf.jld2")
+    ivf_lengths_path = joinpath(indexer.config.index_path, "ivf_lengths.jld2")
+    JLD2.save_object(ivf_path, ivf)
+    JLD2.save_object(ivf_lengths_path, ivf_lengths)
 end

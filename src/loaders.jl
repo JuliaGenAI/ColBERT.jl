@@ -115,8 +115,9 @@ function load_chunk_metadata_property(index_path::String, property::String)
     plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
     plan_metadata["num_chunks"] > 0 || return []
     vector = nothing
-    for chunk_idx in 1:plan_metadata["num_chunks"] 
-        chunk_metadata = JSON.parsefile(joinpath(index_path, "$(chunk_idx).metadata.json"))
+    for chunk_idx in 1:plan_metadata["num_chunks"]
+        chunk_metadata = JSON.parsefile(joinpath(
+            index_path, "$(chunk_idx).metadata.json"))
         if isnothing(vector)
             vector = [chunk_metadata[property]]
         else
@@ -124,4 +125,16 @@ function load_chunk_metadata_property(index_path::String, property::String)
         end
     end
     vector
+end
+
+function load_codes(index_path::String)
+    @info "Loading codes for each embedding."
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
+    codes = Vector{UInt32}()
+    for chunk_idx in 1:(plan_metadata["num_chunks"])
+        chunk_codes = JLD2.load_object(joinpath(
+            index_path, "$(chunk_idx).codes.jld2"))
+        append!(codes, chunk_codes)
+    end
+    codes
 end
