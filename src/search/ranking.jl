@@ -1,29 +1,52 @@
 """
+    _cids_to_eids!(eids::Vector{Int}, centroid_ids::Vector{Int},
+        ivf::Vector{Int}, ivf_lengths::Vector{Int})
+
+Get the set of embedding IDs contained in `centroid_ids`.
+"""
+function _cids_to_eids!(eids::Vector{Int}, centroid_ids::Vector{Int},
+        ivf::Vector{Int}, ivf_lengths::Vector{Int})
+    @assert length(eids) == sum(ivf_lengths[centroid_ids])
+
+    # for each centroid, get it's offset in ivf
+    centroid_ivf_offsets = cumsum(cat(
+        [1], ivf_lengths[1:end .!= end], dims = 1))
+
+    # fill in the eids
+    eid_offset = 1
+    for centroid_id in centroid_ids
+        batch_length = ivf_lengths[centroid_id]
+        ivf_offset = centroid_ivf_offsets[centroid_id]
+        eids[eid_offset:(eid_offset + batch_length - 1)] .= ivf[ivf_offset:(ivf_offset + batch_length - 1)]
+        eid_offset += batch_length          # batch_length is dynamic, so can't fuse this in for loop?
+    end
+end
+
+"""
+ivf = searcher.ivf
+ivf_lengths = searcher.ivf_lengths
+centroids = searcher.centroids
+emb2pid = searcher.emb2pid
+nprobe = searcher.config.nprobe
+
 Return a candidate set of `pids` for the query matrix `Q`. This is done as follows: the nearest `nprobe` centroids for each query embedding are found. This list is then flattened and the unique set of these centroids is built. Using the `ivf`, the list of all unique embedding IDs contained in these centroids is computed. Finally, these embedding IDs are converted to `pids` using `emb2pid`. This list of `pids` is the final candidate set.
 """
 function retrieve(
-        ivf::Vector{Int}, ivf_lengths::Vector{Int}, centroids::Matrix{Float32},
+        ivf::Vector{Int}, ivf_lengths::Vector{Int}, centroids::AbstractMatrix{Float32},
         emb2pid::Vector{Int}, nprobe::Int, Q::AbstractMatrix{Float32})
-    # score of each query embedding with each centroid and take top nprobe centroids
-    cells = Flux.gpu(transpose(Q)) * Flux.gpu(centroids) |> Flux.cpu
+    # score each query against each centroid
+    cells = Q' * centroids                                          # (num_query_embeddings, num_centroids)
+
     # TODO: how to take topk entries using GPU code?
-    cells = mapslices(
-        row -> partialsortperm(row, 1:(nprobe), rev = true),
-        cells, dims = 2)          # take top nprobe centroids for each query 
+    cells = cells |> Flux.cpu
+    cells = _topk(cells, nprobe, dims = 2)                          # (num_query_embeddings, nprobe)
     centroid_ids = sort(unique(vec(cells)))
 
     # get all embedding IDs contained in centroid_ids using ivf
-    centroid_ivf_offsets = cat(
-        [1], 1 .+ cumsum(ivf_lengths)[1:end .!= end], dims = 1)
-    eids = Vector{Int}()
-    for centroid_id in centroid_ids
-        offset = centroid_ivf_offsets[centroid_id]
-        length = ivf_lengths[centroid_id]
-        append!(eids, ivf[offset:(offset + length - 1)])
-    end
-    @assert isequal(length(eids), sum(ivf_lengths[centroid_ids]))
-    "length(eids): $(length(eids)), sum(ranker.ivf_lengths[centroid_ids]):" *
-    "$(sum(ivf_lengths[centroid_ids]))"
+    eids = Vector{Int}(undef, sum(ivf_lengths[centroid_ids]))       # (sum(ivf_lengths[centroid_ids]), 1)
+    _cids_to_eids!(eids, centroid_ids, ivf, ivf_lengths)
+
+    # get unique eids
     eids = sort(unique(eids))
 
     # get pids from the emb2pid mapping

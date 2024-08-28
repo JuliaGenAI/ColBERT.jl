@@ -298,5 +298,11 @@ function _normalize_array!(
     norms = sqrt.(sum(abs2, X, dims = dims))
     epsilon = eps(T)
     X ./= (norms .+ epsilon)
-    
+end
+
+function _topk(data::Matrix{T}, k::Int; dims::Int = 1) where {T <: Number}
+    # TODO: only works on CPU; make it work on GPUs?
+    # partialsortperm is not available in CUDA.jl
+    @assert dims in [1, 2]
+    mapslices(v -> partialsortperm(v, 1:k, rev = true), data, dims = dims)
 end
