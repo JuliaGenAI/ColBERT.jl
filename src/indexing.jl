@@ -100,11 +100,15 @@ function index(indexer::Indexer)
     save_codec(
         indexer.config.index_path, centroids, bucket_cutoffs,
         bucket_weights, avg_residual)
-    sample, sample_heldout, centroids = nothing, nothing, nothing           # these are big arrays
+    sample, sample_heldout = nothing, nothing           # these are big arrays
 
     # indexing
     @info "Building the index."
-    index(indexer.config, indexer.checkpoint, indexer.collection)
+    @time index(indexer.config.index_path, indexer.bert, indexer.linear,
+        indexer.tokenizer, indexer.collection, indexer.config.dim,
+        indexer.config.index_bsize, indexer.config.doc_token_id,
+        indexer.skiplist, plan_dict["num_chunks"], plan_dict["chunksize"],
+        centroids, bucket_cutoffs, indexer.config.nbits)
 
     # finalizing
     @info "Running some final checks."

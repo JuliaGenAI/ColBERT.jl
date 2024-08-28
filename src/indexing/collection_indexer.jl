@@ -247,22 +247,31 @@ along with relevant metadata (see [`save_chunk`](@ref)).
   - `checkpoint`: The [`Checkpoint`](@ref) to compute embeddings.
   - `collection`: The collection to index.
 """
-function index(config::ColBERTConfig, checkpoint::Checkpoint,
-        collection::Vector{String})
-    codec = load_codec(config.index_path)
-    plan_metadata = JSON.parsefile(joinpath(config.index_path, "plan.json"))
-    for (chunk_idx, passage_offset) in zip(1:plan_metadata["num_chunks"],
-        1:plan_metadata["chunksize"]:length(collection))
+function index(index_path::String, bert::HF.HGFBertModel, linear::Layers.Dense,
+        tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+        collection::Vector{String}, dim::Int, index_bsize::Int,
+        doc_token::String, skiplist::Vector{Int}, num_chunks::Int,
+        chunksize::Int, centroids::AbstractMatrix{Float32},
+        bucket_cutoffs::AbstractVector{Float32}, nbits::Int)
+    for (chunk_idx, passage_offset) in zip(
+        1:num_chunks, 1:chunksize:length(collection))
         passage_end_offset = min(
-            length(collection), passage_offset + plan_metadata["chunksize"] - 1)
-        embs, doclens = encode_passages(
-            config, checkpoint, collection[passage_offset:passage_end_offset])
+            length(collection), passage_offset + chunksize - 1)
+
+        # get embeddings for batch
+        embs, doclens = encode_passages(bert, linear, tokenizer,
+            collection[passage_offset:passage_end_offset],
+            dim, index_bsize, doc_token, skiplist)
         @assert embs isa AbstractMatrix{Float32} "$(typeof(embs))"
         @assert doclens isa AbstractVector{Int} "$(typeof(doclens))"
 
+        # compress embeddings
+        codes, residuals = compress(centroids, bucket_cutoffs, dim, nbits, embs)
+
+        # save the chunk
         @info "Saving chunk $(chunk_idx): \t $(passage_end_offset - passage_offset + 1) passages and $(size(embs)[2]) embeddings. From passage #$(passage_offset) onward."
-        save_chunk(config, codec, chunk_idx, passage_offset, embs, doclens)
-        embs, doclens = nothing, nothing
+        save_chunk(
+            index_path, codes, residuals, chunk_idx, passage_offset, doclens)
     end
 end
 
