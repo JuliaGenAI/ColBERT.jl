@@ -574,9 +574,13 @@ julia> nbits, dim = 2, 128;
 
 julia> embs = rand(Float32, dim, 100000);
 
-julia> centroids = rand(Float32, dim, 10000);
+julia> centroids = embs[:, randperm(size(embs, 2))[1:10000]];
 
 julia> bucket_cutoffs = Float32.(sort(rand(2^nbits - 1)));
+3-element Vector{Float32}:
+ 0.08594067
+ 0.0968812
+ 0.44113323
 
 julia> @time codes, compressed_residuals = compress(
     centroids, bucket_cutoffs, dim, nbits, embs);
@@ -602,7 +606,7 @@ function compress(centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32},
         batch_compressed_residuals .= binarize(
             dim, nbits, bucket_cutoffs, batch_residuals)
     end
-    codes, compressed_residuals 
+    codes, compressed_residuals
 end
 
 """
@@ -723,37 +727,62 @@ function decompress_residuals(
     decompressed_residuals
 end
 
+"""
+# Examples
+
+```julia-repl
+julia> using ColBERT: compress, decompress;
+
+julia> using Random; Random.seed!(0);
+
+julia> nbits, dim = 2, 128;
+
+julia> embs = rand(Float32, dim, 100000);
+
+julia> centroids = embs[:, randperm(size(embs, 2))[1:10000]];
+
+julia> bucket_cutoffs = Float32.(sort(rand(2^nbits - 1)))
+3-element Vector{Float32}:
+ 0.08594067
+ 0.0968812
+ 0.44113323
+
+julia> bucket_weights = Float32.(sort(rand(2^nbits)));
+4-element Vector{Float32}:
+ 0.10379179
+ 0.25756857
+ 0.27798286
+ 0.47973529
+
+julia> @time codes, compressed_residuals = compress(
+    centroids, bucket_cutoffs, dim, nbits, embs);
+  4.277926 seconds (1.57 k allocations: 4.238 GiB, 6.46% gc time)
+
+julia> @time decompressed_embeddings = decompress(
+    dim, nbits, centroids, bucket_weights, codes, compressed_residuals);
+0.237170 seconds (276.40 k allocations: 563.049 MiB, 50.93% compilation time)
+```
+"""
 function decompress(
         dim::Int, nbits::Int, centroids::Matrix{Float32},
         bucket_weights::Vector{Float32},
-        codes::Vector{UInt32}, residuals::AbstractMatrix{UInt8})
-    @assert ndims(codes)==1 "ndims(codes): $(ndims(codes))"
-    @assert ndims(residuals)==2 "ndims(residuals): $(ndims(residuals))"
-    @assert length(codes)==size(residuals)[2] "length(codes): $(length(codes)), size(residuals): $(size(residuals))"
+        codes::Vector{UInt32}, residuals::AbstractMatrix{UInt8}; bsize::Int = 10000)
+    @assert(length(codes)==size(residuals, 2),
+        "length(codes): $(length(codes)), size(residuals): $(size(residuals))")
 
-    # decompress in batches
-    D = Vector{AbstractMatrix{Float32}}()
-    bsize = 1 << 15
+    embeddings = Matrix{Float32}(undef, dim, length(codes))
     for batch_offset in 1:bsize:length(codes)
-        batch_codes = codes[batch_offset:min(
-            batch_offset + bsize - 1, length(codes))]
-        batch_residuals = residuals[
-            :, batch_offset:min(batch_offset + bsize - 1, length(codes))]
-
-        centroids_ = centroids[:, batch_codes]
+        batch_offset_end = min(length(codes), batch_offset + bsize - 1)
+        @views batch_embeddings = embeddings[
+            :, batch_offset:batch_offset_end]
+        @views batch_codes = codes[batch_offset:batch_offset_end]
+        @views batch_residuals = residuals[:, batch_offset:batch_offset_end]
+        @views centroids_ = centroids[:, batch_codes]
         residuals_ = decompress_residuals(
             dim, nbits, bucket_weights, batch_residuals)
 
-        batch_embeddings = centroids_ + residuals_
-        batch_embeddings = mapslices(
-            v -> iszero(v) ? v : normalize(v), batch_embeddings, dims = 1)
-        push!(D, batch_embeddings)
+        batch_embeddings .= centroids_ + residuals_
+        _normalize_array!(batch_embeddings, dims = 1)
     end
-    embeddings = cat(D..., dims = 2)
-
-    @assert ndims(embeddings)==2 "ndims(embeddings): $(ndims(embeddings))"
-    @assert size(embeddings)[2]==length(codes) "size(embeddings): $(size(embeddings)),  length(codes): $(length(codes))"
-    @assert embeddings isa AbstractMatrix{Float32} "$(typeof(embeddings))"
-
     embeddings
 end
