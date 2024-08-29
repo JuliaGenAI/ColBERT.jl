@@ -229,7 +229,7 @@ true
 """
 function _unbinarize(data::AbstractArray{Bool, 3})
     nbits = size(data, 1)
-    positionbits = similar(data, Int, nbits)
+    positionbits = similar(data, Int, nbits)                        # respects device
     copyto!(positionbits, map(Base.Fix1(<<, 1), 0:(nbits - 1)))     # (nbits, 1)
     positionbits = reshape(positionbits, nbits, 1, 1)               # (nbits, 1, 1)
     integer_data = sum(data .* positionbits, dims = 1)
@@ -356,7 +356,7 @@ julia> using ColBERT: _packbits;
 
 julia> using Random; Random.seed!(0);
 
-julia> bitsarray = rand(Bool, 2, 128, 200000);
+julia> bitsarray = rand(Bool, 2, 128, 200000) |> Flux.gpu;
 
 julia> _packbits(bitsarray)
 32×200000 Matrix{UInt8}:

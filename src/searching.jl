@@ -91,9 +91,6 @@ function _build_emb2pid(doclens::Vector{Int})
     emb2pid
 end
 
-"""
-
-"""
 function search(searcher::Searcher, query::String, k::Int)
     Q = encode_queries(searcher.bert, searcher.linear,
         searcher.tokenizer, [query], searcher.config.dim,
@@ -110,10 +107,20 @@ function search(searcher::Searcher, query::String, k::Int)
     pids = retrieve(searcher.ivf, searcher.ivf_lengths, searcher.centroids,
         searcher.emb2pid, searcher.config.nprobe, Q)
 
+    # get compressed embeddings for the candidate pids
+    codes_packed, residuals_packed = _collect_compressed_embs_for_pids(
+        searcher.doclens, searcher.codes, searcher.residuals, pids)
+
+    # decompress these embeddings and move to gpu
+    D_packed = decompress(searcher.config.dim, searcher.config.nbits,
+        Flux.cpu(searcher.centroids), Flux.cpu(searcher.bucket_weights),
+        codes_packed, residuals_packed) |> Flux.gpu
+    @assert(size(D_packed, 2)==sum(searcher.doclens[pids]),
+        "size(D_packed): $(size(D_packed)), num_embs: $(sum(searcher.doclens[pids]))")
+    @assert D_packed isa AbstractMatrix{Float32} "$(typeof(D_packed))"
+
     # get maxsim scores for the candidate pids
-    scores = score_pids(
-        searcher.config, searcher.centroids, searcher.bucket_weights,
-        searcher.doclens, searcher.codes, searcher.residuals, Q, pids)
+    scores = maxsim(Q, D_packed, pids, searcher.doclens)
 
     # sort scores and candidate pids, and return the top k
     indices = sortperm(scores, rev = true)
