@@ -69,8 +69,9 @@ function compress_into_codes!(
         embs::AbstractMatrix{Float32};
         bsize::Int = 1000)
     _, n = size(embs)
-    @assert length(codes) == n
-    "length(codes): $(length(codes)), size(embs): $(size(embs))"
+    length(codes) == n ||
+        throw(DimensionMismatch("length(codes) must be equal" *
+                                "to the number of embeddings!"))
     for offset in 1:bsize:size(embs, 2)
         offset_end = min(n, offset + bsize - 1)
         dot_products = (embs[:, offset:offset_end])' * centroids    # (num_embs, num_centroids)
@@ -194,7 +195,9 @@ julia> _binarize(data, nbits)
 ```
 """
 function _binarize(data::AbstractMatrix{T}, nbits::Int) where {T <: Integer}
-    @assert all(in(0:(2^nbits - 1)), data)
+    all(in(0:(1 << nbits - 1)), data) ||
+        throw(DomainError("All values in the matrix should be in " *
+                          "range [0, 2^nbits - 1]!"))
     data = stack(fill(data, nbits), dims = 1)                       # (nbits, dim, batch_size)
     positionbits = similar(data, nbits)                             # respects device
     copyto!(positionbits, map(Base.Fix1(<<, 1), 0:(nbits - 1)))     # (nbits, 1)
@@ -356,7 +359,7 @@ julia> using ColBERT: _packbits;
 
 julia> using Random; Random.seed!(0);
 
-julia> bitsarray = rand(Bool, 2, 128, 200000) |> Flux.gpu;
+julia> bitsarray = rand(Bool, 2, 128, 200000);
 
 julia> _packbits(bitsarray)
 32×200000 Matrix{UInt8}:
@@ -395,11 +398,12 @@ julia> _packbits(bitsarray)
 ```
 """
 function _packbits(bitsarray::AbstractArray{Bool, 3})
-    @assert prod(size(bitsarray)) % 8 == 0
     nbits, dim, batch_size = size(bitsarray)
-    bitsarray_packed = UInt8.(reinterpret(
-        UInt8, BitArray(vec(bitsarray)).chunks))
-    reshape(bitsarray_packed, (div(dim, 8) * nbits, batch_size))
+    dim % 8 == 0 ||
+        throw(DomainError("dim should be a multiple of 8!"))
+    bitsarray_packed = reinterpret(UInt8, BitArray(vec(bitsarray)).chunks)
+    reshape(bitsarray_packed[1:(prod(size(bitsarray)) >> 3)],
+        ((dim >> 3) * nbits, batch_size))
 end
 
 """
@@ -410,7 +414,7 @@ julia> using ColBERT: _unpackbits;
 
 julia> using Random; Random.seed!(0);
 
-julia> nbits = 2;
+julia> dim, nbits = 128, 2;
 
 julia> bitsarray = rand(Bool, nbits, dim, 200000);
 
@@ -422,14 +426,18 @@ julia> isequal(bitsarray, unpackedarray)
 ```
 """
 function _unpackbits(packedbits::AbstractMatrix{UInt8}, nbits::Int)
-    @assert prod(size(packedbits)) % nbits == 0
-    @assert prod(size(packedbits)) % 64 == 0
+    prod(size(packedbits, 1)) % nbits == 0 ||
+        throw(DomainError("The first dimension of packbits should be " *
+                          "a multiple of nbits!"))              # resultant matrix will have an nbits-wide dimension
     _, batch_size = size(packedbits)
-    dim = 8 * div(prod(size(packedbits)), nbits * batch_size)
-    chunks = reinterpret(UInt64, vec(packedbits))
-    bitsvector = BitVector(undef, 64 * length(chunks))
+    dim = div(size(packedbits, 1), nbits) << 3
+    pad_amt = 64 - length(vec(packedbits)) % 64
+    chunks = reinterpret(
+        UInt64, [vec(packedbits); repeat([zero(UInt8)], pad_amt)])
+    bitsvector = BitVector(undef, length(chunks) << 6)
     bitsvector.chunks = chunks
-    reshape(bitsvector, nbits, dim, batch_size)
+    reshape(
+        bitsvector[1:(length(vec(packedbits)) << 3)], nbits, dim, batch_size)
 end
 
 """
@@ -455,11 +463,11 @@ A `AbstractMatrix{UInt8}` of compressed integer residual vectors.
 ```julia-repl
 julia> using ColBERT: binarize;
 
-julia> using Statistics, Flux, CUDA, Random;
+julia> using Statistics, Random;
 
 julia> Random.seed!(0);
 
-julia> dim, nbits = 128, 2;           # encode residuals in 5 bits
+julia> dim, nbits = 128, 2;           # encode residuals in 2 bits
 
 julia> residuals = rand(Float32, dim, 200000);
 
@@ -512,30 +520,18 @@ function binarize(dim::Int, nbits::Int, bucket_cutoffs::Vector{Float32},
     # bucket indices will be encoded in nbits bits
     # so they will be in the range [0, length(bucket_cutoffs) - 1]
     # so length(bucket_cutoffs) should be 2^nbits - 1
-    @assert dim % 8 == 0
-    @assert dim % (nbits * 8) == 0
-    @assert length(bucket_cutoffs) == 2^nbits - 1
+    dim % 8 == 0 || throw(DomainError("dims should be a multiple of 8!"))
+    length(bucket_cutoffs) == (1 << nbits) - 1 ||
+        throw(DomainError("length(bucket_cutoffs) should be 2^nbits - 1!"))
 
     # get the bucket indices
     bucket_indices = _bucket_indices(residuals, bucket_cutoffs)                     # (dim, batch_size)
-    @assert(isequal(size(bucket_indices), (dim, size(residuals, 2))),
-        "size(bucket_indices): $(size(bucket_indices)), dim: $(dim), size(residuals): $(size(residuals))")
 
     # representing each index in nbits bits
     bucket_indices = _binarize(bucket_indices, nbits)                               # (nbits, dim, batch_size)
-    @assert(isequal(size(bucket_indices), (nbits, dim, size(residuals, 2))),
-        "size(bucket_indices): $(size(bucket_indices)), nbits: $(nbits)"*
-        ", dim: $(dim), size(residuals): $(size(residuals))")
 
     # pack bits into UInt8's for each embedding
     residuals_packed = _packbits(bucket_indices)
-
-    @assert(ndims(residuals_packed)==2,
-        "ndims(residuals_packed): $(ndims(residuals_packed))")
-    @assert(size(residuals_packed, 2)==size(residuals, 2),
-        "size(residuals_packed): $(size(residuals_packed)), size(residuals): $(size(residuals))")
-    @assert residuals_packed isa AbstractMatrix{UInt8} "$(typeof(residuals_packed))"
-
     residuals_packed
 end
 
@@ -589,8 +585,6 @@ julia> @time codes, compressed_residuals = compress(
 """
 function compress(centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32},
         dim::Int, nbits::Int, embs::AbstractMatrix{Float32}; bsize::Int = 10000)
-    @assert dim % 8 == 0
-    @assert dim % (nbits * 8) == 0
     codes = zeros(UInt32, size(embs, 2))
     compressed_residuals = Matrix{UInt8}(
         undef, div(dim, 8) * nbits, size(embs, 2))
@@ -704,8 +698,12 @@ julia> decompressed_residuals = decompress_residuals(
 function decompress_residuals(
         dim::Int, nbits::Int, bucket_weights::Vector{Float32},
         binary_residuals::AbstractMatrix{UInt8})
-    @assert(size(binary_residuals, 1)==(dim / 8) * nbits,
-        "size(binary_residuals): $(size(binary_residuals)), (dim / 8) * nbits: $((dim / 8) * nbits)")
+    dim % 8 == 0 || throw(DomainError("dim should be a multiple of 8!"))
+    size(binary_residuals, 1) == div(dim, 8) * nbits ||
+        throw(DomainError("The dimension each residual in binary_residuals " *
+                          "should be (dim / 8) * nbits!"))
+    length(bucket_weights) == (1 << nbits) ||
+        throw(DomainError("bucket_weights should have length 2^nbits!"))
 
     # unpacking bits
     unpacked_bits = _unpackbits(binary_residuals, nbits)        # (nbits, dim, batch_size)
@@ -715,15 +713,10 @@ function decompress_residuals(
     unpacked_bits = unpacked_bits .+ 1                          # (dim, batch_size)
 
     # get the residuals from the bucket weights
+    all(in(1:length(bucket_weights)), unpacked_bits) ||
+        throw(BoundsError("All the unpacked indices in binary_residuals should " *
+                          "be in range 1:length(bucket_weights)!"))
     decompressed_residuals = bucket_weights[unpacked_bits]
-
-    @assert ndims(decompressed_residuals)==2 "ndims(): $(ndims(decompressed_residuals))"
-    @assert(size(decompressed_residuals, 2)==size(binary_residuals, 2),
-        "size(decompressed_residuals): $(size(decompressed_residuals))"*
-        ", size(binary_residuals): $(size(binary_residuals))")
-    @assert(decompressed_residuals isa AbstractMatrix{Float32},
-        "$(typeof(decompressed_residuals))")
-
     decompressed_residuals
 end
 
@@ -767,9 +760,12 @@ function decompress(
         dim::Int, nbits::Int, centroids::Matrix{Float32},
         bucket_weights::Vector{Float32},
         codes::Vector{UInt32}, residuals::AbstractMatrix{UInt8}; bsize::Int = 10000)
-    @assert(length(codes)==size(residuals, 2),
-        "length(codes): $(length(codes)), size(residuals): $(size(residuals))")
-
+    length(codes) == size(residuals, 2) ||
+        throw(DomainError("The number of codes should be equal to the number of " *
+                          "residual embeddings!"))
+    all(in(1:size(centroids, 2)), codes) ||
+        throw(DomainError("All the codes must be in the valid range of centroid " *
+                          "IDs!"))
     embeddings = Matrix{Float32}(undef, dim, length(codes))
     for batch_offset in 1:bsize:length(codes)
         batch_offset_end = min(length(codes), batch_offset + bsize - 1)
