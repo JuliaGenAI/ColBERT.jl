@@ -9,5 +9,12 @@ const INT_TYPES = [
 const FLOAT_TYPES = [Float16, Float32, Float64]
 
 # include("Aqua.jl")
+
+# indexing operations
 include("indexing/codecs/residual.jl")
+
+# modelling operations 
+include("modelling/embedding_utils.jl")
+
+# utils
 include("utils.jl")

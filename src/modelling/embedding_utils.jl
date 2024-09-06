@@ -178,19 +178,16 @@ end
 
 function _clear_masked_embeddings!(D::AbstractArray{Float32, 3},
         integer_ids::AbstractMatrix{Int32}, skiplist::Vector{Int})
-    @assert isequal(size(D)[2:end], size(integer_ids))
-    "size(D): $(size(D)), size(integer_ids): $(size(integer_ids))"
-
+    isequal(size(D)[2:end], size(integer_ids)) ||
+        throw(DomainError("The number of embeddings in D and tokens " *
+                          "in integer_ids must be equal!"))
     # set everything to true
     mask = similar(integer_ids, Bool)                       # respects the device as well
     mask .= true
     mask_skiplist!(mask, integer_ids, skiplist)             # (doc_maxlen, current_batch_size)
     mask = reshape(mask, (1, size(mask)...))                # (1, doc_maxlen, current_batch_size)
 
-    @assert isequal(size(mask)[2:end], size(D)[2:end])
-    "size(mask): $(size(mask)), size(D): $(size(D))"
-    @assert mask isa AbstractArray{Bool} "$(typeof(mask))"
-
+    # clear embeddings
     D .= D .* mask                                          # clear embeddings of masked tokens
     mask
 end
@@ -201,6 +198,8 @@ end
 
 function _remove_masked_tokens(
         D::AbstractMatrix{Float32}, mask::AbstractMatrix{Bool})
-    D[:, reshape(mask, prod(size(mask)))]
+    size(D, 2) == prod(size(mask)) ||
+        throw(DimensionMismatch("The total number of embeddings " * "
+        in D must be equal to the total number of tokens represented by mask!"))
+    D[:, vec(mask)]
 end
-
