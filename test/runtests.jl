@@ -1,4 +1,3 @@
-using Base: SimpleLogger, NullLogger, global_logger
 using ColBERT
 using .Iterators
 using LinearAlgebra

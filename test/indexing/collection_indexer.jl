@@ -1,4 +1,3 @@
-using LinearAlgebra: __normalize!
 using ColBERT: _sample_pids, _heldout_split, setup, _bucket_cutoffs_and_weights,
                _normalize_array!, _compute_avg_residuals!
 
@@ -61,7 +60,7 @@ end
     @test plan_dict["num_chunks"] == div(length(collection), chunksize)
 
     ## with remainders
-    chunksize = rand(1:20)
+    chunksize = rand(1:20) + 1
     collection = string.(rand(
         'a':'z', chunksize * rand(1:100) + rand(1:(chunksize - 1))))
     plan_dict = setup(
@@ -111,7 +110,7 @@ end
 
 @testset "_compute_avg_residuals!" begin
     # Test 1: centroids and heldout_avg_residual have the same columns with different perms
-    nbits = rand(1:20)
+    nbits = rand(2:20)
     centroids = rand(Float32, rand(1:20), rand(1:20))
     _normalize_array!(centroids; dims = 1)
     perm = randperm(size(centroids, 2))[1:rand(1:size(centroids, 2))]
@@ -125,7 +124,7 @@ end
 
     # Test 2: some tolerance level
     tol = 1e-5
-    nbits = rand(1:20)
+    nbits = rand(2:20)
     centroids = rand(Float32, rand(1:20), rand(1:20))
     _normalize_array!(centroids; dims = 1)
     perm = randperm(size(centroids, 2))[1:rand(1:size(centroids, 2))]

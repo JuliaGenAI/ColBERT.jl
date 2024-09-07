@@ -38,6 +38,13 @@
 function compute_distances_kernel!(batch_distances::AbstractMatrix{Float32},
         batch_data::AbstractMatrix{Float32},
         centroids::AbstractMatrix{Float32})
+    isequal(size(batch_distances), (size(centroids, 2), size(batch_data, 2))) ||
+        throw(DimensionMismatch("batch_distances should have size " *
+                                "(num_centroids, point_bsize)!"))
+    isequal(size(batch_data, 1), size(centroids, 1)) ||
+        throw(DimensionMismatch("batch_data and centroids should have " *
+                                "the same embedding dimension!"))
+
     batch_distances .= 0.0f0
     # Compute squared distances: (a-b)^2 = a^2 + b^2 - 2ab
     # a^2 term
@@ -54,20 +61,30 @@ end
 function update_centroids_kernel!(new_centroids::AbstractMatrix{Float32},
         batch_data::AbstractMatrix{Float32},
         batch_one_hot::AbstractMatrix{Float32})
+    isequal(
+        size(new_centroids), (size(batch_data, 1), (size(batch_one_hot, 1)))) ||
+        throw(DimensionMismatch("new_centroids should have the right shape " *
+                                "for multiplying batch_data and batch_one_hot! "))
     mul!(new_centroids, batch_data, batch_one_hot', 1.0f0, 1.0f0)
 end
 
 function assign_clusters_kernel!(batch_assignments::AbstractVector{Int32},
         batch_distances::AbstractMatrix{Float32})
+    length(batch_assignments) == size(batch_distances, 2) ||
+        throw(DimensionMismatch("length(batch_assignments) " *
+                                "should be equal to the point " *
+                                "batch size of batch_distances!"))
     _, min_indices = findmin(batch_distances, dims = 1)
     batch_assignments .= getindex.(min_indices, 1) |> vec
 end
 
 function onehot_encode!(batch_one_hot::AbstractArray{Float32},
         batch_assignments::AbstractVector{Int32}, k::Int)
-    # Create a range array for columns
-    col_indices = Vector(1:length(batch_assignments)) |> Flux.gpu
-    # Use broadcasting to set the appropriate elements to 1
+    isequal(size(batch_one_hot), (k, length(batch_assignments))) ||
+        throw(DimensionMismatch("batch_one_hot should have shape " *
+                                "(k, length(batch_assignments))!"))
+    col_indices = similar(batch_assignments, length(batch_assignments))     # respects device
+    copyto!(col_indices, collect(1:length(batch_assignments)))
     batch_one_hot[batch_assignments .+ (col_indices .- 1) .* k] .= 1
 end
 
@@ -236,7 +253,14 @@ julia> centroids
 function kmeans_gpu_onehot!(
         data::AbstractMatrix{Float32}, centroids::AbstractMatrix{Float32}, k::Int; max_iters::Int = 10,
         tol::Float32 = 1.0f-4, point_bsize::Int = 1000)
-    @assert size(centroids)[2] == k
+    # TODO: move point_bsize to config?
+    size(centroids, 2) == k ||
+        throw(DimensionMismatch("size(centroids, 2) must be k!"))
+
+    # randomly initialize centroids
+    centroids .= data[:, randperm(size(data, 2))[1:k]]
+
+    # allocations
     d, n = size(data)  # dimension, number of inputs
     assignments = Vector{Int32}(undef, n) |> Flux.gpu
     distances = Matrix{Float32}(undef, k, point_bsize) |> Flux.gpu
@@ -303,7 +327,7 @@ end
 function _topk(data::Matrix{T}, k::Int; dims::Int = 1) where {T <: Number}
     # TODO: only works on CPU; make it work on GPUs?
     # partialsortperm is not available in CUDA.jl
-    @assert dims in [1, 2]
+    dims in [1, 2] || throw(DomainError("dims must be 1 or 2!"))
     mapslices(v -> partialsortperm(v, 1:k, rev = true), data, dims = dims)
 end
 
