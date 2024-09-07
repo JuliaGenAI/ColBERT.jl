@@ -116,9 +116,9 @@ A matrix equal to `data`, with the second row being filled with `marker`.
 # Examples
 
 ```julia-repl
-julia> using ColBERT: _add_marker_row; 
+julia> using ColBERT: _add_marker_row;
 
-julia> x = ones(Float32, 5, 5); 
+julia> x = ones(Float32, 5, 5);
 5×5 Matrix{Float32}:
  1.0  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0  1.0
@@ -138,5 +138,6 @@ julia> _add_marker_row(x, zero(Float32))
 
 """
 function _add_marker_row(data::AbstractMatrix{T}, marker::T) where {T}
-    [data[begin:1, :]; fill(marker, (1, size(data, 2))); data[2:end, :]]
+    [data[begin:min(1, size(data, 1)), :]; fill(marker, (1, size(data, 2)));
+     data[2:end, :]]
 end

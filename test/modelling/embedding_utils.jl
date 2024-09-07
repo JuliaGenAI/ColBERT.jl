@@ -84,7 +84,7 @@ end
     # Test Case 4: Skip all tokens
     dim, len, bsize = rand(1:20, 3)
     D = rand(Float32, dim, len, bsize)
-    integer_ids = rand(int32, len, bsize)
+    integer_ids = rand(Int32, len, bsize)
     skiplist = unique(Int.(vec(integer_ids)))
     expected_D = similar(D)
     expected_D .= 0.0f0

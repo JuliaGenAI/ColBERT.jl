@@ -1,39 +1,39 @@
-"""
-    _sort_by_length(
-        integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
-
-Sort sentences by number of attended tokens, if the number of sentences is larger than `bsize`.
-
-# Arguments
-
-  - `integer_ids`: The token IDs of documents to be sorted.
-  - `integer_mask`: The attention masks of the documents to be sorted (attention masks are just bits).
-  - `bsize`: The size of batches to be considered.
-
-# Returns
-
-Depending upon `bsize`, the following are returned:
-
-  - If the number of documents (second dimension of `integer_ids`) is atmost `bsize`, then the
-    `integer_ids` and `integer_mask` are returned unchanged.
-  - If the number of documents is larger than `bsize`, then the passages are first sorted
-    by the number of attended tokens (figured out from the `integer_mask`), and then the
-    sorted arrays `integer_ids`, `integer_mask` are returned, along with a list of
-    `reverse_indices`, i.e a mapping from the documents to their indices in the original
-    order.
-"""
-function _sort_by_length(
-        integer_ids::AbstractMatrix{Int32}, bitmask::AbstractMatrix{Bool}, batch_size::Int)
-    size(integer_ids, 2) <= batch_size &&
-        return integer_ids, bitmask, Vector(1:size(integer_ids, 2))
-    lengths = vec(sum(bitmask; dims = 1))                   # number of attended tokens in each passage
-    indices = sortperm(lengths)                             # get the indices which will sort lengths
-    reverse_indices = sortperm(indices)                     # invert the indices list
-    @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
-    @assert bitmask isa BitMatrix "$(typeof(bitmask))"
-    @assert reverse_indices isa Vector{Int} "$(typeof(reverse_indices))"
-    integer_ids[:, indices], bitmask[:, indices], reverse_indices
-end
+# """
+#     _sort_by_length(
+#         integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
+#
+# Sort sentences by number of attended tokens, if the number of sentences is larger than `bsize`.
+#
+# # Arguments
+#
+#   - `integer_ids`: The token IDs of documents to be sorted.
+#   - `integer_mask`: The attention masks of the documents to be sorted (attention masks are just bits).
+#   - `bsize`: The size of batches to be considered.
+#
+# # Returns
+#
+# Depending upon `bsize`, the following are returned:
+#
+#   - If the number of documents (second dimension of `integer_ids`) is atmost `bsize`, then the
+#     `integer_ids` and `integer_mask` are returned unchanged.
+#   - If the number of documents is larger than `bsize`, then the passages are first sorted
+#     by the number of attended tokens (figured out from the `integer_mask`), and then the
+#     sorted arrays `integer_ids`, `integer_mask` are returned, along with a list of
+#     `reverse_indices`, i.e a mapping from the documents to their indices in the original
+#     order.
+# """
+# function _sort_by_length(
+#         integer_ids::AbstractMatrix{Int32}, bitmask::AbstractMatrix{Bool}, batch_size::Int)
+#     size(integer_ids, 2) <= batch_size &&
+#         return integer_ids, bitmask, Vector(1:size(integer_ids, 2))
+#     lengths = vec(sum(bitmask; dims = 1))                   # number of attended tokens in each passage
+#     indices = sortperm(lengths)                             # get the indices which will sort lengths
+#     reverse_indices = sortperm(indices)                     # invert the indices list
+#     @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
+#     @assert bitmask isa BitMatrix "$(typeof(bitmask))"
+#     @assert reverse_indices isa Vector{Int} "$(typeof(reverse_indices))"
+#     integer_ids[:, indices], bitmask[:, indices], reverse_indices
+# end
 
 function compute_distances_kernel!(batch_distances::AbstractMatrix{Float32},
         batch_data::AbstractMatrix{Float32},
@@ -41,9 +41,9 @@ function compute_distances_kernel!(batch_distances::AbstractMatrix{Float32},
     batch_distances .= 0.0f0
     # Compute squared distances: (a-b)^2 = a^2 + b^2 - 2ab
     # a^2 term
-    sum_sq_data = sum(batch_data .^ 2, dims = 1)                    # (1, point_bsize)
+    sum_sq_data = sum(batch_data .^ 2, dims = 1)                        # (1, point_bsize)
     # b^2 term
-    sum_sq_centroids = sum(centroids .^ 2, dims = 1)'         # (num_centroids, 1)
+    sum_sq_centroids = sum(centroids .^ 2, dims = 1)'                   # (num_centroids, 1)
     # -2ab term
     mul!(batch_distances, centroids', batch_data, -2.0f0, 1.0f0)        # (num_centroids, point_bsize)
     # Compute (a-b)^2 = a^2 + b^2 - 2ab

@@ -134,6 +134,19 @@ function setup(collection::Vector{String}, avg_doclen_est::Float32,
     )
 end
 
+function _bucket_cutoffs_and_weights(
+        nbits::Int, heldout_avg_residual::AbstractMatrix{Float32})
+    num_options = 1 << nbits
+    quantiles = collect(0:(num_options - 1)) / num_options
+    bucket_cutoffs_quantiles, bucket_weights_quantiles = quantiles[2:end],
+    quantiles .+ (0.5 / num_options)
+    bucket_cutoffs = Float32.(quantile(
+        heldout_avg_residual, bucket_cutoffs_quantiles))
+    bucket_weights = Float32.(quantile(
+        heldout_avg_residual, bucket_weights_quantiles))
+    bucket_cutoffs, bucket_weights
+end
+
 """
     _compute_avg_residuals(
         nbits::Int, centroids::AbstractMatrix{Float32},
@@ -159,30 +172,20 @@ compression/decompression of residuals.
 function _compute_avg_residuals!(
         nbits::Int, centroids::AbstractMatrix{Float32},
         heldout::AbstractMatrix{Float32}, codes::AbstractVector{UInt32})
-    @assert length(codes) == size(heldout, 2)
+    length(codes) == size(heldout, 2) ||
+        throw(DimensionMismatch("length(codes) must be equal to the number " *
+                                "of embeddings in heldout!"))
 
     compress_into_codes!(codes, centroids, heldout)                         # get centroid codes
     heldout_reconstruct = centroids[:, codes]                               # get corresponding centroids
     heldout_avg_residual = heldout - heldout_reconstruct                    # compute the residual
-
     avg_residual = mean(abs.(heldout_avg_residual), dims = 2)               # for each dimension, take mean of absolute values of residuals
 
     # computing bucket weights and cutoffs
-    num_options = 2^nbits
-    quantiles = Vector(0:(num_options - 1)) / num_options
-    bucket_cutoffs_quantiles, bucket_weights_quantiles = quantiles[2:end],
-    quantiles .+ (0.5 / num_options)
+    bucket_cutoffs, bucket_weights = _bucket_cutoffs_and_weights(
+        nbits, heldout_avg_residual)
 
-    bucket_cutoffs = Float32.(quantile(
-        heldout_avg_residual, bucket_cutoffs_quantiles))
-    bucket_weights = Float32.(quantile(
-        heldout_avg_residual, bucket_weights_quantiles))
-    @assert bucket_cutoffs isa AbstractVector{Float32} "$(typeof(bucket_cutoffs))"
-    @assert bucket_weights isa AbstractVector{Float32} "$(typeof(bucket_weights))"
-
-    @info "Got bucket_cutoffs_quantiles = $(bucket_cutoffs_quantiles) and bucket_weights_quantiles = $(bucket_weights_quantiles)"
     @info "Got bucket_cutoffs = $(bucket_cutoffs) and bucket_weights = $(bucket_weights)"
-
     bucket_cutoffs, bucket_weights, mean(avg_residual)
 end
 
