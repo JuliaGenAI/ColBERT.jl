@@ -1,51 +1,56 @@
-"""
-    _sort_by_length(
-        integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
-
-Sort sentences by number of attended tokens, if the number of sentences is larger than `bsize`.
-
-# Arguments
-
-  - `integer_ids`: The token IDs of documents to be sorted.
-  - `integer_mask`: The attention masks of the documents to be sorted (attention masks are just bits).
-  - `bsize`: The size of batches to be considered.
-
-# Returns
-
-Depending upon `bsize`, the following are returned:
-
-  - If the number of documents (second dimension of `integer_ids`) is atmost `bsize`, then the
-    `integer_ids` and `integer_mask` are returned unchanged.
-  - If the number of documents is larger than `bsize`, then the passages are first sorted
-    by the number of attended tokens (figured out from the `integer_mask`), and then the
-    sorted arrays `integer_ids`, `integer_mask` are returned, along with a list of
-    `reverse_indices`, i.e a mapping from the documents to their indices in the original
-    order.
-"""
-function _sort_by_length(
-        integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
-    batch_size = size(integer_ids)[2]
-    if batch_size <= bsize
-        # if the number of passages fits the batch size, do nothing
-        integer_ids, integer_mask, Vector(1:batch_size)
-    end
-
-    lengths = vec(sum(integer_mask; dims = 1))              # number of attended tokens in each passage
-    indices = sortperm(lengths)                             # get the indices which will sort lengths
-    reverse_indices = sortperm(indices)                     # invert the indices list
-
-    integer_ids[:, indices], integer_mask[:, indices], reverse_indices
-end
+# """
+#     _sort_by_length(
+#         integer_ids::AbstractMatrix{Int32}, integer_mask::AbstractMatrix{Bool}, bsize::Int)
+#
+# Sort sentences by number of attended tokens, if the number of sentences is larger than `bsize`.
+#
+# # Arguments
+#
+#   - `integer_ids`: The token IDs of documents to be sorted.
+#   - `integer_mask`: The attention masks of the documents to be sorted (attention masks are just bits).
+#   - `bsize`: The size of batches to be considered.
+#
+# # Returns
+#
+# Depending upon `bsize`, the following are returned:
+#
+#   - If the number of documents (second dimension of `integer_ids`) is atmost `bsize`, then the
+#     `integer_ids` and `integer_mask` are returned unchanged.
+#   - If the number of documents is larger than `bsize`, then the passages are first sorted
+#     by the number of attended tokens (figured out from the `integer_mask`), and then the
+#     sorted arrays `integer_ids`, `integer_mask` are returned, along with a list of
+#     `reverse_indices`, i.e a mapping from the documents to their indices in the original
+#     order.
+# """
+# function _sort_by_length(
+#         integer_ids::AbstractMatrix{Int32}, bitmask::AbstractMatrix{Bool}, batch_size::Int)
+#     size(integer_ids, 2) <= batch_size &&
+#         return integer_ids, bitmask, Vector(1:size(integer_ids, 2))
+#     lengths = vec(sum(bitmask; dims = 1))                   # number of attended tokens in each passage
+#     indices = sortperm(lengths)                             # get the indices which will sort lengths
+#     reverse_indices = sortperm(indices)                     # invert the indices list
+#     @assert integer_ids isa AbstractMatrix{Int32} "$(typeof(integer_ids))"
+#     @assert bitmask isa BitMatrix "$(typeof(bitmask))"
+#     @assert reverse_indices isa Vector{Int} "$(typeof(reverse_indices))"
+#     integer_ids[:, indices], bitmask[:, indices], reverse_indices
+# end
 
 function compute_distances_kernel!(batch_distances::AbstractMatrix{Float32},
         batch_data::AbstractMatrix{Float32},
         centroids::AbstractMatrix{Float32})
+    isequal(size(batch_distances), (size(centroids, 2), size(batch_data, 2))) ||
+        throw(DimensionMismatch("batch_distances should have size " *
+                                "(num_centroids, point_bsize)!"))
+    isequal(size(batch_data, 1), size(centroids, 1)) ||
+        throw(DimensionMismatch("batch_data and centroids should have " *
+                                "the same embedding dimension!"))
+
     batch_distances .= 0.0f0
     # Compute squared distances: (a-b)^2 = a^2 + b^2 - 2ab
     # a^2 term
-    sum_sq_data = sum(batch_data .^ 2, dims = 1)                    # (1, point_bsize)
+    sum_sq_data = sum(batch_data .^ 2, dims = 1)                        # (1, point_bsize)
     # b^2 term
-    sum_sq_centroids = sum(centroids .^ 2, dims = 1)'         # (num_centroids, 1)
+    sum_sq_centroids = sum(centroids .^ 2, dims = 1)'                   # (num_centroids, 1)
     # -2ab term
     mul!(batch_distances, centroids', batch_data, -2.0f0, 1.0f0)        # (num_centroids, point_bsize)
     # Compute (a-b)^2 = a^2 + b^2 - 2ab
@@ -56,20 +61,30 @@ end
 function update_centroids_kernel!(new_centroids::AbstractMatrix{Float32},
         batch_data::AbstractMatrix{Float32},
         batch_one_hot::AbstractMatrix{Float32})
+    isequal(
+        size(new_centroids), (size(batch_data, 1), (size(batch_one_hot, 1)))) ||
+        throw(DimensionMismatch("new_centroids should have the right shape " *
+                                "for multiplying batch_data and batch_one_hot! "))
     mul!(new_centroids, batch_data, batch_one_hot', 1.0f0, 1.0f0)
 end
 
 function assign_clusters_kernel!(batch_assignments::AbstractVector{Int32},
         batch_distances::AbstractMatrix{Float32})
+    length(batch_assignments) == size(batch_distances, 2) ||
+        throw(DimensionMismatch("length(batch_assignments) " *
+                                "should be equal to the point " *
+                                "batch size of batch_distances!"))
     _, min_indices = findmin(batch_distances, dims = 1)
     batch_assignments .= getindex.(min_indices, 1) |> vec
 end
 
 function onehot_encode!(batch_one_hot::AbstractArray{Float32},
         batch_assignments::AbstractVector{Int32}, k::Int)
-    # Create a range array for columns
-    col_indices = Vector(1:length(batch_assignments)) |> Flux.gpu
-    # Use broadcasting to set the appropriate elements to 1
+    isequal(size(batch_one_hot), (k, length(batch_assignments))) ||
+        throw(DimensionMismatch("batch_one_hot should have shape " *
+                                "(k, length(batch_assignments))!"))
+    col_indices = similar(batch_assignments, length(batch_assignments))     # respects device
+    copyto!(col_indices, collect(1:length(batch_assignments)))
     batch_one_hot[batch_assignments .+ (col_indices .- 1) .* k] .= 1
 end
 
@@ -238,7 +253,14 @@ julia> centroids
 function kmeans_gpu_onehot!(
         data::AbstractMatrix{Float32}, centroids::AbstractMatrix{Float32}, k::Int; max_iters::Int = 10,
         tol::Float32 = 1.0f-4, point_bsize::Int = 1000)
-    @assert size(centroids)[2] == k
+    # TODO: move point_bsize to config?
+    size(centroids, 2) == k ||
+        throw(DimensionMismatch("size(centroids, 2) must be k!"))
+
+    # randomly initialize centroids
+    centroids .= data[:, randperm(size(data, 2))[1:k]]
+
+    # allocations
     d, n = size(data)  # dimension, number of inputs
     assignments = Vector{Int32}(undef, n) |> Flux.gpu
     distances = Matrix{Float32}(undef, k, point_bsize) |> Flux.gpu
@@ -293,4 +315,22 @@ function kmeans_gpu_onehot!(
     end
 
     Flux.cpu(assignments)
+end
+
+function _normalize_array!(
+        X::AbstractArray{T}; dims::Int = 1) where {T <: AbstractFloat}
+    norms = sqrt.(sum(abs2, X, dims = dims))
+    epsilon = eps(T)
+    X ./= (norms .+ epsilon)
+end
+
+function _topk(data::Matrix{T}, k::Int; dims::Int = 1) where {T <: Number}
+    # TODO: only works on CPU; make it work on GPUs?
+    # partialsortperm is not available in CUDA.jl
+    dims in [1, 2] || throw(DomainError("dims must be 1 or 2!"))
+    mapslices(v -> partialsortperm(v, 1:k, rev = true), data, dims = dims)
+end
+
+function _head(v::Vector)
+    length(v) > 0 ? collect(take(v, length(v) - 1)) : similar(v, 0)
 end

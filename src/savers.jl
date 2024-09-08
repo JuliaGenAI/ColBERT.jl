@@ -49,12 +49,9 @@ number of embeddings and the passage offsets are saved in a file named `<chunk_i
   - `doclens`: The document lengths vector for the current chunk.
 """
 function save_chunk(
-        config::ColBERTConfig, codec::Dict, chunk_idx::Int, passage_offset::Int,
-        embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
-    codes, residuals = compress(
-        codec["centroids"], codec["bucket_cutoffs"], config.dim, config.nbits, embs)
-    path_prefix = joinpath(config.index_path, string(chunk_idx))
-    @assert length(codes)==size(embs)[2] "length(codes): $(length(codes)), size(embs): $(size(embs))"
+        index_path::String, codes::AbstractVector{UInt32}, residuals::AbstractMatrix{UInt8},
+        chunk_idx::Int, passage_offset::Int, doclens::AbstractVector{Int})
+    path_prefix = joinpath(index_path, string(chunk_idx))
 
     # saving the compressed embeddings
     codes_path = "$(path_prefix).codes.jld2"
@@ -65,13 +62,13 @@ function save_chunk(
 
     # saving doclens
     doclens_path = joinpath(
-        config.index_path, "doclens.$(chunk_idx).jld2")
+        index_path, "doclens.$(chunk_idx).jld2")
     @info "Saving doclens to $(doclens_path)"
     JLD2.save_object(doclens_path, doclens)
 
     # the metadata
     metadata_path = joinpath(
-        config.index_path, "$(chunk_idx).metadata.json")
+        index_path, "$(chunk_idx).metadata.json")
     @info "Saving metadata to $(metadata_path)"
     open(metadata_path, "w") do io
         JSON.print(io,
@@ -80,7 +77,7 @@ function save_chunk(
                 "num_passages" => length(doclens),
                 "num_embeddings" => length(codes)
             ),
-            4                                                               # indent
+            4
         )
     end
 end
@@ -119,5 +116,22 @@ function save(config::ColBERTConfig)
             Dict(properties),
             4
         )
+    end
+end
+
+function save_chunk_metadata_property(
+        index_path::String, property::String, properties::Vector{T}) where {T}
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
+    @assert plan_metadata["num_chunks"] == length(properties)
+    for chunk_idx in 1:length(properties)
+        chunk_metadata = JSON.parsefile(joinpath(
+            index_path, "$(chunk_idx).metadata.json"))
+        chunk_metadata[property] = properties[chunk_idx]
+        open("$(chunk_idx).metadata.json", "w") do io
+            JSON.print(io,
+                chunk_metadata,
+                4
+            )
+        end
     end
 end

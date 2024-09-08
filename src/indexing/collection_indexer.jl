@@ -1,57 +1,4 @@
 """
-    encode_passages(
-        config::ColBERTConfig, checkpoint::Checkpoint, passages::Vector{String})
-
-Encode a list of passages using `checkpoint`.
-
-The given `passages` are run through the underlying BERT model and the linear layer to
-generate the embeddings, after doing relevant document-specific preprocessing.
-See [`docFromText`](@ref) for more details.
-
-# Arguments
-
-  - `config`: The [`ColBERTConfig`](@ref) to be used.
-  - `checkpoint`: The [`Checkpoint`](@ref) used to encode the passages.
-  - `passages`: A list of strings representing the passages to be encoded.
-
-# Returns
-
-A tuple `embs, doclens` where:
-
-  - `embs::AbstractMatrix{Float32}`: The full embedding matrix. Of shape `(D, N)`,
-    where `D` is the embedding dimension and `N` is the total number of embeddings
-    across all the passages.
-  - `doclens::AbstractVector{Int}`: A vector of document lengths for each passage,
-    i.e the total number of attended tokens for each document passage.
-"""
-function encode_passages(
-        config::ColBERTConfig, checkpoint::Checkpoint, passages::Vector{String})
-    @info "Encoding $(length(passages)) passages."
-
-    if length(passages) == 0
-        error("The list of passages to encode is empty!")
-    end
-
-    embs, doclens = Vector{AbstractMatrix{Float32}}(), Vector{Int}()
-    # batching here to avoid storing intermediate embeddings on GPU
-    # batching also occurs inside docFromText to do batch packing optimizations
-    for passage_offset in 1:(config.passages_batch_size):length(passages)
-        passage_end_offset = min(
-            length(passages), passage_offset + config.passages_batch_size - 1)
-        embs_, doclens_ = docFromText(
-            config, checkpoint, passages[passage_offset:passage_end_offset],
-            config.index_bsize)
-        @assert embs_ isa Matrix{Float32}
-        @assert doclens_ isa Vector{Int}
-        push!(embs, embs_)
-        append!(doclens, vec(doclens_))
-        embs_, doclens_ = nothing, nothing
-    end
-    embs = cat(embs..., dims = 2)
-    embs, doclens
-end
-
-"""
     _sample_pids(num_documents::Int)
 
 Sample PIDs from the collection to be used to compute clusters using a ``k``-means clustering
@@ -100,24 +47,41 @@ from the sampled documents, and the embedding matrix for the local samples. The 
 shape `(D, N)`, where `D` is the embedding dimension (`128`) and `N` is the total number
 of embeddings over all the sampled passages.
 """
-function _sample_embeddings(config::ColBERTConfig, checkpoint::Checkpoint,
-        collection::Vector{String}, sampled_pids::Set{Int})
+function _sample_embeddings(bert::HF.HGFBertModel, linear::Layers.Dense,
+        tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+        dim::Int, index_bsize::Int, doc_token::String,
+        skiplist::Vector{Int}, collection::Vector{String})
     # collect all passages with pids in sampled_pids
+    sampled_pids = _sample_pids(length(collection))
     sorted_sampled_pids = sort(collect(sampled_pids))
     local_sample = collection[sorted_sampled_pids]
 
     # get the local sample embeddings
     local_sample_embs, local_sample_doclens = encode_passages(
-        config, checkpoint, local_sample)
-    @debug "Local sample embeddings shape: $(size(local_sample_embs)), \t Local sample doclens: $(local_sample_doclens)"
-    @assert size(local_sample_embs)[2]==sum(local_sample_doclens) "size(local_sample_embs): $(size(local_sample_embs)), sum(local_sample_doclens): $(sum(local_sample_doclens))"
+        bert, linear, tokenizer, local_sample,
+        dim, index_bsize, doc_token, skiplist)
+
+    @assert size(local_sample_embs, 2)==sum(local_sample_doclens) "size(local_sample_embs): $(size(local_sample_embs)), sum(local_sample_doclens): $(sum(local_sample_doclens))"
     @assert length(local_sample) == length(local_sample_doclens)
 
     avg_doclen_est = length(local_sample_doclens) > 0 ?
-                     sum(local_sample_doclens) / length(local_sample_doclens) :
-                     0
+                     Float32(sum(local_sample_doclens) /
+                             length(local_sample_doclens)) :
+                     zero(Float32)
     @info "avg_doclen_est = $(avg_doclen_est) \t length(local_sample) = $(length(local_sample))"
     avg_doclen_est, local_sample_embs
+end
+
+function _heldout_split(
+        sample::AbstractMatrix{Float32}; heldout_fraction::Float32 = 0.05f0)
+    num_sample_embs = size(sample, 2)
+    sample = sample[:, shuffle(1:num_sample_embs)]
+    heldout_size = Int(max(
+        1, floor(min(50000, heldout_fraction * num_sample_embs))))
+    sample, sample_heldout = sample[
+        :, 1:(num_sample_embs - heldout_size)],
+    sample[:, (num_sample_embs - heldout_size + 1):num_sample_embs]
+    sample, sample_heldout
 end
 
 """
@@ -144,46 +108,23 @@ proportional to ``16\\sqrt{\\text{Estimated number of embeddings}}``.
 
 A `Dict` containing the indexing plan.
 """
-function setup(config::ColBERTConfig, checkpoint::Checkpoint,
-        collection::Vector{String})
-    chunksize = 0
-    chunksize = ismissing(config.chunksize) ?
-                min(25000, 1 + fld(length(collection), config.nranks)) :
-                config.chunksize
+function setup(collection::Vector{String}, avg_doclen_est::Float32,
+        num_clustering_embs::Int, chunksize::Union{Missing, Int}, nranks::Int)
+    chunksize = ismissing(chunksize) ?
+                min(25000, 1 + fld(length(collection), nranks)) :
+                chunksize
     num_chunks = cld(length(collection), chunksize)
-
-    # sample passages for training centroids later
-    sampled_pids = _sample_pids(length(collection))
-    avg_doclen_est, local_sample_embs = _sample_embeddings(
-        config, checkpoint, collection, sampled_pids)
-
-    # splitting the local sample into heldout set
-    num_local_sample_embs = size(local_sample_embs, 2)
-    local_sample_embs = local_sample_embs[
-        :, shuffle(1:num_local_sample_embs)]
-
-    # split the sample to get a heldout set
-    heldout_fraction = 0.05
-    heldout_size = Int(max(
-        1, floor(min(
-            50000, heldout_fraction * num_local_sample_embs))))
-    sample, sample_heldout = local_sample_embs[
-        :, 1:(num_local_sample_embs - heldout_size)],
-    local_sample_embs[
-        :, (num_local_sample_embs - heldout_size + 1):num_local_sample_embs]
-    @debug "Split sample sizes: sample size: $(size(sample)), \t sample_heldout size: $(size(sample_heldout))"
 
     # computing the number of partitions, i.e clusters
     num_passages = length(collection)
     num_embeddings_est = num_passages * avg_doclen_est
-    num_partitions = Int(min(size(sample, 2),
+    num_partitions = Int(min(num_clustering_embs,
         floor(2^(floor(log2(16 * sqrt(num_embeddings_est)))))))
 
     @info "Creating $(num_partitions) clusters."
     @info "Estimated $(num_embeddings_est) embeddings."
 
-    sample, sample_heldout,
-    Dict(
+    Dict{String, Any}(
         "chunksize" => chunksize,
         "num_chunks" => num_chunks,
         "num_partitions" => num_partitions,
@@ -191,6 +132,19 @@ function setup(config::ColBERTConfig, checkpoint::Checkpoint,
         "num_embeddings_est" => num_embeddings_est,
         "avg_doclen_est" => avg_doclen_est
     )
+end
+
+function _bucket_cutoffs_and_weights(
+        nbits::Int, heldout_avg_residual::AbstractMatrix{Float32})
+    num_options = 1 << nbits
+    quantiles = collect(0:(num_options - 1)) / num_options
+    bucket_cutoffs_quantiles, bucket_weights_quantiles = quantiles[2:end],
+    quantiles .+ (0.5 / num_options)
+    bucket_cutoffs = Float32.(quantile(
+        heldout_avg_residual, bucket_cutoffs_quantiles))
+    bucket_weights = Float32.(quantile(
+        heldout_avg_residual, bucket_weights_quantiles))
+    bucket_cutoffs, bucket_weights
 end
 
 """
@@ -215,32 +169,23 @@ Compute the average residuals and other statistics of the held-out sample embedd
 A tuple `bucket_cutoffs, bucket_weights, avg_residual`, which will be used in
 compression/decompression of residuals.
 """
-function _compute_avg_residuals(
+function _compute_avg_residuals!(
         nbits::Int, centroids::AbstractMatrix{Float32},
-        heldout::AbstractMatrix{Float32})
-    codes = compress_into_codes(centroids, heldout)                         # get centroid codes
-    @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
-    heldout_reconstruct = Flux.gpu(centroids[:, codes])                     # get corresponding centroids
-    heldout_avg_residual = Flux.gpu(heldout) - heldout_reconstruct          # compute the residual
+        heldout::AbstractMatrix{Float32}, codes::AbstractVector{UInt32})
+    length(codes) == size(heldout, 2) ||
+        throw(DimensionMismatch("length(codes) must be equal to the number " *
+                                "of embeddings in heldout!"))
 
+    compress_into_codes!(codes, centroids, heldout)                         # get centroid codes
+    heldout_reconstruct = centroids[:, codes]                               # get corresponding centroids
+    heldout_avg_residual = heldout - heldout_reconstruct                    # compute the residual
     avg_residual = mean(abs.(heldout_avg_residual), dims = 2)               # for each dimension, take mean of absolute values of residuals
 
     # computing bucket weights and cutoffs
-    num_options = 2^nbits
-    quantiles = Vector(0:(num_options - 1)) / num_options
-    bucket_cutoffs_quantiles, bucket_weights_quantiles = quantiles[2:end],
-    quantiles .+ (0.5 / num_options)
+    bucket_cutoffs, bucket_weights = _bucket_cutoffs_and_weights(
+        nbits, heldout_avg_residual)
 
-    bucket_cutoffs = Float32.(quantile(
-        heldout_avg_residual, bucket_cutoffs_quantiles))
-    bucket_weights = Float32.(quantile(
-        heldout_avg_residual, bucket_weights_quantiles))
-    @assert bucket_cutoffs isa AbstractVector{Float32} "$(typeof(bucket_cutoffs))"
-    @assert bucket_weights isa AbstractVector{Float32} "$(typeof(bucket_weights))"
-
-    @info "Got bucket_cutoffs_quantiles = $(bucket_cutoffs_quantiles) and bucket_weights_quantiles = $(bucket_weights_quantiles)"
     @info "Got bucket_cutoffs = $(bucket_cutoffs) and bucket_weights = $(bucket_weights)"
-
     bucket_cutoffs, bucket_weights, mean(avg_residual)
 end
 
@@ -269,22 +214,21 @@ A `Dict` containing the residual codec, i.e information used to compress/decompr
 function train(
         sample::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32},
         num_partitions::Int, nbits::Int, kmeans_niters::Int)
-    _, n = size(sample)
+    # computing clusters
     sample = sample |> Flux.gpu
-    centroids = sample[:, randperm(n)[1:num_partitions]]
+    centroids = sample[:, randperm(size(sample, 2))[1:num_partitions]]
     # TODO: put point_bsize in the config!
     kmeans_gpu_onehot!(
         sample, centroids, num_partitions; max_iters = kmeans_niters)
-    @assert size(centroids, 2) == num_partitions
-    "size(centroids): $(size(centroids)), num_partitions: $(num_partitions)"
-    @assert centroids isa AbstractMatrix{Float32} "$(typeof(centroids))"
 
-    centroids = centroids |> Flux.cpu
-    bucket_cutoffs, bucket_weights, avg_residual = _compute_avg_residuals(
-        nbits, centroids, heldout)
+    # computing average residuals
+    heldout = heldout |> Flux.gpu
+    codes = zeros(UInt32, size(heldout, 2)) |> Flux.gpu
+    bucket_cutoffs, bucket_weights, avg_residual = _compute_avg_residuals!(
+        nbits, centroids, heldout, codes)
     @info "avg_residual = $(avg_residual)"
 
-    centroids, bucket_cutoffs, bucket_weights, avg_residual
+    Flux.cpu(centroids), bucket_cutoffs, bucket_weights, avg_residual
 end
 
 """
@@ -303,128 +247,86 @@ along with relevant metadata (see [`save_chunk`](@ref)).
   - `checkpoint`: The [`Checkpoint`](@ref) to compute embeddings.
   - `collection`: The collection to index.
 """
-function index(config::ColBERTConfig, checkpoint::Checkpoint,
-        collection::Vector{String})
-    codec = load_codec(config.index_path)
-    plan_metadata = JSON.parsefile(joinpath(config.index_path, "plan.json"))
-    for (chunk_idx, passage_offset) in zip(1:plan_metadata["num_chunks"],
-        1:plan_metadata["chunksize"]:length(collection))
+function index(index_path::String, bert::HF.HGFBertModel, linear::Layers.Dense,
+        tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+        collection::Vector{String}, dim::Int, index_bsize::Int,
+        doc_token::String, skiplist::Vector{Int}, num_chunks::Int,
+        chunksize::Int, centroids::AbstractMatrix{Float32},
+        bucket_cutoffs::AbstractVector{Float32}, nbits::Int)
+    for (chunk_idx, passage_offset) in zip(
+        1:num_chunks, 1:chunksize:length(collection))
         passage_end_offset = min(
-            length(collection), passage_offset + plan_metadata["chunksize"] - 1)
-        embs, doclens = encode_passages(
-            config, checkpoint, collection[passage_offset:passage_end_offset])
+            length(collection), passage_offset + chunksize - 1)
+
+        # get embeddings for batch
+        embs, doclens = encode_passages(bert, linear, tokenizer,
+            collection[passage_offset:passage_end_offset],
+            dim, index_bsize, doc_token, skiplist)
         @assert embs isa AbstractMatrix{Float32} "$(typeof(embs))"
         @assert doclens isa AbstractVector{Int} "$(typeof(doclens))"
 
+        # compress embeddings
+        codes, residuals = compress(centroids, bucket_cutoffs, dim, nbits, embs)
+
+        # save the chunk
         @info "Saving chunk $(chunk_idx): \t $(passage_end_offset - passage_offset + 1) passages and $(size(embs)[2]) embeddings. From passage #$(passage_offset) onward."
-        save_chunk(config, codec, chunk_idx, passage_offset, embs, doclens)
-        embs, doclens = nothing, nothing
+        save_chunk(
+            index_path, codes, residuals, chunk_idx, passage_offset, doclens)
     end
-end
-
-"""
-    check_chunk_exists(saver::IndexSaver, chunk_idx::Int)
-
-Check if the index chunk exists for the given `chunk_idx`.
-
-# Arguments
-
-  - `saver`: The `IndexSaver` object that contains the indexing settings.
-  - `chunk_idx`: The index of the chunk to check.
-
-# Returns
-
-A boolean indicating whether all relevant files for the chunk exist.
-"""
-function check_chunk_exists(index_path::String, chunk_idx::Int)
-    path_prefix = joinpath(index_path, string(chunk_idx))
-    codes_path = "$(path_prefix).codes.jld2"
-    residuals_path = "$(path_prefix).residuals.jld2"
-    doclens_path = joinpath(index_path, "doclens.$(chunk_idx).jld2")
-    metadata_path = joinpath(index_path, "$(chunk_idx).metadata.json")
-
-    for file in [codes_path, residuals_path, doclens_path, metadata_path]
-        if !isfile(file)
-            return false
-        end
-    end
-
-    true
 end
 
 function _check_all_files_are_saved(index_path::String)
+    @info "Checking if all index files are saved."
+
+    # first get the plan
+    isfile(joinpath(index_path, "plan.json")) || begin
+        @info "plan.json is missing from the index!"
+        return false
+    end
     plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
 
-    @info "Checking if all files are saved."
-    for chunk_idx in 1:(plan_metadata["num_chunks"])
-        if !(check_chunk_exists(index_path, chunk_idx))
-            @error "Some files for chunk $(chunk_idx) are missing!"
-        end
+    # get the non-chunk files
+    files = [
+        joinpath(index_path, "config.json"),
+        joinpath(index_path, "centroids.jld2"),
+        joinpath(index_path, "bucket_cutoffs.jld2"),
+        joinpath(index_path, "bucket_weights.jld2"),
+        joinpath(index_path, "avg_residual.jld2"),
+        joinpath(index_path, "ivf.jld2"),
+        joinpath(index_path, "ivf_lengths.jld2")
+    ]
+
+    # get the chunk files
+    for chunk_idx in 1:plan_metadata["num_chunks"]
+        append!(files,
+            [
+                joinpath(index_path, "$(chunk_idx).codes.jld2"),
+                joinpath(index_path, "$(chunk_idx).residuals.jld2"),
+                joinpath(index_path, "doclens.$(chunk_idx).jld2"),
+                joinpath(index_path, "$(chunk_idx).metadata.json")
+            ])
     end
+
+    # check for any missing files
+    missing_files = findall(!isfile, files)
+    isempty(missing_files) || begin
+        @info "$(files[missing_files]) are missing!"
+        return false
+    end
+
     @info "Found all files!"
+    true
 end
 
-function _collect_embedding_id_offset(index_path::String)
-    @assert isfile(joinpath(index_path, "plan.json")) "Fatal: plan.json doesn't exist!"
-    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
-
-    @info "Collecting embedding ID offsets."
-    embedding_offset = 1
-    embeddings_offsets = Vector{Int}()
-    for chunk_idx in 1:(plan_metadata["num_chunks"])
-        metadata_path = joinpath(
-            index_path, "$(chunk_idx).metadata.json")
-
-        chunk_metadata = open(metadata_path, "r") do io
-            chunk_metadata = JSON.parse(io)
-        end
-
-        chunk_metadata["embedding_offset"] = embedding_offset
-        push!(embeddings_offsets, embedding_offset)
-
-        embedding_offset += chunk_metadata["num_embeddings"]
-
-        open(metadata_path, "w") do io
-            JSON.print(io, chunk_metadata, 4)
-        end
-    end
-    num_embeddings = embedding_offset - 1
-    @assert length(embeddings_offsets) == plan_metadata["num_chunks"]
-
-    @info "Saving the indexing metadata."
-    plan_metadata["num_embeddings"] = num_embeddings
-    plan_metadata["embeddings_offsets"] = embeddings_offsets
-    open(joinpath(index_path, "plan.json"), "w") do io
-        JSON.print(io,
-            plan_metadata,
-            4
-        )
-    end
+function _collect_embedding_id_offset(chunk_emb_counts::Vector{Int})
+    length(chunk_emb_counts) > 0 || return 0, zeros(Int, 1)
+    chunk_embedding_offsets = [1; _head(chunk_emb_counts)]
+    chunk_embedding_offsets = cumsum(chunk_embedding_offsets)
+    sum(chunk_emb_counts), chunk_embedding_offsets
 end
 
-function _build_ivf(index_path::String)
-    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
-
-    @info "Building the centroid to embedding IVF."
-    codes = Vector{UInt32}()
-
-    @info "Loading codes for each embedding."
-    for chunk_idx in 1:(plan_metadata["num_chunks"])
-        chunk_codes = JLD2.load_object(joinpath(
-            index_path, "$(chunk_idx).codes.jld2"))
-        append!(codes, chunk_codes)
-    end
-    @assert codes isa AbstractVector{UInt32} "$(typeof(codes))"
-
-    @info "Sorting the codes."
+function _build_ivf(codes::Vector{UInt32}, num_partitions::Int)
     ivf, values = sortperm(codes), sort(codes)
-
-    @info "Getting unique codes and their counts."
-    ivf_lengths = counts(values, 1:(plan_metadata["num_partitions"]))
-
-    @info "Saving the IVF."
-    ivf_path = joinpath(index_path, "ivf.jld2")
-    ivf_lengths_path = joinpath(index_path, "ivf_lengths.jld2")
-    JLD2.save_object(ivf_path, ivf)
-    JLD2.save_object(ivf_lengths_path, ivf_lengths)
+    ivf_lengths = counts(values, num_partitions)
+    ivf, ivf_lengths
 end
