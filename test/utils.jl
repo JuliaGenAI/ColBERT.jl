@@ -138,7 +138,7 @@ end
 @testset "kmeans_gpu_onehot!" begin
     # Test 1: When all points are centroids
     data = rand(Float32, rand(1:100), rand(1:100))
-    centroids = similar(data) 
+    centroids = similar(data)
     point_bsize = rand(1:size(data, 2))
     cluster_ids = kmeans_gpu_onehot!(data, centroids, size(data, 2))
     @test isequal(centroids[:, cluster_ids], data)

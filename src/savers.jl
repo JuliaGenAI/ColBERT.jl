@@ -123,7 +123,7 @@ function save_chunk_metadata_property(
         index_path::String, property::String, properties::Vector{T}) where {T}
     plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
     @assert plan_metadata["num_chunks"] == length(properties)
-    for chunk_idx in 1:length(properties) 
+    for chunk_idx in 1:length(properties)
         chunk_metadata = JSON.parsefile(joinpath(
             index_path, "$(chunk_idx).metadata.json"))
         chunk_metadata[property] = properties[chunk_idx]

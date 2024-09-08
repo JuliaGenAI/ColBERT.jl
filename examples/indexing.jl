@@ -21,6 +21,7 @@ indexer = Indexer(config)
 # then big example
 config = ColBERTConfig(
     use_gpu = true,
+    checkpoint = "/home/codetalker7/models/colbertv2.0/",
     collection = "./downloads/lotte/lifestyle/dev/collection.tsv",
     index_path = "./lotte_lifestyle_index/"
 )
