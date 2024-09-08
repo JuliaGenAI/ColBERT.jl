@@ -1,5 +1,6 @@
 using ColBERT
 using .Iterators
+using JSON
 using LinearAlgebra
 using Logging
 using Random

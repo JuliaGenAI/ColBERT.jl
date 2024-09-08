@@ -110,9 +110,6 @@ function index(indexer::Indexer)
         indexer.skiplist, plan_dict["num_chunks"], plan_dict["chunksize"],
         centroids, bucket_cutoffs, indexer.config.nbits)
 
-    # check if all relevant files are saved
-    _check_all_files_are_saved(indexer.config.index_path)
-
     # collect embedding offsets and more metadata for chunks
     chunk_emb_counts = load_chunk_metadata_property(
         indexer.config.index_path, "num_embeddings")
@@ -139,4 +136,7 @@ function index(indexer::Indexer)
     ivf_lengths_path = joinpath(indexer.config.index_path, "ivf_lengths.jld2")
     JLD2.save_object(ivf_path, ivf)
     JLD2.save_object(ivf_lengths_path, ivf_lengths)
+
+    # check if all relevant files are saved
+    _check_all_files_are_saved(indexer.config.index_path)
 end

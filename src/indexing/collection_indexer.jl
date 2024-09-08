@@ -220,9 +220,6 @@ function train(
     # TODO: put point_bsize in the config!
     kmeans_gpu_onehot!(
         sample, centroids, num_partitions; max_iters = kmeans_niters)
-    @assert(size(centroids, 2)==num_partitions,
-        "size(centroids): $(size(centroids)), num_partitions: $(num_partitions)")
-    @assert(centroids isa AbstractMatrix{Float32}, "$(typeof(centroids))")
 
     # computing average residuals
     heldout = heldout |> Flux.gpu
@@ -278,51 +275,52 @@ function index(index_path::String, bert::HF.HGFBertModel, linear::Layers.Dense,
     end
 end
 
-"""
-    check_chunk_exists(saver::IndexSaver, chunk_idx::Int)
+function _check_all_files_are_saved(index_path::String)
+    @info "Checking if all index files are saved."
 
-Check if the index chunk exists for the given `chunk_idx`.
+    # first get the plan
+    isfile(joinpath(index_path, "plan.json")) || begin
+        @info "plan.json is missing from the index!"
+        return false
+    end
+    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
 
-# Arguments
+    # get the non-chunk files
+    files = [
+        joinpath(index_path, "config.json"),
+        joinpath(index_path, "centroids.jld2"),
+        joinpath(index_path, "bucket_cutoffs.jld2"),
+        joinpath(index_path, "bucket_weights.jld2"),
+        joinpath(index_path, "avg_residual.jld2"),
+        joinpath(index_path, "ivf.jld2"),
+        joinpath(index_path, "ivf_lengths.jld2")
+    ]
 
-  - `saver`: The `IndexSaver` object that contains the indexing settings.
-  - `chunk_idx`: The index of the chunk to check.
-
-# Returns
-
-A boolean indicating whether all relevant files for the chunk exist.
-"""
-function check_chunk_exists(index_path::String, chunk_idx::Int)
-    path_prefix = joinpath(index_path, string(chunk_idx))
-    codes_path = "$(path_prefix).codes.jld2"
-    residuals_path = "$(path_prefix).residuals.jld2"
-    doclens_path = joinpath(index_path, "doclens.$(chunk_idx).jld2")
-    metadata_path = joinpath(index_path, "$(chunk_idx).metadata.json")
-
-    for file in [codes_path, residuals_path, doclens_path, metadata_path]
-        if !isfile(file)
-            return false
-        end
+    # get the chunk files
+    for chunk_idx in 1:plan_metadata["num_chunks"]
+        append!(files,
+            [
+                joinpath(index_path, "$(chunk_idx).codes.jld2"),
+                joinpath(index_path, "$(chunk_idx).residuals.jld2"),
+                joinpath(index_path, "doclens.$(chunk_idx).jld2"),
+                joinpath(index_path, "$(chunk_idx).metadata.json")
+            ])
     end
 
+    # check for any missing files
+    missing_files = findall(!isfile, files)
+    isempty(missing_files) || begin
+        @info "$(files[missing_files]) are missing!"
+        return false
+    end
+
+    @info "Found all files!"
     true
 end
 
-function _check_all_files_are_saved(index_path::String)
-    plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
-
-    @info "Checking if all files are saved."
-    for chunk_idx in 1:(plan_metadata["num_chunks"])
-        if !(check_chunk_exists(index_path, chunk_idx))
-            @error "Some files for chunk $(chunk_idx) are missing!"
-        end
-    end
-    @info "Found all files!"
-end
-
 function _collect_embedding_id_offset(chunk_emb_counts::Vector{Int})
-    length(chunk_emb_counts) > 0 || return zeros(Int, 1)
-    chunk_embedding_offsets = cat([1], chunk_emb_counts[1:(end - 1)], dims = 1)
+    length(chunk_emb_counts) > 0 || return 0, zeros(Int, 1)
+    chunk_embedding_offsets = [1; _head(chunk_emb_counts)]
     chunk_embedding_offsets = cumsum(chunk_embedding_offsets)
     sum(chunk_emb_counts), chunk_embedding_offsets
 end
