@@ -127,7 +127,7 @@ function save_chunk_metadata_property(
         chunk_metadata = JSON.parsefile(joinpath(
             index_path, "$(chunk_idx).metadata.json"))
         chunk_metadata[property] = properties[chunk_idx]
-        open("$(chunk_idx).metadata.json", "w") do io
+        open(joinpath(index_path, "$(chunk_idx).metadata.json"), "w") do io
             JSON.print(io,
                 chunk_metadata,
                 4

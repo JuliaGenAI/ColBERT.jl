@@ -1,5 +1,6 @@
 using ColBERT
 using .Iterators
+using JLD2
 using JSON
 using LinearAlgebra
 using Logging
@@ -26,3 +27,6 @@ include("modelling/embedding_utils.jl")
 
 # utils
 include("utils.jl")
+
+# loaders and savers
+include("loaders_and_savers.jl")

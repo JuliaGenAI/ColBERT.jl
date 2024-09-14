@@ -12,6 +12,10 @@ function load_codec(index_path::String)
     avg_residual_path = joinpath(index_path, "avg_residual.jld2")
     bucket_cutoffs_path = joinpath(index_path, "bucket_cutoffs.jld2")
     bucket_weights_path = joinpath(index_path, "bucket_weights.jld2")
+    missing_files = findall(!isfile,
+        [centroids_path, avg_residual_path,
+            bucket_cutoffs_path, bucket_weights_path])
+    isempty(missing_files) || error("$(missing_files) are missing!")
     @info "Loading codec from $(centroids_path), $(avg_residual_path), " *
           "$(bucket_cutoffs_path) and $(bucket_weights_path)."
 
@@ -67,6 +71,7 @@ function load_config(index_path::String)
 end
 
 function load_doclens(index_path::String)
+    isfile(joinpath(index_path, "plan.json")) || error("plan.json not found!")
     plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
     doclens = Vector{Int}()
     for chunk_idx in 1:plan_metadata["num_chunks"]
@@ -74,19 +79,20 @@ function load_doclens(index_path::String)
         chunk_doclens = JLD2.load_object(doclens_file)
         append!(doclens, chunk_doclens)
     end
-    @assert isequal(sum(doclens), plan_metadata["num_embeddings"])
-    "sum(doclens): $(sum(doclens)), num_embeddings: $(plan_metadata["num_embeddings"])"
+    @assert(isequal(sum(doclens), plan_metadata["num_embeddings"]),
+        "sum(doclens): $(sum(doclens)), num_embeddings: "*
+        "$(plan_metadata["num_embeddings"])")
     doclens
 end
 
 function load_compressed_embs(index_path::String)
     config = load_config(index_path)
     plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
-    @assert (config.dim * config.nbits) % 8==0 "(dim, nbits): $((config.dim, config.nbits))"
+    @assert config.dim % 8==0 "dim: $(config.dim)"
 
     codes = zeros(UInt32, plan_metadata["num_embeddings"])
-    residuals = zeros(
-        UInt8, Int((config.dim / 8) * config.nbits), plan_metadata["num_embeddings"])
+    residuals = zeros(UInt8, div(config.dim, 8) * config.nbits,
+        plan_metadata["num_embeddings"])
     codes_offset = 1
     for chunk_idx in 1:plan_metadata["num_chunks"]
         chunk_codes = JLD2.load_object(joinpath(
@@ -100,14 +106,6 @@ function load_compressed_embs(index_path::String)
 
         codes_offset = codes_offset + length(chunk_codes)
     end
-    @assert length(codes) == plan_metadata["num_embeddings"]
-    "length(codes): $(length(codes)), num_embeddings: $(plan_metadata["num_embeddings"])"
-    @assert ndims(residuals) == 2
-    @assert size(residuals)[2] == plan_metadata["num_embeddings"]
-    "size(residuals): $(size(residuals)), num_embeddings: $(plan_metadata["num_embeddings"])"
-    @assert codes isa Vector{UInt32}
-    @assert residuals isa Matrix{UInt8}
-
     codes, residuals
 end
 
@@ -121,14 +119,13 @@ function load_chunk_metadata_property(index_path::String, property::String)
         if isnothing(vector)
             vector = [chunk_metadata[property]]
         else
-            append!(vector, chunk_metadata[property])
+            push!(vector, chunk_metadata[property])
         end
     end
     vector
 end
 
 function load_codes(index_path::String)
-    @info "Loading codes for each embedding."
     plan_metadata = JSON.parsefile(joinpath(index_path, "plan.json"))
     codes = Vector{UInt32}()
     for chunk_idx in 1:(plan_metadata["num_chunks"])
