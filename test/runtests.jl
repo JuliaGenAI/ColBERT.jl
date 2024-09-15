@@ -25,6 +25,10 @@ include("indexing/collection_indexer.jl")
 include("modelling/tokenization/tokenizer_utils.jl")
 include("modelling/embedding_utils.jl")
 
+# search operations
+include("searching.jl")
+include("search/ranking.jl")
+
 # utils
 include("utils.jl")
 

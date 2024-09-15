@@ -293,12 +293,13 @@ end
 
     # Test 2: Testing types, shapes and range of vals
     num_partitions = rand(1:1000)
-    codes = UInt32.(rand(1:num_partitions, 10000))  # Large array with random values
+    codes = UInt32.(rand(1:num_partitions, 10000))          # Large array with random values
     ivf, ivf_lengths = _build_ivf(codes, num_partitions)
     @test length(ivf) == length(codes)
     @test sum(ivf_lengths) == length(codes)
     @test length(ivf_lengths) == num_partitions
     @test all(in(ivf), codes)
+    @test length(unique(ivf)) == length(ivf)                # an eid can occur in atmost one cluster
     @test ivf isa Vector{Int}
     @test ivf_lengths isa Vector{Int}
 end

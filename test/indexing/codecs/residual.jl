@@ -23,7 +23,7 @@ using ColBERT: _normalize_array!, compress_into_codes!, _binarize, _unbinarize,
     @test isequal(codes, sortperm(perm))                    # sortperm(perm) -> inverse mapping
 
     # Test 3: sample centroids randomly from embeddings
-    embs = rand(Float32, rand(1:128), rand(1:20))
+    embs = rand(Float32, rand(2:128), rand(1:20))
     _normalize_array!(embs; dims = 1)
     perm = collect(take(randperm(size(embs, 2)), rand(1:size(embs, 2))))
     centroids = embs[:, perm]

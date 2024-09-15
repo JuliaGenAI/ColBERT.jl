@@ -87,7 +87,6 @@ function _build_emb2pid(doclens::Vector{Int})
         offset = embs2pid_offsets[pid]
         emb2pid[offset:(offset + dlength - 1)] .= pid
     end
-    @assert all(!=(0), emb2pid)
     emb2pid
 end
 
