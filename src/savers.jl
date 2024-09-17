@@ -11,7 +11,7 @@ Save compression/decompression information from the index path.
   - `centroids`: The matrix of centroids of the index.
   - `bucket_cutoffs`: Cutoffs used to determine buckets during residual compression.
   - `bucket_weights`: Weights used to determine the decompressed values during decompression.
-  - `avg_residual`: The average residual value, computed from the heldout set (see [`_compute_avg_residuals`](@ref)).
+  - `avg_residual`: The average residual value, computed from the heldout set (see `_compute_avg_residuals`).
 """
 function save_codec(
         index_path::String, centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32},
@@ -30,8 +30,8 @@ end
 
 """
     save_chunk(
-        config::ColBERTConfig, codec::Dict, chunk_idx::Int, passage_offset::Int,
-        embs::AbstractMatrix{Float32}, doclens::AbstractVector{Int})
+        index_path::String, codes::AbstractVector{UInt32}, residuals::AbstractMatrix{UInt8},
+        chunk_idx::Int, passage_offset::Int, doclens::AbstractVector{Int})
 
 Save a single chunk of compressed embeddings and their relevant metadata to disk.
 
@@ -42,10 +42,11 @@ number of embeddings and the passage offsets are saved in a file named `<chunk_i
 
 # Arguments
 
-  - `config`: The [`ColBERTConfig`](@ref) being used.
+  - `index_path`: The path of the index. 
+  - `codes`: The codes for the chunk.
+  - `residuals`: The compressed residuals for the chunk.
   - `chunk_idx`: The index of the current chunk being saved.
   - `passage_offset`: The index of the first passage in the chunk.
-  - `embs`: The embeddings matrix for the current chunk.
   - `doclens`: The document lengths vector for the current chunk.
 """
 function save_chunk(

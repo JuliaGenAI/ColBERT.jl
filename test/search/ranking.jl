@@ -157,6 +157,6 @@ end
     D = rand(Float32, 128, sum(doclens))    # document vectors, each of size 128
     pids = collect(1:1000)
     scores = maxsim(Q, D, pids, doclens)
-    @test length(scores) == length(pids)  
-    @test scores isa Vector{Float32} 
+    @test length(scores) == length(pids)
+    @test scores isa Vector{Float32}
 end
