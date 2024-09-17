@@ -18,8 +18,8 @@ Type representing an ColBERT indexer.
 
 # Returns
 
-An [`Indexer`] wrapping a [`ColBERTConfig`](@ref), a [`Checkpoint`](@ref) and
-a collection of documents to index.
+An [`Indexer`] wrapping a [`ColBERTConfig`](@ref) along with the trained ColBERT
+model.
 """
 function Indexer(config::ColBERTConfig)
     tokenizer, bert, linear = load_hgf_pretrained_local(config.checkpoint)

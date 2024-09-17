@@ -6,7 +6,10 @@ Get the set of embedding IDs contained in `centroid_ids`.
 """
 function _cids_to_eids!(eids::Vector{Int}, centroid_ids::Vector{Int},
         ivf::Vector{Int}, ivf_lengths::Vector{Int})
-    @assert length(eids) == sum(ivf_lengths[centroid_ids])
+    length(eids) == sum(ivf_lengths[centroid_ids]) ||
+        throw(DimensionMismatch("length(eids) must be equal to sum(ivf_lengths[centroid_ids])!"))
+    length(ivf) == sum(ivf_lengths) ||
+        throw(DimensionMismatch("length(ivf) must be equal to sum(ivf_lengths)!"))
     centroid_ivf_offsets = cumsum([1; _head(ivf_lengths)])
     eid_offsets = cumsum([1; _head(ivf_lengths[centroid_ids])])
     for (idx, centroid_id) in enumerate(centroid_ids)
@@ -65,17 +68,19 @@ end
 
 function maxsim(Q::AbstractMatrix{Float32}, D::AbstractMatrix{Float32},
         pids::Vector{Int}, doclens::Vector{Int})
+    sum(doclens[pids]) == size(D, 2) ||
+        throw(DimensionMismatch("The total number of embeddings " *
+                                "for pids does not match with the " * "
+                                  dimension of D!"))
     scores = zeros(Float32, length(pids))
-    num_embeddings = sum(doclens[pids])
     query_doc_scores = Q' * D
     offsets = cumsum([1; _head(doclens[pids])])
     for (idx, pid) in enumerate(pids)
         num_embs_pids = doclens[pid]
         offset = offsets[idx]
-        offset_end = min(num_embeddings, offset + num_embs_pids - 1)
+        offset_end = offset + num_embs_pids - 1
         pid_scores = query_doc_scores[:, offset:offset_end]
         scores[idx] = sum(maximum(pid_scores, dims = 2))
-        offset += num_embs_pids
     end
     scores
 end

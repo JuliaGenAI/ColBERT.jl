@@ -1,52 +1,22 @@
 """
-    doc(
-        config::ColBERTConfig, checkpoint::Checkpoint, integer_ids::AbstractMatrix{Int32},
-        integer_mask::AbstractMatrix{Bool})
+    doc(bert::HF.HGFBertModel, linear::Layers.Dense,
+        integer_ids::AbstractMatrix{Int32}, bitmask::AbstractMatrix{Bool})
 
 Compute the hidden state of the BERT and linear layers of ColBERT for documents.
 
 # Arguments
 
-  - `config`: The [`ColBERTConfig`](@ref) being used.
-  - `checkpoint`: The [`Checkpoint`](@ref) containing the layers to compute the embeddings.
+  - `bert`: The pre-trained BERT component of the ColBERT model. 
+  - `linear`: The pre-trained linear component of the ColBERT model. 
   - `integer_ids`: An array of token IDs to be fed into the BERT model.
   - `integer_mask`: An array of corresponding attention masks. Should have the same shape as `integer_ids`.
 
 # Returns
 
-A tuple `D, mask`, where:
-
-  - `D` is an array containing the normalized embeddings for each token in each document.
-    It has shape `(D, L, N)`, where `D` is the embedding dimension (`128` for the linear layer
-    of ColBERT), and `(L, N)` is the shape of `integer_ids`, i.e `L` is the maximum length of
-    any document and `N` is the total number of documents.
-  - `mask` is an array containing attention masks for all documents, after masking out any
-    tokens in the `skiplist` of `checkpoint`. It has shape `(1, L, N)`, where `(L, N)`
-    is the same as described above.
-
-# Examples
-
-Continuing from the example in [`tensorize_docs`](@ref) and [`Checkpoint`](@ref):
-
-```julia-repl
-julia> integer_ids, integer_mask = batches[1]
-
-julia> D, mask = ColBERT.doc(config, checkpoint, integer_ids, integer_mask);
-
-julia> typeof(D), size(D)
-(CuArray{Float32, 3, CUDA.DeviceMemory}, (128, 21, 3))
-
-julia> mask
-1×21×3 CuArray{Bool, 3, CUDA.DeviceMemory}:
-[:, :, 1] =
- 1  1  1  1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
-
-[:, :, 2] =
- 1  1  1  1  1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
-
-[:, :, 3] =
- 1  1  1  1  0  1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
-```
+An array `D` containing the normalized embeddings for each token in each document.
+It has shape `(D, L, N)`, where `D` is the embedding dimension (`128` for the linear layer
+of ColBERT), and `(L, N)` is the shape of `integer_ids`, i.e `L` is the maximum length of
+any document and `N` is the total number of documents.
 """
 function doc(bert::HF.HGFBertModel, linear::Layers.Dense,
         integer_ids::AbstractMatrix{Int32}, bitmask::AbstractMatrix{Bool})
@@ -101,20 +71,26 @@ function _query_embeddings(
 end
 
 """
-    encode_passages(
-        config::ColBERTConfig, checkpoint::Checkpoint, passages::Vector{String})
+    encode_passages(bert::HF.HGFBertModel, linear::Layers.Dense,
+        tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+        passages::Vector{String}, dim::Int, index_bsize::Int,
+        doc_token::String, skiplist::Vector{Int})
 
-Encode a list of passages using `checkpoint`.
+Encode a list of document passages.
 
 The given `passages` are run through the underlying BERT model and the linear layer to
 generate the embeddings, after doing relevant document-specific preprocessing.
-See [`docFromText`](@ref) for more details.
 
 # Arguments
 
-  - `config`: The [`ColBERTConfig`](@ref) to be used.
-  - `checkpoint`: The [`Checkpoint`](@ref) used to encode the passages.
+  - `bert`: The pre-trained BERT component of the ColBERT model. 
+  - `linear`: The pre-trained linear component of the ColBERT model. 
+  - `tokenizer`: The tokenizer to be used. 
   - `passages`: A list of strings representing the passages to be encoded.
+  - `dim`: The embedding dimension. 
+  - `index_bsize`: The batch size to be used for running the transformer. 
+  - `doc_token`: The document token. 
+  - `skiplist`: A list of tokens to skip. 
 
 # Returns
 
@@ -213,22 +189,31 @@ function encode_passages(bert::HF.HGFBertModel, linear::Layers.Dense,
 end
 
 """
-    encode_query(searcher::Searcher, query::String)
+    encode_queries(bert::HF.HGFBertModel, linear::Layers.Dense,
+        tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+        queries::Vector{String}, dim::Int,
+        index_bsize::Int, query_token::String, attend_to_mask_tokens::Bool,
+        skiplist::Vector{Int})
 
-Encode a search query to a matrix of embeddings using the provided `searcher`. The encoded query can then be used to search the collection.
+Encode a list of query passages.
 
 # Arguments
 
-  - `searcher`: A Searcher object that contains information about the collection and the index.
-  - `query`: The search query to encode.
+  - `bert`: The pre-trained BERT component of the ColBERT model. 
+  - `linear`: The pre-trained linear component of the ColBERT model. 
+  - `tokenizer`: The tokenizer to be used. 
+  - `queries`: A list of strings representing the queries to be encoded.
+  - `dim`: The embedding dimension. 
+  - `index_bsize`: The batch size to be used for running the transformer. 
+  - `query_token`: The query token. 
+- `attend_to_mask_tokens`: Whether to attend to `"[MASK]"` tokens. 
+  - `skiplist`: A list of tokens to skip. 
 
 # Returns
 
-An array containing the embeddings for each token in the query. Also see [queryFromText](@ref) to see the size of the array.
+An array containing the embeddings for each token in the query.
 
 # Examples
-
-Here's an example using the `config` and `checkpoint` from the example for [`Checkpoint`](@ref).
 
 ```julia-repl
 julia> using ColBERT: load_hgf_pretrained_local, ColBERTConfig, encode_queries;

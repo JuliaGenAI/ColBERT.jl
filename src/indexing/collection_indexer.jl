@@ -24,8 +24,10 @@ function _sample_pids(num_documents::Int)
 end
 
 """
-    _sample_embeddings(config::ColBERTConfig, checkpoint::Checkpoint,
-        collection::Vector{String}, sampled_pids::Set{Int})
+    _sample_embeddings(bert::HF.HGFBertModel, linear::Layers.Dense,
+        tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+        dim::Int, index_bsize::Int, doc_token::String,
+        skiplist::Vector{Int}, collection::Vector{String})
 
 Compute embeddings for the PIDs sampled by [`_sample_pids`](@ref).
 
@@ -35,14 +37,18 @@ total number of embeddings over all documents.
 
 # Arguments
 
-  - `config`: The [`ColBERTConfig`](@ref) to be used.
-  - `checkpoint`: The [`Checkpoint`] used to encode the passages.
+  - `bert`: The pre-trained BERT component of ColBERT.
+  - `linear`: The pre-trained linear component of ColBERT.
+  - `tokenizer`: The tokenizer to be used.
+  - `dim`: The embedding dimension.
+  - `index_bsize`: The batch size to be used to run the transformer. See [`ColBERTConfig`](@ref).
+  - `doc_token`: The document token. See [`ColBERTConfig`](@ref).
+  - `skiplist`: List of tokens to skip.
   - `collection`: The underlying collection of passages to get the samples from.
-  - `sampled_pids`: Set of PIDs sampled by [`_sample_pids`](@ref).
 
 # Returns
 
-A `Dict` containing the average document length (i.e number of attended tokens) computed
+A tuple containing the average document length (i.e number of attended tokens) computed
 from the sampled documents, and the embedding matrix for the local samples. The matrix has
 shape `(D, N)`, where `D` is the embedding dimension (`128`) and `N` is the total number
 of embeddings over all the sampled passages.
@@ -85,24 +91,22 @@ function _heldout_split(
 end
 
 """
-    setup(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
+    setup(collection::Vector{String}, avg_doclen_est::Float32,
+        num_clustering_embs::Int, chunksize::Union{Missing, Int}, nranks::Int)
 
-Initialize the index by computing some indexing-specific estimates and save the indexing plan
-to disk.
+Initialize the index by computing some indexing-specific estimates and the index plan.
 
 The number of chunks into which the document embeddings will be stored is simply computed using
-the number of documents and the size of a chunk. A bunch of pids used for initializing the
-centroids for the embedding clusters are sampled using the [`_sample_pids`](@ref)
-and [`_sample_embeddings`](@ref) functions, and these samples are used to calculate the
-average document lengths and the estimated number of embeddings which will be computed across
-all documents. Finally, the number of clusters to be used for indexing is computed, and is
-proportional to ``16\\sqrt{\\text{Estimated number of embeddings}}``.
+the number of documents and the size of a chunk. The number of clusters to be used for indexing
+is computed, and is proportional to ``16\\sqrt{\\text{Estimated number of embeddings}}``.
 
 # Arguments
 
-  - `config`: The [`ColBERTConfig`](@ref) being used to set up the indexing.
-  - `checkpoint`: The [`Checkpoint`](@ref) used to compute embeddings.
-  - `collection`: The underlying collection of passages to initialize the index for.
+  - `collection`: The collection of documents to index.
+  - `avg_doclen_est`: The collection of documents to index.
+  - `num_clustering_embs`: The number of embeddings to be used for computing the clusters.
+  - `chunksize`: The size of a chunk to be used. Can be `Missing`.
+  - `nranks`: Number of GPUs. Currently this can only be `1`.
 
 # Returns
 
@@ -148,9 +152,9 @@ function _bucket_cutoffs_and_weights(
 end
 
 """
-    _compute_avg_residuals(
+    _compute_avg_residuals!(
         nbits::Int, centroids::AbstractMatrix{Float32},
-        heldout::AbstractMatrix{Float32})
+        heldout::AbstractMatrix{Float32}, codes::AbstractVector{UInt32})
 
 Compute the average residuals and other statistics of the held-out sample embeddings.
 
@@ -162,7 +166,8 @@ Compute the average residuals and other statistics of the held-out sample embedd
     where `D` is the embedding dimension (`128`) and `indexer.num_partitions` is the number
     of clusters.
   - `heldout`: A matrix containing the held-out embeddings, computed using
-    [`_concatenate_and_split_sample`](@ref).
+    `_heldout_split`.
+  - `codes`: The array used to store the codes for each heldout embedding.
 
 # Returns
 
@@ -196,7 +201,7 @@ end
 Compute centroids using a ``k``-means clustering algorithn, and store the compression information
 on disk.
 
-Average residuals and other compression data is computed via the [`_compute_avg_residuals`](@ref)
+Average residuals and other compression data is computed via the `_compute_avg_residuals`.
 function.
 
 # Arguments
@@ -232,20 +237,36 @@ function train(
 end
 
 """
-    index(config::ColBERTConfig, checkpoint::Checkpoint, collection::Vector{String})
+    index(index_path::String, bert::HF.HGFBertModel, linear::Layers.Dense,
+        tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+        collection::Vector{String}, dim::Int, index_bsize::Int,
+        doc_token::String, skiplist::Vector{Int}, num_chunks::Int,
+        chunksize::Int, centroids::AbstractMatrix{Float32},
+        bucket_cutoffs::AbstractVector{Float32}, nbits::Int)
 
-Build the index using `indexer`.
+Build the index using for the `collection`.
 
-The documents are processed in batches of size `chunksize`, determined by the config
-(see [`ColBERTConfig`](@ref) and [`setup`](@ref)). Embeddings and document lengths are
-computed for each batch (see [`encode_passages`](@ref)), and they are saved to disk
+The documents are processed in batches of size `chunksize` (see [`setup`](@ref)).
+Embeddings and document lengths are computed for each batch
+(see [`encode_passages`](@ref)), and they are saved to disk
 along with relevant metadata (see [`save_chunk`](@ref)).
 
 # Arguments
 
-  - `config`: The [`ColBERTConfig`](@ref) being used.
-  - `checkpoint`: The [`Checkpoint`](@ref) to compute embeddings.
+  - `index_path`: Path where the index is to be saved. 
+  - `bert`: The pre-trained BERT component of the ColBERT model. 
+  - `linear`: The pre-trained linear component of the ColBERT model. 
+  - `tokenizer`: Tokenizer to be used. 
   - `collection`: The collection to index.
+  - `dim`: The embedding dimension.
+  - `index_bsize`: The batch size used for running the transformer. 
+  - `doc_token`: The document token.
+  - `skiplist`: List of tokens to skip. 
+  - `num_chunks`: Total number of chunks. 
+  - `chunksize`: The maximum size of a chunk. 
+  - `centroids`: Centroids used to compute the compressed representations. 
+  - `bucket_cutoffs`: Cutoffs used to compute the residuals. 
+  - `nbits`: Number of bits to encode the residuals in. 
 """
 function index(index_path::String, bert::HF.HGFBertModel, linear::Layers.Dense,
         tokenizer::TextEncoders.AbstractTransformerTextEncoder,

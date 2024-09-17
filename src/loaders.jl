@@ -48,7 +48,7 @@ Load a [`ColBERTConfig`](@ref) from disk.
 
 # Examples
 
-```jldoctest
+```julia-repl
 julia> using ColBERT;
 
 julia> config = ColBERTConfig(

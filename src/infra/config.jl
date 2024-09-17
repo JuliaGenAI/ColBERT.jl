@@ -30,8 +30,8 @@ Structure containing config for running and training various components.
   - `passages_batch_size`: The number of passages sent as a batch to encoding functions. Default is `300`.
   - `nbits`: Number of bits used to compress residuals.
   - `kmeans_niters`: Number of iterations used for k-means clustering.
-  - `nprobe`: The number of nearest centroids to fetch during a search. Default is `2`. Also see [`retrieve`](@ref).
-  - `ncandidates`: The number of candidates to get during candidate generation in search. Default is `8192`. Also see [`retrieve`](@ref).
+  - `nprobe`: The number of nearest centroids to fetch during a search. Default is `2`. Also see `retrieve`.
+  - `ncandidates`: The number of candidates to get during candidate generation in search. Default is `8192`. Also see `retrieve`.
 
 # Returns
 
@@ -41,7 +41,7 @@ A [`ColBERTConfig`](@ref) object.
 
 Most users will just want to use the defaults for most settings. Here's a minimal example:
 
-```jldoctest
+```julia-repl
 julia> using ColBERT;
 
 julia> config = ColBERTConfig(
@@ -49,7 +49,6 @@ julia> config = ColBERTConfig(
            collection = "/home/codetalker7/documents",
            index_path = "./local_index"
        );
-
 ```
 """
 Base.@kwdef struct ColBERTConfig
