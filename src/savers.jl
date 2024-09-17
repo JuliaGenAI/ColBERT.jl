@@ -93,7 +93,7 @@ Save a [`ColBERTConfig`](@ref) to disk in JSON.
 
 # Examples
 
-```jldoctest
+```julia-repl
 julia> using ColBERT;
 
 julia> config = ColBERTConfig(

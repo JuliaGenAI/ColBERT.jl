@@ -41,7 +41,7 @@ A [`ColBERTConfig`](@ref) object.
 
 Most users will just want to use the defaults for most settings. Here's a minimal example:
 
-```jldoctest
+```julia-repl
 julia> using ColBERT;
 
 julia> config = ColBERTConfig(
@@ -49,7 +49,6 @@ julia> config = ColBERTConfig(
            collection = "/home/codetalker7/documents",
            index_path = "./local_index"
        );
-
 ```
 """
 Base.@kwdef struct ColBERTConfig
