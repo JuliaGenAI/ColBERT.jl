@@ -19,4 +19,5 @@ TextEncodeBase = "f92c20c0-9f2a-4705-8116-881385faba05"
 Transformers = "21ca0261-441d-5938-ace7-c90938fde4d4"
 
 [compat]
+CSV = "0.10"
 julia = "1.10"
