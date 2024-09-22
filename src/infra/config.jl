@@ -65,7 +65,7 @@ Base.@kwdef struct ColBERTConfig
 
     # resource settings 
     checkpoint::String = "colbert-ir/colbertv2.0"
-    collection::String = ""
+    collection::Union{String, Vector{String}} = ""
 
     # doc settings
     dim::Int = 128
