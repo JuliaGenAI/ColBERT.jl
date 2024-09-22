@@ -1,0 +1,6 @@
+{
+    "num_passages": 10000,
+    "num_embeddings": 615576,
+    "embedding_offset": 3203527,
+    "passage_offset": 60001
+}
