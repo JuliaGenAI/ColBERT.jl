@@ -31,11 +31,12 @@ eval_qa = JSON.parsefile("qa_evals.json")
 searcher = Searcher("./juliadocsindex/");
 
 ## for each qs, see if the context is returned
-k = 5 
+k = 5
 num_hits = 0
 for query in eval_qa
     @time pids, _ = search(searcher, query["question"], k)
-    if minimum(distance_longest_common_subsequence(query["context"], doc_passages[pids])) < 0.33
+    if minimum(distance_longest_common_subsequence(
+        query["context"], doc_passages[pids])) < 0.33
         num_hits += 1
     end
 end

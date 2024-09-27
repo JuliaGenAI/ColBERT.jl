@@ -13,8 +13,8 @@ for file in ["genie__v20240818__textembedding3large-1024-Bool__v1.0.hdf5",
     "tidier__v20240716__textembedding3large-1024-Bool__v1.0.hdf5"]
     fid = h5open(file, "r")
     chunks, sources = fid["chunks"], fid["sources"]
-    append!(doc_passages, read(chunks)) 
-    append!(doc_sources, read(sources)) 
+    append!(doc_passages, read(chunks))
+    append!(doc_sources, read(sources))
 end
 
 ## run the small toy example at the bottom of the file first to compile everything!
