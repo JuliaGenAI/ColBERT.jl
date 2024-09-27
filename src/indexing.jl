@@ -25,7 +25,8 @@ function Indexer(config::ColBERTConfig)
     tokenizer, bert, linear = load_hgf_pretrained_local(config.checkpoint)
     bert = bert |> Flux.gpu
     linear = linear |> Flux.gpu
-    collection = readlines(config.collection)
+    collection = config.collection isa String ? readlines(config.collection) :
+                 config.collection
     punctuations_and_padsym = [string.(collect("!\"#\$%&\'()*+,-./:;<=>?@[\\]^_`{|}~"));
                                tokenizer.padsym]
     skiplist = config.mask_punctuation ?
@@ -78,6 +79,10 @@ function index(indexer::Indexer)
     @time sample, sample_heldout = _heldout_split(sample)
     @assert sample isa AbstractMatrix{Float32} "$(typeof(sample))"
     @assert sample_heldout isa AbstractMatrix{Float32} "$(typeof(sample_heldout))"
+    JLD2.save_object(joinpath(indexer.config.index_path, "sample.jld2"), sample)
+    JLD2.save_object(
+        joinpath(indexer.config.index_path, "sample_heldout.jld2"),
+        sample_heldout)
 
     # generating the indexing setup
     plan_dict = setup(indexer.collection, avg_doclen_est, size(sample, 2),

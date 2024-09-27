@@ -65,6 +65,9 @@ ColBERTConfig(true, 0, 1, "[unused0]", "[unused1]", "[Q]", "[D]", "colbert-ir/co
 """
 function load_config(index_path::String)
     config_dict = JSON.parsefile(joinpath(index_path, "config.json"))
+    if config_dict["collection"] isa Vector
+        config_dict["collection"] = String.(config_dict["collection"])
+    end
     key_vals = collect(zip(Symbol.(keys(config_dict)), values(config_dict)))
     eval(:(ColBERTConfig($([Expr(:kw, :($key), :($val))
                             for (key, val) in key_vals]...))))

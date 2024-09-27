@@ -1,0 +1,123 @@
+[ Info: Sampling PIDs for clustering and generating their embeddings.
+[ Info: # of sampled PIDs = 52630
+[ Info: Encoding 52630 passages.
+[ Info: avg_doclen_est = 62.15259        length(local_sample) = 52630
+1344.709282 seconds (865.25 M allocations: 28.334 GiB, 43.23% gc time, 0.10% compilation time)
+[ Info: Splitting the sampled embeddings to a heldout set.
+  4.763963 seconds (9 allocations: 3.144 GiB, 3.00% gc time)
+[ Info: Creating 32768 clusters.
+[ Info: Estimated 8.790303e6 embeddings.
+[ Info: Saving the index plan to ./juliadocsindex/plan.json.
+[ Info: Saving the config to the indexing path.
+[ Info: Training the clusters.
+[ Info: Iteration 1/20, max delta: 0.33053413
+[ Info: Iteration 2/20, max delta: 0.32989684
+[ Info: Iteration 3/20, max delta: 0.23986906
+[ Info: Iteration 4/20, max delta: 0.21319437
+[ Info: Iteration 5/20, max delta: 0.17600355
+[ Info: Iteration 6/20, max delta: 0.13178135
+[ Info: Iteration 7/20, max delta: 0.12858585
+[ Info: Iteration 8/20, max delta: 0.13077012
+[ Info: Iteration 9/20, max delta: 0.16889544
+[ Info: Iteration 10/20, max delta: 0.1880101
+[ Info: Iteration 11/20, max delta: 0.1414688
+[ Info: Iteration 12/20, max delta: 0.099618495
+[ Info: Iteration 13/20, max delta: 0.13753697
+[ Info: Iteration 14/20, max delta: 0.09966631
+[ Info: Iteration 15/20, max delta: 0.133147
+[ Info: Iteration 16/20, max delta: 0.10344356
+[ Info: Iteration 17/20, max delta: 0.19672687
+[ Info: Iteration 18/20, max delta: 0.17177035
+[ Info: Iteration 19/20, max delta: 0.14609803
+[ Info: Iteration 20/20, max delta: 0.09144409
+[ Info: Got bucket_cutoffs = Float32[-0.0195748, -5.2850693f-5, 0.019410636] and bucket_weights = Float32[-0.037566043, -
+0.008384183, 0.008269078, 0.037420556]
+[ Info: avg_residual = 0.026873315
+615.584066 seconds (82.01 M allocations: 3.192 GiB, 18.99% gc time, 0.07% compilation time)
+[ Info: Saving codec to ./juliadocsindex/centroids.jld2, ./juliadocsindex/avg_residual.jld2, ./juliadocsindex/bucket_cuto
+ffs.jld2 and ./juliadocsindex/bucket_weights.jld2.
+[ Info: Building the index.
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 1:          10000 passages and 470244 embeddings. From passage #1 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/1.codes.jld2 and residuals to ./juliadocsindex/1.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.1.jld2
+[ Info: Saving metadata to ./juliadocsindex/1.metadata.json
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 2:          10000 passages and 521987 embeddings. From passage #10001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/2.codes.jld2 and residuals to ./juliadocsindex/2.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.2.jld2
+[ Info: Saving metadata to ./juliadocsindex/2.metadata.json
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 3:          10000 passages and 587255 embeddings. From passage #20001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/3.codes.jld2 and residuals to ./juliadocsindex/3.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.3.jld2
+[ Info: Saving metadata to ./juliadocsindex/3.metadata.json
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 4:          10000 passages and 409039 embeddings. From passage #30001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/4.codes.jld2 and residuals to ./juliadocsindex/4.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.4.jld2
+[ Info: Saving metadata to ./juliadocsindex/4.metadata.json
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 5:          10000 passages and 581913 embeddings. From passage #40001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/5.codes.jld2 and residuals to ./juliadocsindex/5.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.5.jld2
+[ Info: Saving metadata to ./juliadocsindex/5.metadata.json
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 6:          10000 passages and 633088 embeddings. From passage #50001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/6.codes.jld2 and residuals to ./juliadocsindex/6.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.6.jld2
+[ Info: Saving metadata to ./juliadocsindex/6.metadata.json
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 7:          10000 passages and 615576 embeddings. From passage #60001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/7.codes.jld2 and residuals to ./juliadocsindex/7.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.7.jld2
+[ Info: Saving metadata to ./juliadocsindex/7.metadata.json
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 8:          10000 passages and 649786 embeddings. From passage #70001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/8.codes.jld2 and residuals to ./juliadocsindex/8.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.8.jld2
+[ Info: Saving metadata to ./juliadocsindex/8.metadata.json
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 9:          10000 passages and 690488 embeddings. From passage #80001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/9.codes.jld2 and residuals to ./juliadocsindex/9.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.9.jld2
+[ Info: Saving metadata to ./juliadocsindex/9.metadata.json
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 10:         10000 passages and 833543 embeddings. From passage #90001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/10.codes.jld2 and residuals to ./juliadocsindex/10.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.10.jld2
+[ Info: Saving metadata to ./juliadocsindex/10.metadata.json
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 11:         10000 passages and 909336 embeddings. From passage #100001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/11.codes.jld2 and residuals to ./juliadocsindex/11.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.11.jld2
+[ Info: Saving metadata to ./juliadocsindex/11.metadata.json
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 12:         10000 passages and 656596 embeddings. From passage #110001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/12.codes.jld2 and residuals to ./juliadocsindex/12.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.12.jld2
+[ Info: Saving metadata to ./juliadocsindex/12.metadata.json
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 13:         10000 passages and 606647 embeddings. From passage #120001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/13.codes.jld2 and residuals to ./juliadocsindex/13.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.13.jld2
+[ Info: Saving metadata to ./juliadocsindex/13.metadata.json
+[ Info: Encoding 10000 passages.
+[ Info: Saving chunk 14:         10000 passages and 590178 embeddings. From passage #130001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/14.codes.jld2 and residuals to ./juliadocsindex/14.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.14.jld2
+[ Info: Saving metadata to ./juliadocsindex/14.metadata.json
+[ Info: Encoding 1431 passages.
+[ Info: Saving chunk 15:         1431 passages and 64037 embeddings. From passage #140001 onward.
+[ Info: Saving compressed codes to ./juliadocsindex/15.codes.jld2 and residuals to ./juliadocsindex/15.residuals.jld2
+[ Info: Saving doclens to ./juliadocsindex/doclens.15.jld2
+[ Info: Saving metadata to ./juliadocsindex/15.metadata.json
+6797.615909 seconds (2.25 G allocations: 1.168 TiB, 25.68% gc time, 0.00% compilation time)
+[ Info: Updating chunk metadata and indexing plan
+[ Info: Building the centroid to embedding IVF.
+[ Info: Saving the IVF.
+[ Info: Checking if all index files are saved.
+[ Info: Found all files!
+8771.641283 seconds (3.20 G allocations: 1.202 TiB, 27.87% gc time, 0.02% compilation time)
+true
+

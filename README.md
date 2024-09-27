@@ -6,7 +6,7 @@
 [![Coverage](https://codecov.io/gh/JuliaGenAI/ColBERT.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/JuliaGenAI/ColBERT.jl)
 [![SciML Code Style](https://img.shields.io/static/v1?label=code%20style&message=SciML&color=9558b2&labelColor=389826)](https://github.com/SciML/SciMLStyle)
 [![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor%27s%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
-[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
+<!-- [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl) -->
 
 [ColBERT.jl](https://codetalker7/colbert.jl) is a pure Julia package for the ColBERT information retrieval system[^1][^2][^3], allowing developers
 to integrate this powerful neural retrieval algorithm into their own downstream tasks. ColBERT (**c**ontextualized **l**ate interaction over **BERT**) has emerged as a state-of-the-art approach for efficient and effective document retrieval, thanks to its ability to leverage contextualized embeddings from pre-trained language models like BERT.
@@ -15,48 +15,40 @@ to integrate this powerful neural retrieval algorithm into their own downstream 
 
 ## Get Started
 
-### Dataset and preprocessing
+### Creating the documents
 
-This package is currently under active development, and has not been registered in Julia's package registry yet. To develop this package, simply clone this repository, and from the root of the package just `dev` it:
+First, install the package. Simply clone this repository, and from the rot of the package just `dev` it:
 
 ```julia
 julia> ] dev .
 ```
 
-We'll go through an example of the `lifestyle/dev` split of the [LoTTe dataset](https://github.com/stanford-futuredata/colbert/blob/main/lotte.md). To download the dataset, you can use the `examples/lotte.sh` script. We'll work with the first `1000` documents of the dataset:
-
-```
-$ cd examples
-$ ./lotte.sh
-$ head -n 1000 downloads/lotte/lifestyle/dev/collection.tsv > 1kcollection.tsv
-$ wc -l 1kcollection.tsv
-1000 1kcollection.txt
-```
-
-The `1kcollection.tsv` file has documents in the format `pid \t <document text>`, where `pid` is the unique ID of the document. For now, the package only supports collections which have one document per line. So, we'll simply remove the `pid` from each document in `1kcollection.tsv`, and save the resultant file of documents in `1kcollection.txt`. Here's a simple Julia script you can use to do this preprocessing using the [`CSV.jl`](https://github.com/JuliaData/CSV.jl) package:
+In this example, we'll index a small collection of `10` documents and run a sample query on it. The documents will just be a simple `Vector{String}`. However, for large datasets, you'll want to save the documents in a file and pass the path of the file to the `ColBERTConfig` (more on this in a bit). Here are the first `10` from the `lifestyle/dev` split of the [LoTTe dataset](https://github.com/stanford-futuredata/colbert/blob/main/lotte.md):
 
 ```julia
-using CSV
-file = CSV.File("1kcollection.tsv"; delim = '\t', header = [:pid, :text],
-        types = Dict(:pid => Int, :text => String), debug = true, quoted = false)
-for doc in file.text
-    open("1kcollection.txt", "a") do io
-        write(io, doc*"\n")
-    end
-end
+document_passages = [
+   "In my experience rabbits are very easy to housebreak. They like to pee and poop in the same place every time, so in most cases all you have to do is put a little bit of their waste in the litter box and they will happily use the litter box. It is very important that if they go somewhere else, miss the edge or kick waste out of the box that you clean it up well and immediately as otherwise those spots will become existing places to pee and poop. When you clean the box, save a little bit of waste and put it in the cleaned box so it smells right to them. For a more foolproof method, you can get a piece of wood soaked with their urine and put that in the box along with droppings or cage them so that they are only in their litter box for a week. Generally, if I try the first method and find that they are not using only the box on the first day, I go for the litter box only for a week method. The wood block works well if you are moving from a hutch outdoors to a litter box indoors. If you have an indoor cage, you can use the cage itself as the litter box (or attach a litter box to the section of the cage the rabbit has used for waste.) Be sure to use clay or newsprint litter as the other types aren't necessarily good for rabbits. Wood litter is okay if you are sure it isn't fir. The most important thing is to clean anywhere they have an accident. High sided boxes help with avoiding kicking soiled litter out of the box, which is the biggest cause of failure in my experience.",
+    "...rabbits can be easily trained to use a litter tray, sometimes with more reliability than your average cat! The natural instinct of a wild rabbit to use one area as its latrine is still apparent in its domestic counterparts. (1) The actual process is very similar to pad training a dog or litter box training a cat. Keep the rabbit confined to a small area while training, move any \"accidents\" to the litter box, and the rabbit will naturally start using that area for its business. The source link has the details. (1) Litter Training Your Rabbit Emma Magnus MSc Association of Pet Behaviour Counsellors apbc.org.uk",
+    "It could be a multitude of things. Lack of exercise plays a big role in how your dog acts. If they have a lot of unused energy, they're more likely to act up. Giving him treats or praise will encourage the behavior you're trying to prevent. You want to refrain from treats or praise until he's doing what you want him to do. In the mean time, make it clear to him what you want. You want to be the focus of his attention when you come across a child or another dog. You can do this by keeping him right next to you (never in front of you) by using a short leash. If he tries to pull, tilt the leash upwards. Doing so creates unusual pressure on the bottom of his neck, causing him to look up and see what's going on. If he still won't turn his attention to you, you can forcefully nudge him with the side of your leg until he yields. I've found with my dog sometimes I have to step in front of her and hold her muzzle, forcing her to look at me. It's also important that you remain calm. It's easy to get upset and dogs have the ability of reading our emotions. If you're tense and angry, he'll start tune you out. Source: personal experience with my black lab guided by insight from Cesar Millan",
+    "I've had a lot of success with crate training. Dogs won't relieve themselves where they sleep or eat. Keeping them in an enclosed area and bringing them outside when they have to go to relieve themselves teaches them where it's OK to do so. I recommend buying an expandable crate. You want to give them just enough room to stand up and turn around, but not enough that they'll start going in the corner. As they grow you can increase the size of the crate accordingly. The Humane Society has some great info on crate training.",
+    "I've seen on the \"Dog Whisperer\" that dogs can sense the anxiety that an owner has. The first thing you need to be aware of is your own anxiety when walking your puppy. As far as your puppy goes, its still a puppy, so fear isn't too unnatural. You will want to acclimate it to walking in urban areas by first training it to walk on a leash well. That means you are walking and your dog happens you be accompanying you. Keep your eyes forward, and heel walk the puppy. If the puppy wanders, give the leash a small yank. As your puppy gets accustomed to this, it should be a lot calmer, and you can try for more noisy environments.",
+    "@Paperjam is right: crate training is probably the most effective way to quickly housetrain a puppy. I will also add that routine is incredibly important when house-training a puppy. Take your dog out on a schedule: the same times, every day. Also try to take them out shortly after they eat: puppies might have to go as shortly as 30 minutes after a meal. You want to set your pup up for success. Lastly, let me emphasize that accidents will happen. It's natural, it's frustrating, but it's not the end of the world. What you don't want to do is scold your puppy, or \"rub their nose in it\". Dogs don't really learn that way, and usually just ape your emotions to appease you when they can't figure out what's wrong. It's better to try and prevent such accidents from happening, rather than reacting to one that's already transpired.",
+    "You can feed cats raw meat, they're obligate carnivores after all, but human processed meats can introduce other bacterias and contaminates into meat that might not be there otherwise. If you want to do this, which I can understand, then you should introduce the raw meats carefully into their diet and only from a source that you trust, such as local butcher who is following good practices (if they save bones for dogs, it's probably a good sign). While you're doing this, monitor your cat carefully and if there is anything happening that concerns you such as unusual stool, vomiting, etc. then stop immediately and potentially take him/her into a vet for a check up. As an aside, there are some really good food products for cats that don't have as much (or little) filling in them. Spend some time reading the labels and look for products that are all meat or very, very high meat volume. Your cats will appreciate it. :)",
+    "Cats are just like dogs in that they need a lot of exercise. More importantly, they also share the same instinct to kill, except to a much greater degree. I would say that your cat needs one or both of these things to happen: More exercise (buy some interactive toys) Something to \"kill\" after exercising (and no, don't buy mice just so it can kill them) What I mean by something to kill is a toy or something for it to chew on after some laser chasing or something. If a cat chases after something but can't actually do anything with it, it can build up frustration and aggression.",
+    "Because the dog is so young, I think it is very likely you can slowly accustom her to urban walking. I think a natural response when you see a small dog cowering or wimpering in fear is to console them, or pet them. This is not an effective way to dissuade fear. It is better to ignore your dog and not feed into its fearful emotions. [see below] I think the best bet is to teach your dog that walking in urban areas is fun. Bring treats and toys, walk in a zany unpredictable way, go for short burts of sprints, etc. Your dog will eventually begin to associate urban walks with fun times and an owner in good spirits. This is not universally agreed-upon among trainers. Some believe this to be true, others believe petting a fearful dog does no harm to the training procedure. I personally subscribe to the theory that you should only pet and praise your dog when she is doing what you want her to be doing.",
+    "There was a trick Cesar Milan (the Dog Whisperer) used to break a puppy of their fear of living in an urban environment: hold their tail up. When dogs are afraid, their tail tends to go between their legs and their heads bow down. When they're comfortable with their surroundings they'll put their tails upward. Simply (well, not so simply with a dachshund) holding their tail up while walking them might help them to feel more confident. It seems silly but it worked for Cesar. If you have Netflix, I recommend watching episode 2 of The Dog Whisperer: http://movies.netflix.com/WiMovie/The_Very_Best_of_Dog_Whisperer_with_Cesar_Millan/70270440.",
+]
 ```
-
-We now have our collection of documents to index!
 
 ### The `ColBERTConfig`
 
 To start off, make sure you download a ColBERT checkpoint somewhere in your system; for this example, I'll download the `colbert-ir/colbertv2.0` checkpoint in `$HOME/models`:
-    
-    git lfs install 
+
+    git lfs install
     cd $HOME/models
     git clone https://huggingface.co/colbert-ir/colbertv2.0
 
-The next step is to create a configuration object containing details about all parameters used during indexing/searching using ColBERT. All this information is contained in a type called `ColBERTConfig`. Creating a `ColBERTConfig` is easy; it has the right defaults for most users, and one can change the settings using simple kwargs. In this example, we'll create a config for the collection `1kcollection.txt` we just created, and we'll also use [`CUDA.jl`](https://github.com/JuliaGPU/CUDA.jl) for GPU support (you can use any GPU backend supported by [Flux.jl](https://github.com/FluxML/Flux.jl))!
+The next step is to create a configuration object containing details about all parameters used during indexing/searching using ColBERT. All this information is contained in a type called `ColBERTConfig`. Creating a `ColBERTConfig` is easy; it has the right defaults for most users, and one can change the settings using simple kwargs. In this example, we'll create a config for the collection we just created, and we'll also use [`CUDA.jl`](https://github.com/JuliaGPU/CUDA.jl) for GPU support (you can use any GPU backend supported by [Flux.jl](https://github.com/FluxML/Flux.jl))!
 
 ```julia
 julia>  using ColBERT, CUDA, Random;
@@ -66,10 +58,10 @@ julia>  Random.seed!(0)                                                 # global
 julia>  config = ColBERTConfig(
             use_gpu = true,
             checkpoint = "/home/codetalker7/models/colbertv2.0",        # local path to the colbert checkpoint
-            collection = "./1kcollection.txt",                          # local path to the collection
+            collection = document_passages,                             # can also provide a local path
             doc_maxlen = 300,                                           # max length beyond which docs are truncated
-            index_path = "./1kcollection_index/",                       # local directory to save the index in
-            chunksize = 200                                             # number of docs to store in a chunk
+            index_path = "./short_index/",                              # local directory to save the index in
+            chunksize = 2                                               # number of docs to store in a chunk
         );
 ```
 
@@ -77,82 +69,72 @@ You can read more about a [`ColBERTConfig`](https://github.com/codetalker7/ColBE
 
 ### Building the index
 
-Building the index is even easier than creating a config; just build an `Indexer` and call the `index` function. I used an NVIDIA GeForce RTX 2020 Ti card to build the index:
+Building the index is even easier than creating a config; just build an `Indexer` and call the `index` function:
 
 ```julia
 julia>  indexer = Indexer(config);
 
 julia>  @time index(indexer)
-[ Info: # of sampled PIDs = 636
-[ Info: Encoding 636 passages.
-[ Info: avg_doclen_est = 233.25157232704402      length(local_sample) = 636
-[ Info: Creating 4096 clusters.
-[ Info: Estimated 233251.572327044 embeddings.
-[ Info: Saving the index plan to ./1kcollection_index/plan.json.
+[ Info: Sampling PIDs for clustering and generating their embeddings.
+[ Info: # of sampled PIDs = 7
+[ Info: Encoding 7 passages.
+[ Info: avg_doclen_est = 178.28572       length(local_sample) = 7
+  0.217539 seconds (213.11 k allocations: 7.931 MiB, 0.00% compilation time)
+[ Info: Splitting the sampled embeddings to a heldout set.
+  0.000832 seconds (8 allocations: 1.229 MiB)
+[ Info: Creating 512 clusters.
+[ Info: Estimated 1782.8572 embeddings.
+[ Info: Saving the index plan to ./short_index/plan.json.
 [ Info: Saving the config to the indexing path.
 [ Info: Training the clusters.
-[ Info: Iteration 1/20, max delta: 0.26976448
-[ Info: Iteration 2/20, max delta: 0.17742664
-[ Info: Iteration 3/20, max delta: 0.16281573
-[ Info: Iteration 4/20, max delta: 0.120501295
-[ Info: Iteration 5/20, max delta: 0.08808214
-[ Info: Iteration 6/20, max delta: 0.14226294
-[ Info: Iteration 7/20, max delta: 0.07096822
-[ Info: Iteration 8/20, max delta: 0.081315234
-[ Info: Iteration 9/20, max delta: 0.06760075
-[ Info: Iteration 10/20, max delta: 0.07043305
-[ Info: Iteration 11/20, max delta: 0.060436506
-[ Info: Iteration 12/20, max delta: 0.048092205
-[ Info: Iteration 13/20, max delta: 0.052080974
-[ Info: Iteration 14/20, max delta: 0.055756018
-[ Info: Iteration 15/20, max delta: 0.057068985
-[ Info: Iteration 16/20, max delta: 0.05717972
-[ Info: Iteration 17/20, max delta: 0.02952642
-[ Info: Iteration 18/20, max delta: 0.025388952
-[ Info: Iteration 19/20, max delta: 0.034007154
-[ Info: Iteration 20/20, max delta: 0.047712516
-[ Info: Got bucket_cutoffs_quantiles = [0.25, 0.5, 0.75] and bucket_weights_quantiles = [0.125, 0.375, 0.625, 0.875]
-[ Info: Got bucket_cutoffs = Float32[-0.023658333, -9.9312514f-5, 0.023450013] and bucket_weights = Float32[-0.044035435, -0.010775891, 0.010555617, 0.043713447]
-[ Info: avg_residual = 0.031616904
-[ Info: Saving codec to ./1kcollection_index/centroids.jld2, ./1kcollection_index/avg_residual.jld2, ./1kcollection_index/bucket_cutoffs.jld2 and ./1kcollection_index/bucket_weights.jld2.
+[ Info: Iteration 1/20, max delta: 0.17846265
+[ Info: Iteration 2/20, max delta: 0.13685061
+[ Info: Iteration 3/20, max delta: 0.18692705
+[ Info: Iteration 4/20, max delta: 0.10748553
+[ Info: Iteration 5/20, max delta: 0.10305407
+[ Info: Iteration 6/20, max delta: 0.017908525
+[ Info: Iteration 7/20, max delta: 0.027008116
+[ Info: Iteration 8/20, max delta: 0.023782544
+[ Info: Iteration 9/20, max delta: 0.0
+[ Info: Terminating as max delta 0.0 < 0.0001
+[ Info: Got bucket_cutoffs = Float32[-0.021662371, -0.00015685707, 0.020033525] and bucket_weights = Float32[-0.041035336, -0.009812315, 0.008938393, 0.039779153]
+[ Info: avg_residual = 0.029879
+  0.018622 seconds (30.88 k allocations: 5.544 MiB)
+[ Info: Saving codec to ./short_index/centroids.jld2, ./short_index/avg_residual.jld2, ./short_index/bucket_cutoffs.jld2 and ./short_index/bucket_weights.jld2.
 [ Info: Building the index.
-[ Info: Loading codec from ./1kcollection_index/centroids.jld2, ./1kcollection_index/avg_residual.jld2, ./1kcollection_index/bucket_cutoffs.jld2 and ./1kcollection_index/bucket_weights.jld2.
-[ Info: Encoding 200 passages.
-[ Info: Saving chunk 1:          200 passages and 36218 embeddings. From passage #1 onward.
-[ Info: Saving compressed codes to ./1kcollection_index/1.codes.jld2 and residuals to ./1kcollection_index/1.residuals.jld2
-[ Info: Saving doclens to ./1kcollection_index/doclens.1.jld2
-[ Info: Saving metadata to ./1kcollection_index/1.metadata.json
-[ Info: Encoding 200 passages.
-[ Info: Saving chunk 2:          200 passages and 45064 embeddings. From passage #201 onward.
-[ Info: Saving compressed codes to ./1kcollection_index/2.codes.jld2 and residuals to ./1kcollection_index/2.residuals.jld2
-[ Info: Saving doclens to ./1kcollection_index/doclens.2.jld2
-[ Info: Saving metadata to ./1kcollection_index/2.metadata.json
-[ Info: Encoding 200 passages.
-[ Info: Saving chunk 3:          200 passages and 50956 embeddings. From passage #401 onward.
-[ Info: Saving compressed codes to ./1kcollection_index/3.codes.jld2 and residuals to ./1kcollection_index/3.residuals.jld2
-[ Info: Saving doclens to ./1kcollection_index/doclens.3.jld2
-[ Info: Saving metadata to ./1kcollection_index/3.metadata.json
-[ Info: Encoding 200 passages.
-[ Info: Saving chunk 4:          200 passages and 49415 embeddings. From passage #601 onward.
-[ Info: Saving compressed codes to ./1kcollection_index/4.codes.jld2 and residuals to ./1kcollection_index/4.residuals.jld2
-[ Info: Saving doclens to ./1kcollection_index/doclens.4.jld2
-[ Info: Saving metadata to ./1kcollection_index/4.metadata.json
-[ Info: Encoding 200 passages.
-[ Info: Saving chunk 5:          200 passages and 52304 embeddings. From passage #801 onward.
-[ Info: Saving compressed codes to ./1kcollection_index/5.codes.jld2 and residuals to ./1kcollection_index/5.residuals.jld2
-[ Info: Saving doclens to ./1kcollection_index/doclens.5.jld2
-[ Info: Saving metadata to ./1kcollection_index/5.metadata.json
-[ Info: Running some final checks.
-[ Info: Checking if all files are saved.
-[ Info: Found all files!
-[ Info: Collecting embedding ID offsets.
-[ Info: Saving the indexing metadata.
+[ Info: Encoding 2 passages.
+[ Info: Saving chunk 1:          2 passages and 395 embeddings. From passage #1 onward.
+[ Info: Saving compressed codes to ./short_index/1.codes.jld2 and residuals to ./short_index/1.residuals.jld2
+[ Info: Saving doclens to ./short_index/doclens.1.jld2
+[ Info: Saving metadata to ./short_index/1.metadata.json
+[ Info: Encoding 2 passages.
+[ Info: Saving chunk 2:          2 passages and 354 embeddings. From passage #3 onward.
+[ Info: Saving compressed codes to ./short_index/2.codes.jld2 and residuals to ./short_index/2.residuals.jld2
+[ Info: Saving doclens to ./short_index/doclens.2.jld2
+[ Info: Saving metadata to ./short_index/2.metadata.json
+[ Info: Encoding 2 passages.
+[ Info: Saving chunk 3:          2 passages and 301 embeddings. From passage #5 onward.
+[ Info: Saving compressed codes to ./short_index/3.codes.jld2 and residuals to ./short_index/3.residuals.jld2
+[ Info: Saving doclens to ./short_index/doclens.3.jld2
+[ Info: Saving metadata to ./short_index/3.metadata.json
+[ Info: Encoding 2 passages.
+[ Info: Saving chunk 4:          2 passages and 294 embeddings. From passage #7 onward.
+[ Info: Saving compressed codes to ./short_index/4.codes.jld2 and residuals to ./short_index/4.residuals.jld2
+[ Info: Saving doclens to ./short_index/doclens.4.jld2
+[ Info: Saving metadata to ./short_index/4.metadata.json
+[ Info: Encoding 2 passages.
+[ Info: Saving chunk 5:          2 passages and 320 embeddings. From passage #9 onward.
+[ Info: Saving compressed codes to ./short_index/5.codes.jld2 and residuals to ./short_index/5.residuals.jld2
+[ Info: Saving doclens to ./short_index/doclens.5.jld2
+[ Info: Saving metadata to ./short_index/5.metadata.json
+  0.371854 seconds (354.43 k allocations: 24.505 MiB, 20.05% gc time, 2.59% compilation time)
+[ Info: Updating chunk metadata and indexing plan
 [ Info: Building the centroid to embedding IVF.
-[ Info: Loading codes for each embedding.
-[ Info: Sorting the codes.
-[ Info: Getting unique codes and their counts.
 [ Info: Saving the IVF.
-151.833047 seconds (78.15 M allocations: 28.871 GiB, 41.12% gc time, 0.51% compilation time: <1% of which was recompilation)
+[ Info: Checking if all index files are saved.
+[ Info: Found all files!
+  0.629364 seconds (602.34 k allocations: 39.565 MiB, 11.84% gc time, 1.53% compilation time)
+true
 ```
 
 ### Searching
@@ -160,26 +142,25 @@ julia>  @time index(indexer)
 Once you've built the index for your collection of docs, it's now time to perform a query search. This involves creating a `Searcher` from the path of the index:
 
 ```julia
-julia>  using ColBERT, CUDA;
-
-julia>  searcher = Searcher("1kcollection_index");
+julia>  searcher = Searcher("short_index");
 ```
 
 Next, simply feed a query to the `search` function, and get the top-`k` best documents for your query:
 
 ```julia
-julia>  query = "what is 1080 fox bait poisoning?";
+julia>  query = "what was Cesar Milan's trick?";
 
-julia>  @time pids, scores = search(searcher, query, 10)            # second run statistics
-  0.136773 seconds (1.95 M allocations: 240.648 MiB, 0.00% compilation time)
-([999, 383, 386, 323, 547, 385, 384, 344, 963, 833], Float32[8.754782, 7.6871076, 6.8440857, 6.365711, 6.323611, 6.1222105, 5.92911, 5.708316, 5.597268, 5.4987035])
+julia>  @time pids, scores = search(searcher, query, 2)
+[ Info: Encoding 1 queries.
+  0.014886 seconds (26.30 k allocations: 6.063 MiB, 0.00% compilation time)
+([10, 8], Float32[5.9721255, 3.7732823])
 ```
 
 You can now use these `pids` to see which documents match the best against your query:
 
 ```julia
-julia> print(readlines("1kcollection.txt")[pids[1]])
-Tl;dr - Yes, it sounds like a possible 1080 fox bait poisoning. Can't be sure though. The traditional fox bait is called 1080. That poisonous bait is still used in a few countries to kill foxes, rabbits, possums and other mammal pests. The toxin in 1080 is Sodium fluoroacetate. Wikipedia is a bit vague on symptoms in animals, but for humans they say: In humans, the symptoms of poisoning normally appear between 30 minutes and three hours after exposure. Initial symptoms typically include nausea, vomiting and abdominal pain; sweating, confusion and agitation follow. In significant poisoning, cardiac abnormalities including tachycardia or bradycardia, hypotension and ECG changes develop. Neurological effects include muscle twitching and seizures... One might safely assume a dog, especially a small Whippet, would show symptoms of poisoning faster than the 30 mins stated for humans. The listed (human) symptoms look like a good fit to what your neighbour reported about your dog. Strychnine is another commonly used poison against mammal pests. It affects the animal's muscles so that contracted muscles can no longer relax. That means the muscles responsible of breathing cease to operate and the animal suffocates to death in less than two hours. This sounds like unlikely case with your dog. One possibility is unintentional pet poisoning by snail/slug baits. These baits are meant to control a population of snails and slugs in a garden. Because the pelletized bait looks a lot like dry food made for dogs it is easily one of the most common causes of unintentional poisoning of dogs. The toxin in these baits is Metaldehyde and a dog may die inside four hours of ingesting these baits, which sounds like too slow to explain what happened to your dog, even though the symptoms of this toxin are somewhat similar to your case. Then again, the malicious use of poisons against neighbourhood dogs can vary a lot. In fact they don't end with just pesticides but also other harmful matter, like medicine made for humans and even razorblades stuck inside a meatball, have been found in baits. It is quite impossible to say what might have caused the death of your dog, at least without autopsy and toxicology tests. The 1080 is just one of the possible explanations. It is best to always use a leash when walking dogs in populated areas and only let dogs free (when allowed by local legislation) in unpopulated parks and forests and suchlike places.
+julia> print(document_passages[pids[1]])
+There was a trick Cesar Milan (the Dog Whisperer) used to break a puppy of their fear of living in an urban environment: hold their tail up. When dogs are afraid, their tail tends to go between their legs and their heads bow down. When they're comfortable with their surroundings they'll put their tails upward. Simply (well, not so simply with a dachshund) holding their tail up while walking them might help them to feel more confident. It seems silly but it worked for Cesar. If you have Netflix, I recommend watching episode 2 of The Dog Whisperer: http://movies.netflix.com/WiMovie/The_Very_Best_of_Dog_Whisperer_with_Cesar_Millan/70270440.
 ```
 
 ## Key Features
