@@ -4,8 +4,6 @@ authors = ["Siddhant Chaudhary <urssidd@gmail.com> and contributors"]
 version = "0.1.0"
 
 [deps]
-CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
-Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
@@ -19,4 +17,11 @@ TextEncodeBase = "f92c20c0-9f2a-4705-8116-881385faba05"
 Transformers = "21ca0261-441d-5938-ace7-c90938fde4d4"
 
 [compat]
+Flux = "0.14"
+JLD2 = "0.4" 
+JSON = "0.21" 
+NeuralAttentionlib = "0.3"
+StatsBase = "0.34"
+TextEncodeBase = "0.8" 
+Transformers = "0.3"
 julia = "1.10"

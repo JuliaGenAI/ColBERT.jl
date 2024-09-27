@@ -1,6 +1,4 @@
 module ColBERT
-using Clustering
-using CSV
 using Dates
 using Flux
 using .Iterators
