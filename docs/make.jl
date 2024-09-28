@@ -18,7 +18,7 @@ makedocs(;
 )
 
 deploydocs(;
-    repo = "github.com/codetalker7/ColBERT.jl",
+    repo = "github.com/JuliaGenAI/ColBERT.jl",
     target = "build",
     devbranch = "main",
     push_preview = true
