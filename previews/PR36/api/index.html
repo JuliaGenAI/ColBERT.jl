@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Reference · ColBERT</title><meta name="title" content="Reference · ColBERT"/><meta property="og:title" content="Reference · ColBERT"/><meta property="twitter:title" content="Reference · ColBERT"/><meta name="description" content="Documentation for ColBERT."/><meta property="og:description" content="Documentation for ColBERT."/><meta property="twitter:description" content="Documentation for ColBERT."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Reference</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Reference</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/JuliaGenAI/ColBERT.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/main/docs/src/api.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><ul><li><a href="#ColBERT.ColBERTConfig"><code>ColBERT.ColBERTConfig</code></a></li><li><a href="#ColBERT.Indexer-Tuple{ColBERTConfig}"><code>ColBERT.Indexer</code></a></li><li><a href="#ColBERT._add_marker_row-Union{Tuple{T}, Tuple{AbstractMatrix{T}, T}} where T"><code>ColBERT._add_marker_row</code></a></li><li><a href="#ColBERT._binarize-Union{Tuple{T}, Tuple{AbstractMatrix{T}, Int64}} where T&lt;:Integer"><code>ColBERT._binarize</code></a></li><li><a href="#ColBERT._bucket_indices-Union{Tuple{S}, Tuple{T}, Tuple{AbstractMatrix{T}, AbstractVector{S}}} where {T&lt;:Number, S&lt;:Number}"><code>ColBERT._bucket_indices</code></a></li><li><a href="#ColBERT._cids_to_eids!-NTuple{4, Vector{Int64}}"><code>ColBERT._cids_to_eids!</code></a></li><li><a href="#ColBERT._compute_avg_residuals!-Tuple{Int64, AbstractMatrix{Float32}, AbstractMatrix{Float32}, AbstractVector{UInt32}}"><code>ColBERT._compute_avg_residuals!</code></a></li><li><a href="#ColBERT._integer_ids_and_mask-Tuple{Transformers.TextEncoders.AbstractTransformerTextEncoder, AbstractVector{String}}"><code>ColBERT._integer_ids_and_mask</code></a></li><li><a href="#ColBERT._load_model-Tuple{Transformers.HuggingFace.HGFConfig}"><code>ColBERT._load_model</code></a></li><li><a href="#ColBERT._load_tokenizer-Tuple{Transformers.HuggingFace.HGFConfig}"><code>ColBERT._load_tokenizer</code></a></li><li><a href="#ColBERT._load_tokenizer_config-Tuple{AbstractString}"><code>ColBERT._load_tokenizer_config</code></a></li><li><a href="#ColBERT._packbits-Tuple{AbstractArray{Bool, 3}}"><code>ColBERT._packbits</code></a></li><li><a href="#ColBERT._sample_embeddings-Tuple{Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, Transformers.TextEncoders.AbstractTransformerTextEncoder, Int64, Int64, String, Vector{Int64}, Vector{String}}"><code>ColBERT._sample_embeddings</code></a></li><li><a href="#ColBERT._sample_pids-Tuple{Int64}"><code>ColBERT._sample_pids</code></a></li><li><a href="#ColBERT._unbinarize-Tuple{AbstractArray{Bool, 3}}"><code>ColBERT._unbinarize</code></a></li><li><a href="#ColBERT._unpackbits-Tuple{AbstractMatrix{UInt8}, Int64}"><code>ColBERT._unpackbits</code></a></li><li><a href="#ColBERT.binarize-Tuple{Int64, Int64, Vector{Float32}, AbstractMatrix{Float32}}"><code>ColBERT.binarize</code></a></li><li><a href="#ColBERT.compress-Tuple{Matrix{Float32}, Vector{Float32}, Int64, Int64, AbstractMatrix{Float32}}"><code>ColBERT.compress</code></a></li><li><a href="#ColBERT.compress_into_codes!-Tuple{AbstractVector{UInt32}, AbstractMatrix{Float32}, AbstractMatrix{Float32}}"><code>ColBERT.compress_into_codes!</code></a></li><li><a href="#ColBERT.decompress-Tuple{Int64, Int64, Matrix{Float32}, Vector{Float32}, Vector{UInt32}, AbstractMatrix{UInt8}}"><code>ColBERT.decompress</code></a></li><li><a href="#ColBERT.decompress_residuals-Tuple{Int64, Int64, Vector{Float32}, AbstractMatrix{UInt8}}"><code>ColBERT.decompress_residuals</code></a></li><li><a href="#ColBERT.doc-Tuple{Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, AbstractMatrix{Int32}, AbstractMatrix{Bool}}"><code>ColBERT.doc</code></a></li><li><a href="#ColBERT.encode_passages-Tuple{Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, Transformers.TextEncoders.AbstractTransformerTextEncoder, Vector{String}, Int64, Int64, String, Vector{Int64}}"><code>ColBERT.encode_passages</code></a></li><li><a href="#ColBERT.encode_queries-Tuple{Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, Transformers.TextEncoders.AbstractTransformerTextEncoder, Vector{String}, Int64, Int64, String, Bool, Vector{Int64}}"><code>ColBERT.encode_queries</code></a></li><li><a href="#ColBERT.extract_tokenizer_type-Tuple{AbstractString}"><code>ColBERT.extract_tokenizer_type</code></a></li><li><a href="#ColBERT.index-Tuple{String, Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, Transformers.TextEncoders.AbstractTransformerTextEncoder, Vector{String}, Int64, Int64, String, Vector{Int64}, Int64, Int64, AbstractMatrix{Float32}, AbstractVector{Float32}, Int64}"><code>ColBERT.index</code></a></li><li><a href="#ColBERT.index-Tuple{Indexer}"><code>ColBERT.index</code></a></li><li><a href="#ColBERT.kmeans_gpu_onehot!-Tuple{AbstractMatrix{Float32}, AbstractMatrix{Float32}, Int64}"><code>ColBERT.kmeans_gpu_onehot!</code></a></li><li><a href="#ColBERT.load_codec-Tuple{String}"><code>ColBERT.load_codec</code></a></li><li><a href="#ColBERT.load_config-Tuple{String}"><code>ColBERT.load_config</code></a></li><li><a href="#ColBERT.load_hgf_pretrained_local-Tuple{AbstractString}"><code>ColBERT.load_hgf_pretrained_local</code></a></li><li><a href="#ColBERT.mask_skiplist!-Tuple{AbstractMatrix{Bool}, AbstractMatrix{Int32}, Vector{Int64}}"><code>ColBERT.mask_skiplist!</code></a></li><li><a href="#ColBERT.save-Tuple{ColBERTConfig}"><code>ColBERT.save</code></a></li><li><a href="#ColBERT.save_chunk-Tuple{String, AbstractVector{UInt32}, AbstractMatrix{UInt8}, Int64, Int64, AbstractVector{Int64}}"><code>ColBERT.save_chunk</code></a></li><li><a href="#ColBERT.save_codec-Tuple{String, Matrix{Float32}, Vector{Float32}, Vector{Float32}, Float32}"><code>ColBERT.save_codec</code></a></li><li><a href="#ColBERT.setup-Tuple{Vector{String}, Float32, Int64, Union{Missing, Int64}, Int64}"><code>ColBERT.setup</code></a></li><li><a href="#ColBERT.tensorize_docs-Tuple{String, Transformers.TextEncoders.AbstractTransformerTextEncoder, AbstractArray{String}}"><code>ColBERT.tensorize_docs</code></a></li><li><a href="#ColBERT.tensorize_queries-Tuple{String, Bool, Transformers.TextEncoders.AbstractTransformerTextEncoder, Vector{String}}"><code>ColBERT.tensorize_queries</code></a></li><li><a href="#ColBERT.train-Tuple{AbstractMatrix{Float32}, AbstractMatrix{Float32}, Int64, Int64, Int64}"><code>ColBERT.train</code></a></li></ul><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.ColBERTConfig" href="#ColBERT.ColBERTConfig"><code>ColBERT.ColBERTConfig</code></a> — <span class="docstring-category">Type</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">ColBERTConfig(; use_gpu::Bool, rank::Int, nranks::Int, query_token_id::String,
+        doc_token_id::String, query_token::String, doc_token::String, checkpoint::String,
+        collection::String, dim::Int, doc_maxlen::Int, mask_punctuation::Bool,
+        query_maxlen::Int, attend_to_mask_tokens::Bool, index_path::String,
+        index_bsize::Int, nbits::Int, kmeans_niters::Int, nprobe::Int, ncandidates::Int)</code></pre><p>Structure containing config for running and training various components.</p><p><strong>Arguments</strong></p><ul><li><code>use_gpu</code>: Whether to use a GPU or not. Default is <code>false</code>.</li><li><code>rank</code>: The index of the running GPU. Default is <code>0</code>. For now, the package only allows this to be <code>0</code>.</li><li><code>nranks</code>: The number of GPUs used in the run. Default is <code>1</code>. For now, the package only supports one GPU.</li><li><code>query_token_id</code>: Unique identifier for query tokens (defaults to <code>[unused0]</code>).</li><li><code>doc_token_id</code>: Unique identifier for document tokens (defaults to <code>[unused1]</code>).</li><li><code>query_token</code>: Token used to represent a query token (defaults to <code>[Q]</code>).</li><li><code>doc_token</code>: Token used to represent a document token (defaults to <code>[D]</code>).</li><li><code>checkpoint</code>: The path to the HuggingFace checkpoint of the underlying ColBERT model. Defaults to <code>&quot;colbert-ir/colbertv2.0&quot;</code>.</li><li><code>collection</code>: Path to the file containing the documents. Default is <code>&quot;&quot;</code>.</li><li><code>dim</code>: The dimension of the document embedding space. Default is 128.</li><li><code>doc_maxlen</code>: The maximum length of a document before it is trimmed to fit. Default is 220.</li><li><code>mask_punctuation</code>: Whether or not to mask punctuation characters tokens in the document. Default is true.</li><li><code>query_maxlen</code>: The maximum length of queries after which they are trimmed.</li><li><code>attend_to_mask_tokens</code>: Whether or not to attend to mask tokens in the query. Default value is false.</li><li><code>index_path</code>: Path to save the index files.</li><li><code>index_bsize</code>: Batch size used for some parts of indexing.</li><li><code>chunksize</code>: Custom size of a chunk, i.e the number of passages for which data is to be stored in one chunk. Default is <code>missing</code>, in which case <code>chunksize</code> is determined from the size of the <code>collection</code> and <code>nranks</code>.</li><li><code>passages_batch_size</code>: The number of passages sent as a batch to encoding functions. Default is <code>300</code>.</li><li><code>nbits</code>: Number of bits used to compress residuals.</li><li><code>kmeans_niters</code>: Number of iterations used for k-means clustering.</li><li><code>nprobe</code>: The number of nearest centroids to fetch during a search. Default is <code>2</code>. Also see <code>retrieve</code>.</li><li><code>ncandidates</code>: The number of candidates to get during candidate generation in search. Default is <code>8192</code>. Also see <code>retrieve</code>.</li></ul><p><strong>Returns</strong></p><p>A <a href="#ColBERT.ColBERTConfig"><code>ColBERTConfig</code></a> object.</p><p><strong>Examples</strong></p><p>Most users will just want to use the defaults for most settings. Here&#39;s a minimal example:</p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT;
+
+julia&gt; config = ColBERTConfig(
+           use_gpu = true,
+           collection = &quot;/home/codetalker7/documents&quot;,
+           index_path = &quot;./local_index&quot;
+       );</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/infra/config.jl#L1-L53">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.Indexer-Tuple{ColBERTConfig}" href="#ColBERT.Indexer-Tuple{ColBERTConfig}"><code>ColBERT.Indexer</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">Indexer(config::ColBERTConfig)</code></pre><p>Type representing an ColBERT indexer.</p><p><strong>Arguments</strong></p><ul><li><code>config</code>: The <a href="#ColBERT.ColBERTConfig"><code>ColBERTConfig</code></a> used to build the index.</li></ul><p><strong>Returns</strong></p><p>An [<code>Indexer</code>] wrapping a <a href="#ColBERT.ColBERTConfig"><code>ColBERTConfig</code></a> along with the trained ColBERT model.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing.jl#L10-L23">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._add_marker_row-Union{Tuple{T}, Tuple{AbstractMatrix{T}, T}} where T" href="#ColBERT._add_marker_row-Union{Tuple{T}, Tuple{AbstractMatrix{T}, T}} where T"><code>ColBERT._add_marker_row</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">_add_marker_row(data::AbstractMatrix{T}, marker::T) where {T}</code></pre><p>Add row containing <code>marker</code> as the second row of <code>data</code>.</p><p><strong>Arguments</strong></p><ul><li><code>data</code>: The matrix in which the row is to be added.</li><li><code>marker</code>: The marker to be added.</li></ul><p><strong>Returns</strong></p><p>A matrix equal to <code>data</code>, with the second row being filled with <code>marker</code>.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: _add_marker_row;
+
+julia&gt; x = ones(Float32, 5, 5);
+5×5 Matrix{Float32}:
+ 1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0
+
+julia&gt; _add_marker_row(x, zero(Float32))
+6×5 Matrix{Float32}:
+ 1.0  1.0  1.0  1.0  1.0
+ 0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/modelling/tokenization/tokenizer_utils.jl#L102-L139">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._binarize-Union{Tuple{T}, Tuple{AbstractMatrix{T}, Int64}} where T&lt;:Integer" href="#ColBERT._binarize-Union{Tuple{T}, Tuple{AbstractMatrix{T}, Int64}} where T&lt;:Integer"><code>ColBERT._binarize</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: _binarize;
+
+julia&gt; using Flux, CUDA, Random;
+
+julia&gt; Random.seed!(0);
+
+julia&gt; nbits = 5;
+
+julia&gt; data = rand(0:2^nbits - 1, 100, 200000) |&gt; Flux.gpu
+100×200000 CuArray{Int64, 2, CUDA.DeviceMemory}:
+ 12  23  11   6   5   2  27   1   0   4  15   8  24  …   4  25  22  18   4   0  15  16   3  25   4  13
+  2  11  29   8  31   3  15   1   8   1  22  22  10     25  25   1  12  21  13  27  20  23  24   9  14
+ 27   4   4  15   4   9  19   4   3  10  27  14   3     10   8  18  19  12   9  29  23   8  15  30  21
+  2   7   4   5  25  16  27  23   5  24  26  19   9     22   1  21  12  31  20   4  31  26  21  25   6
+ 21  18  25   9   9  17   6  20  16  13  14   2   2     28  13  11   9  22   4   2  22  27  24   9  31
+  3  26  22   8  24  23  29  19  13   3   2  20  14  …  22  18  18   5  16   5   9   3  21  19  17  23
+  3  13   5   9   8  12  24  26   8  10  14   1  21     14  25  18   5   1   4  13   0  14  11  16   8
+ 22  20  22   6  25   1  29  23   9  21  13  27   6     11  21   4  31  14  14   5  27  17   6  27  19
+  9   2   7   2  16   1  23  15   2  17  30  18   4     26   5  20  31  18   8  20  13  23  26  29  25
+  0   6  20   8   0  18   9  28   8  30   6   2  21      0   7  25  23  19   2   6  27  13   3   6  22
+ 17   2   0  13  26   6   7   8  14  20  11   9  17  …  29   4  28  22   1  10  29  20  11  20  30   8
+ 28   5   0  30   1  26  23   9  29   9  29   2  15     27   8  13  11  27   6  11   7  19   4   7  28
+  8   9  16  29  22   8   9  19  30  20   4   0   1      1  25  14  16  17  26  28  31  25   4  22  23
+ 10   9  31  22  20  15   1   9  26   2   0   1  27     23  21  15  22  29  29   1  24  30  22  17  22
+ 13   8  23   9   1   6   2  28  18   1  15   5  12     28  27   3   6  22   3  20  24   3   2   2  29
+ 28  22  19   7  20  28  25  13   3  13  17  31  28  …  18  17  19   6  20  11  31   9  28   9  19   1
+ 23   1   7  14   6  14   0   9   1   9  12  30  24     23   2  13   9   0  20  17   4  16  22  27  11
+  4  19   8  31  14  30   2  13  27  16  29  10  30     29  25  28  31  13  11   8  12  30  13  10   7
+ 18  26  30   6  31   6  15  11  10  31  21  24  11     19  19  29  17  13   5   3  28  29  31  22  13
+ 14  29  18  14  25  10  28  28  15   8   5  14   5     10  17  13  23   0  26  25  13  15  26   3   5
+  0   4  24  23  20  16  25   9  17  27  15   0  10  …   5  18   2   2  30  17   8  11  27  11  15  27
+ 15   2  22   8   6   8  16   2   8  24  26  15  30     27  12  28  31  26  18   4  10   5  16  23  16
+ 20  20  29  24   1   9  18  31  16   3   9  17  31      8   4   4  15  13  16   0  10  31  28   8  29
+  2   3   2  23  15  21   6   8  21   7  17  15  17      7  15  19  25   3   2  11  26  16  12  11  27
+ 13  21  22  20  15   0  22   2  30  14  14  20  26     13  23  14  18   0  24  21  17   8  11  26  22
+  ⋮                   ⋮                   ⋮          ⋱           ⋮                   ⋮
+  9   7   1   1  28  28  10  16  23  18  26   9   7  …  14   5  12   3   6  25  20   5  13   3  20  10
+ 28  25  21   8  31   4  25   7  27  26  19   4   9     15  26   2  23  14  16  29  17  11  29  12  18
+  4  15  20   2   3  10   6   9  13  22   5  28  21     12  11  12  14  14   9  13  31  12   6   9  21
+  9  24   2   4  27  14   4  15  19   2  14  30   3     17   5   6   2  23  15  11   1   0  10   0  28
+ 20   0  26   8  21   7   1   7  22  10  10   5  31     23   5  20  11  29  12  25  14  13   5  25  15
+  2   9  27  28  25   7  27  30  20   5  10   2  28  …  21  19  22  30  24   0  10  19  10  30  22   9
+ 10   2  31  10  12  13  16  10   5  28  16   4  16      3   1  31  20  19  16  19  30  31  14   5  20
+ 14   2  20  19  16  25   4   1  15  31  22  17   8     12  19   9  29  30  20  13  19  14  18   7  22
+ 20   3  27  23   9  21  20  10  14   3   5  26  22     19  19  11   3  22  19  24  12  27  12  28  17
+  1  27  27  10   8  29  17  14  19   6   6  12   6     10   6  24  29  26  11   2  25   7   6   1  28
+ 11  19   5   1   7  19   8  17  27   4   4   7   0  …  13  29   0  15  15   2   2   6  24   0   5  18
+ 17  31  31  23  24  18   0  31   6  22  20  31  23     16   5   8  17   6  20  23  21  26  15  27  30
+  1   6  30  31   8   3  28  31  10  23  23  24  26     12  30  10   3  25  24  12  20   8   7  14  11
+ 26  22  23  21  24   7   2  19  10  27  21  14   7      7  27   1  29   7  23  30  24  12   9  12  14
+ 28  26   8  28  10  18  23  28  10  19  31  26  17     18  20  23   8  31  15  18  10  24  28   7  23
+  1   7  15  22  23   0  21  19  28  10  15  13   7  …  21  15  16   1  16   9  25  23   1  24  20   5
+ 21   7  30  30   5   0  27  26   6   7  30   2  16      2  16   6   9   6   4  12   4  12  18  28  17
+ 11  16   0  20  20  13  18  19  21   7  24   4  26      1  26   7  16   0   2   3   2  22  27  25  15
+  9  20  31  24  14  29  28  26  29  31   7  28  12     28   0  12   3  17   7   0  30  25  22  23  20
+ 19  21  30  16  15  20  31   2   2   8  27  20  29     27  13   2  27   8  17  19  15   9  22   3  27
+ 13  17   6   4   9   1  18   2  21  27  13  14  12  …  28  21   4   2  11  13  31  13  25  25  29  21
+  2  17  19  15  17   1  12   0  11   9  16   1  13     25  21  28  22   7  13   3  20   7   6  26  21
+ 13   6   5  11  12   2   2   3   4  16  30  14  19     16   5   5  19  17   3  31  26  19   2  11  15
+ 20  30  21  30  13  26   7   9  11  18   3   0  15      3  14  15   1   9  16   1  16   0   2   2  11
+  3  24   6  16  10   3   7  17   0  30   9  14   1     29   4   8   4  17  14  27   0  17  12   4  19
+
+julia&gt; _binarize(data, nbits)
+5×100×200000 CuArray{Bool, 3, CUDA.DeviceMemory}:
+[:, :, 1] =
+ 0  0  1  0  1  1  1  0  1  0  1  0  0  0  1  0  1  0  0  …  0  0  0  1  1  1  1  0  0  1  1  1  1  1  1  0  1  0  1
+ 0  1  1  1  0  1  1  1  0  0  0  0  0  1  0  0  1  0  1     1  1  0  0  1  0  0  1  0  0  0  1  0  1  0  1  0  0  1
+ 1  0  0  0  1  0  0  1  0  0  0  1  0  0  1  1  1  1  0     0  1  1  0  0  0  0  0  1  0  1  0  0  0  1  0  1  1  0
+ 1  0  1  0  0  0  0  0  1  0  0  1  1  1  1  1  0  0  0     1  1  0  0  1  0  0  1  1  0  0  1  1  0  1  0  1  0  0
+ 0  0  1  0  1  0  0  1  0  0  1  1  0  0  0  1  1  0  1     0  0  1  0  0  1  0  1  1  0  1  0  0  1  0  0  0  1  0
+
+[:, :, 2] =
+ 1  1  0  1  0  0  1  0  0  0  0  1  1  1  0  0  1  1  0  …  0  0  1  1  1  1  0  0  0  1  1  0  0  1  1  1  0  0  0
+ 1  1  0  1  1  1  0  0  1  1  1  0  0  0  0  1  0  1  1     1  1  1  1  1  1  1  1  1  1  1  0  0  0  0  0  1  1  0
+ 1  0  1  1  0  0  1  1  0  1  0  1  0  0  0  1  0  0  0     0  0  0  0  0  1  1  1  0  1  1  0  1  1  0  0  1  1  0
+ 0  1  0  0  0  1  1  0  0  0  0  0  1  1  1  0  0  0  1     0  0  0  1  0  1  0  0  1  0  0  0  0  0  0  0  0  1  1
+ 1  0  0  0  1  1  0  1  0  0  0  0  0  0  0  1  0  1  1     0  0  0  1  1  1  0  1  1  0  0  1  1  1  1  1  0  1  1
+
+[:, :, 3] =
+ 1  1  0  0  1  0  1  0  1  0  0  0  0  1  1  1  1  0  0  …  1  0  1  1  1  1  0  1  0  1  0  0  1  0  0  1  1  1  0
+ 1  0  0  0  0  1  0  1  1  0  0  0  0  1  1  1  1  0  1     1  0  1  1  0  1  1  1  0  1  1  0  1  1  1  1  0  0  1
+ 0  1  1  1  0  1  1  1  1  1  0  0  0  1  1  0  1  0  1     1  1  0  0  1  1  1  1  0  1  1  0  1  1  1  0  1  1  1
+ 1  1  0  0  1  0  0  0  0  0  0  0  0  1  0  0  0  1  1     1  0  1  1  0  1  1  0  1  1  1  0  1  1  0  0  0  0  0
+ 0  1  0  0  1  1  0  1  0  1  0  0  1  1  1  1  0  0  1     1  1  1  1  0  1  1  1  0  0  1  0  1  1  0  1  0  1  0
+
+;;; …
+
+[:, :, 199998] =
+ 1  0  1  1  0  1  1  0  0  1  0  0  0  0  0  1  0  1  1  …  0  0  0  0  0  1  1  1  0  0  0  1  0  0  1  0  0  0  0
+ 0  0  1  0  0  1  1  1  1  1  0  0  0  1  1  0  1  0  1     1  1  0  1  0  1  1  0  0  0  1  1  1  1  0  1  1  1  0
+ 0  0  1  1  0  0  0  1  0  0  1  1  1  1  0  0  1  1  1     1  0  1  1  0  1  1  0  1  0  0  0  1  1  0  1  0  0  1
+ 1  1  1  0  1  0  1  0  1  0  0  0  0  0  0  1  0  1  1     1  0  1  0  0  1  0  1  1  1  0  1  0  0  1  0  0  0  1
+ 1  1  0  1  1  1  0  0  1  0  1  0  0  1  0  0  1  0  1     0  1  0  0  0  0  0  0  1  1  1  1  1  1  1  0  0  0  0
+
+[:, :, 199999] =
+ 0  1  0  1  1  1  0  1  1  0  0  1  0  1  0  1  1  0  0  …  1  1  0  1  1  1  0  0  1  0  0  1  1  1  1  0  1  0  0
+ 0  0  1  0  0  0  0  1  0  1  1  1  1  0  1  1  1  1  1     0  1  0  0  0  1  1  0  1  0  0  0  1  1  0  1  1  1  0
+ 1  0  1  0  0  0  0  0  1  1  1  1  1  0  0  0  0  0  1     1  1  1  0  1  0  1  1  1  1  1  0  1  0  1  0  0  0  1
+ 0  1  1  1  1  0  0  1  1  0  1  0  0  0  0  0  1  1  0     0  0  1  0  0  1  1  1  0  0  1  1  0  0  1  1  1  0  0
+ 0  0  1  1  0  1  1  1  1  0  1  0  1  1  0  1  1  0  1     0  0  1  0  0  1  0  0  0  1  1  1  1  0  1  1  0  0  0
+
+[:, :, 200000] =
+ 1  0  1  0  1  1  0  1  1  0  0  0  1  0  1  1  1  1  1  …  0  0  1  0  0  0  1  0  1  1  1  1  0  1  1  1  1  1  1
+ 0  1  0  1  1  1  0  1  0  1  0  0  1  1  0  0  1  1  0     0  1  0  0  1  1  1  1  1  0  0  1  0  1  0  0  1  1  1
+ 1  1  1  1  1  1  0  0  0  1  0  1  1  1  1  0  0  1  1     1  1  0  1  0  1  0  1  1  1  0  1  1  0  1  1  1  0  0
+ 1  1  0  0  1  0  1  0  1  0  1  1  0  0  1  0  1  0  1     0  0  0  1  0  1  1  1  0  0  0  1  0  1  0  0  1  1  0
+ 0  0  1  0  1  1  0  1  1  1  0  1  1  1  1  0  0  0  0     1  1  1  1  1  1  0  0  1  0  1  0  1  1  1  1  0  0  1</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/codecs/residual.jl#L83-L196">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._bucket_indices-Union{Tuple{S}, Tuple{T}, Tuple{AbstractMatrix{T}, AbstractVector{S}}} where {T&lt;:Number, S&lt;:Number}" href="#ColBERT._bucket_indices-Union{Tuple{S}, Tuple{T}, Tuple{AbstractMatrix{T}, AbstractVector{S}}} where {T&lt;:Number, S&lt;:Number}"><code>ColBERT._bucket_indices</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: _bucket_indices;
+
+julia&gt; using Random; Random.seed!(0);
+
+julia&gt; data = rand(50, 50) |&gt; Flux.gpu;
+50×50 CuArray{Float32, 2, CUDA.DeviceMemory}:
+ 0.455238   0.828104   0.735106   0.042069   …  0.916387    0.10078      0.00907127
+ 0.547642   0.100748   0.993553   0.0275458     0.0954245   0.351846     0.548682
+ 0.773354   0.908416   0.703694   0.839846      0.613082    0.605597     0.660227
+ 0.940585   0.932748   0.150822   0.920883      0.754362    0.843869     0.0453409
+ 0.0296477  0.123079   0.409406   0.672372      0.19912     0.106127     0.945276
+ 0.746943   0.149248   0.864755   0.116243   …  0.541295    0.224275     0.660706
+ 0.746801   0.743713   0.64608    0.446445      0.951642    0.583662     0.338174
+ 0.97667    0.722362   0.692789   0.646206      0.089323    0.305554     0.454803
+ 0.329335   0.785124   0.254097   0.271299      0.320879    0.000438984  0.161356
+ 0.672001   0.532197   0.869579   0.182068      0.289906    0.068645     0.142121
+ 0.0997382  0.523732   0.315933   0.935547   …  0.819027    0.770597     0.654065
+ 0.230139   0.997278   0.455917   0.566976      0.0180972   0.275211     0.0619634
+ 0.631256   0.709048   0.810256   0.754144      0.452911    0.358555     0.116042
+ 0.096652   0.454081   0.715283   0.923417      0.498907    0.781054     0.841858
+ 0.69801    0.0439444  0.27613    0.617714      0.589872    0.708365     0.0266968
+ 0.470257   0.654557   0.351769   0.812597   …  0.323819    0.621386     0.63478
+ 0.114864   0.897316   0.0243141  0.910847      0.232374    0.861399     0.844008
+ 0.984812   0.491806   0.356395   0.501248      0.651833    0.173494     0.38356
+ 0.730758   0.970359   0.456407   0.8044        0.0385577   0.306404     0.705577
+ 0.117333   0.233628   0.332989   0.0857914     0.224095    0.747571     0.387572
+ ⋮                                           ⋱
+ 0.908402   0.609104   0.108874   0.430905   …  0.00564743  0.964602     0.541285
+ 0.570179   0.10114    0.210174   0.945569      0.149051    0.785343     0.241959
+ 0.408136   0.221389   0.425872   0.204654      0.238413    0.583185     0.271998
+ 0.526989   0.0401535  0.686314   0.534208      0.29416     0.488244     0.747676
+ 0.129952   0.716592   0.352166   0.584363      0.0850619   0.161153     0.243575
+ 0.0256413  0.0831649  0.179467   0.799997   …  0.229072    0.711857     0.326977
+ 0.939913   0.21433    0.223666   0.914527      0.425202    0.129862     0.766065
+ 0.600877   0.516631   0.753827   0.674017      0.665329    0.622929     0.645962
+ 0.223773   0.257933   0.854171   0.259882      0.298119    0.231662     0.824881
+ 0.268817   0.468576   0.218589   0.835418      0.802857    0.0159643    0.0330232
+ 0.408092   0.361884   0.849442   0.527004   …  0.0500168   0.427498     0.70482
+ 0.740789   0.952265   0.722908   0.0856596     0.507305    0.32629      0.117663
+ 0.873501   0.587707   0.894573   0.355338      0.345011    0.0693833    0.457268
+ 0.758824   0.162728   0.608327   0.902837      0.492069    0.716635     0.459272
+ 0.922832   0.950539   0.51935    0.52672       0.725665    0.36443      0.936056
+ 0.239929   0.3754     0.247219   0.92438    …  0.0763809   0.737196     0.712317
+ 0.76676    0.182714   0.866055   0.749239      0.132254    0.755823     0.0869469
+ 0.378313   0.0392607  0.93354    0.908511      0.733769    0.552135     0.351491
+ 0.811121   0.891591   0.610976   0.0427439     0.0258436   0.482621     0.193291
+ 0.109315   0.474986   0.140528   0.776382      0.609791    0.49946      0.116989
+
+julia&gt; bucket_cutoffs = sort(rand(5)) |&gt; Flux.gpu;
+5-element CuArray{Float32, 1, CUDA.DeviceMemory}:
+ 0.42291805
+ 0.7075339
+ 0.8812783
+ 0.89976573
+ 0.9318977
+
+julia&gt; _bucket_indices(data, bucket_cutoffs)
+50×50 CuArray{Int64, 2, CUDA.DeviceMemory}:
+ 1  2  2  0  1  0  2  0  0  2  0  1  1  0  …  0  0  0  1  1  0  2  2  4  0  4  0  0
+ 1  0  5  0  1  4  1  2  0  0  5  1  0  0     0  0  1  2  4  2  0  0  0  2  0  0  1
+ 2  4  1  2  1  0  5  0  1  1  0  0  0  1     2  5  1  1  1  1  1  1  0  5  1  1  1
+ 5  5  0  4  0  0  1  2  4  0  4  1  0  0     5  5  4  2  1  0  2  0  1  0  2  2  0
+ 0  0  0  1  0  0  1  1  0  2  0  1  2  0     1  0  2  0  2  0  2  1  1  5  0  0  5
+ 2  0  2  0  1  0  1  0  2  4  2  2  0  2  …  0  1  0  4  0  5  0  0  0  2  1  0  1
+ 2  2  1  1  1  0  3  0  2  0  1  1  5  0     2  0  0  0  0  1  0  5  5  1  5  1  0
+ 5  2  1  1  2  5  0  0  1  3  0  1  0  1     0  0  0  0  0  1  4  0  1  0  0  0  1
+ 0  2  0  0  1  1  0  5  2  0  2  2  2  2     0  0  5  5  0  0  2  2  0  2  0  0  0
+ 1  1  2  0  2  4  5  5  1  0  2  2  2  0     0  0  1  1  1  0  0  1  1  2  0  0  0
+ 0  1  0  5  0  0  2  0  2  0  0  3  0  0  …  1  2  0  5  0  1  2  0  0  0  2  2  1
+ 0  5  1  1  2  1  0  1  1  0  0  1  1  0     5  0  0  2  2  0  3  1  1  4  0  0  0
+ 1  2  2  2  2  1  1  5  0  0  0  1  0  5     0  1  1  0  0  0  2  0  2  0  1  0  0
+ 0  1  2  4  1  2  1  2  0  2  2  0  0  0     0  1  0  1  0  1  3  1  1  1  1  2  2
+ 1  0  0  1  4  0  2  2  5  4  0  3  0  1     3  0  0  0  0  5  0  1  2  0  1  2  0
+ 1  1  0  2  0  1  5  3  1  2  5  2  1  2  …  1  1  2  0  0  0  2  1  2  3  0  1  1
+ 0  3  0  4  0  0  0  0  0  0  0  0  0  1     1  1  1  2  0  1  0  2  3  0  0  2  2
+ 5  1  0  1  2  0  2  0  0  2  0  0  1  0     1  4  0  2  0  0  0  0  1  0  1  0  0
+ 2  5  1  2  0  1  0  2  5  1  1  1  5  0     1  1  0  0  2  0  1  0  4  0  0  0  1
+ 0  0  0  0  0  2  3  1  0  1  1  0  1  2     0  1  1  1  1  0  0  0  5  1  0  2  0
+ ⋮              ⋮              ⋮           ⋱           ⋮              ⋮
+ 4  1  0  1  4  1  2  0  1  0  0  1  0  2  …  0  0  0  0  0  2  0  2  0  1  0  5  1
+ 1  0  0  5  2  2  5  0  0  3  5  0  1  5     1  2  0  1  2  0  0  0  1  0  0  2  0
+ 0  0  1  0  0  1  4  0  0  1  0  5  1  5     1  1  2  0  2  0  1  1  2  4  0  1  0
+ 1  0  1  1  0  0  0  0  1  0  0  0  0  4     0  0  1  0  3  5  0  1  1  1  0  1  2
+ 0  2  0  1  0  0  2  0  2  1  1  2  1  1     0  0  0  1  1  1  0  0  1  2  0  0  0
+ 0  0  0  2  5  2  2  0  0  5  5  4  1  0  …  0  0  2  1  5  0  1  0  1  0  0  2  0
+ 5  0  0  4  0  1  0  0  0  1  2  2  0  0     1  0  0  0  1  1  4  0  5  1  1  0  2
+ 1  1  2  1  1  1  0  0  0  0  0  2  1  0     0  5  0  1  0  0  1  2  0  0  1  1  1
+ 0  0  2  0  0  1  1  4  0  2  2  0  5  1     1  1  1  1  5  0  3  2  2  1  0  0  2
+ 0  1  0  2  2  1  1  0  1  0  1  0  0  2     5  0  1  0  5  0  0  2  2  0  2  0  0
+ 0  0  2  1  0  1  1  1  1  2  4  0  1  2  …  1  1  1  1  0  0  5  1  0  0  0  1  1
+ 2  5  2  0  0  0  2  0  2  0  0  0  0  0     4  0  5  5  0  2  0  0  0  0  1  0  0
+ 2  1  3  0  1  1  0  0  4  0  0  1  1  0     1  1  0  4  1  1  0  2  0  3  0  0  1
+ 2  0  1  4  1  0  0  1  0  2  1  0  0  0     5  1  0  0  1  1  0  0  2  0  1  2  1
+ 4  5  1  1  1  1  0  0  0  1  1  0  5  2     5  0  2  2  1  1  1  5  2  1  2  0  5
+ 0  0  0  4  2  1  0  3  0  3  2  0  1  2  …  0  1  0  2  0  0  2  5  2  0  0  2  2
+ 2  0  2  2  1  0  0  3  1  1  0  5  2  0     2  0  2  0  5  1  0  0  1  0  0  2  0
+ 0  0  5  4  1  0  2  2  2  0  1  1  2  5     0  0  0  0  1  0  0  1  0  1  2  1  0
+ 2  3  1  0  0  2  0  0  5  0  5  0  1  1     0  0  5  2  0  1  0  5  2  1  0  1  0
+ 0  1  0  2  1  0  2  2  1  0  1  4  1  1     5  1  0  1  4  1  1  1  1  1  1  1  0</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/codecs/residual.jl#L242-L347">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._cids_to_eids!-NTuple{4, Vector{Int64}}" href="#ColBERT._cids_to_eids!-NTuple{4, Vector{Int64}}"><code>ColBERT._cids_to_eids!</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">_cids_to_eids!(eids::Vector{Int}, centroid_ids::Vector{Int},
+    ivf::Vector{Int}, ivf_lengths::Vector{Int})</code></pre><p>Get the set of embedding IDs contained in <code>centroid_ids</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/search/ranking.jl#L1-L6">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._compute_avg_residuals!-Tuple{Int64, AbstractMatrix{Float32}, AbstractMatrix{Float32}, AbstractVector{UInt32}}" href="#ColBERT._compute_avg_residuals!-Tuple{Int64, AbstractMatrix{Float32}, AbstractMatrix{Float32}, AbstractVector{UInt32}}"><code>ColBERT._compute_avg_residuals!</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">_compute_avg_residuals!(
+    nbits::Int, centroids::AbstractMatrix{Float32},
+    heldout::AbstractMatrix{Float32}, codes::AbstractVector{UInt32})</code></pre><p>Compute the average residuals and other statistics of the held-out sample embeddings.</p><p><strong>Arguments</strong></p><ul><li><code>nbits</code>: The number of bits used to compress the residuals.</li><li><code>centroids</code>: A matrix containing the centroids of the computed using a <span>$k$</span>-means clustering algorithm on the sampled embeddings. Has shape <code>(D, indexer.num_partitions)</code>, where <code>D</code> is the embedding dimension (<code>128</code>) and <code>indexer.num_partitions</code> is the number of clusters.</li><li><code>heldout</code>: A matrix containing the held-out embeddings, computed using <code>_heldout_split</code>.</li><li><code>codes</code>: The array used to store the codes for each heldout embedding.</li></ul><p><strong>Returns</strong></p><p>A tuple <code>bucket_cutoffs, bucket_weights, avg_residual</code>, which will be used in compression/decompression of residuals.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/collection_indexer.jl#L154-L176">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._integer_ids_and_mask-Tuple{Transformers.TextEncoders.AbstractTransformerTextEncoder, AbstractVector{String}}" href="#ColBERT._integer_ids_and_mask-Tuple{Transformers.TextEncoders.AbstractTransformerTextEncoder, AbstractVector{String}}"><code>ColBERT._integer_ids_and_mask</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">_integer_ids_and_mask(
+    tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+    batch_text::AbstractVector{String})</code></pre><p>Run <code>batch_text</code> through <code>tokenizer</code> to get matrices of tokens and attention mask.</p><p><strong>Arguments</strong></p><ul><li><code>tokenizer</code>: The tokenizer to be used to tokenize the texts.</li><li><code>batch_text</code>: The list of texts to tokenize.</li></ul><p><strong>Returns</strong></p><p>A tuple <code>integer_ids, bitmask</code>, where <code>integer_ids</code> is a Matrix containing token IDs and <code>bitmask</code> is the attention mask.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: _integer_ids_and_mask, load_hgf_pretrained_local;
+
+julia&gt; tokenizer = load_hgf_pretrained_local(&quot;/home/codetalker7/models/colbertv2.0/:tokenizer&quot;);
+
+julia&gt; batch_text = [
+    &quot;hello world&quot;,
+    &quot;thank you!&quot;,
+    &quot;a&quot;,
+    &quot;this is some longer text, so length should be longer&quot;,
+    &quot;this is an even longer document. this is some longer text, so length should be longer&quot;,
+];
+
+julia&gt; integer_ids, bitmask = _integer_ids_and_mask(tokenizer, batch_text);
+
+julia&gt; integer_ids
+20×5 Matrix{Int32}:
+  102   102   102   102   102
+ 7593  4068  1038  2024  2024
+ 2089  2018   103  2004  2004
+  103  1000     1  2071  2020
+    1   103     1  2937  2131
+    1     1     1  3794  2937
+    1     1     1  1011  6255
+    1     1     1  2062  1013
+    1     1     1  3092  2024
+    1     1     1  2324  2004
+    1     1     1  2023  2071
+    1     1     1  2937  2937
+    1     1     1   103  3794
+    1     1     1     1  1011
+    1     1     1     1  2062
+    1     1     1     1  3092
+    1     1     1     1  2324
+    1     1     1     1  2023
+    1     1     1     1  2937
+    1     1     1     1   103
+
+julia&gt; bitmask
+20×5 BitMatrix:
+ 1  1  1  1  1
+ 1  1  1  1  1
+ 1  1  1  1  1
+ 1  1  0  1  1
+ 0  1  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/modelling/tokenization/tokenizer_utils.jl#L1-L81">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._load_model-Tuple{Transformers.HuggingFace.HGFConfig}" href="#ColBERT._load_model-Tuple{Transformers.HuggingFace.HGFConfig}"><code>ColBERT._load_model</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">_load_model(cfg::HF.HGFConfig; path_model::AbstractString,
+    trainmode::Bool = false, lazy::Bool = false, mmap::Bool = true)</code></pre><p>Local model loader.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/local_loading.jl#L58-L63">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._load_tokenizer-Tuple{Transformers.HuggingFace.HGFConfig}" href="#ColBERT._load_tokenizer-Tuple{Transformers.HuggingFace.HGFConfig}"><code>ColBERT._load_tokenizer</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">_load_tokenizer(cfg::HF.HGFConfig; path_tokenizer_config::AbstractString,
+    path_special_tokens_map::AbstractString, path_tokenizer::AbstractString)</code></pre><p>Local tokenizer loader.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/local_loading.jl#L27-L32">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._load_tokenizer_config-Tuple{AbstractString}" href="#ColBERT._load_tokenizer_config-Tuple{AbstractString}"><code>ColBERT._load_tokenizer_config</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">_load_tokenizer_config(path_config)</code></pre><p>Load tokenizer config locally.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/local_loading.jl#L1-L5">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._packbits-Tuple{AbstractArray{Bool, 3}}" href="#ColBERT._packbits-Tuple{AbstractArray{Bool, 3}}"><code>ColBERT._packbits</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: _packbits;
+
+julia&gt; using Random; Random.seed!(0);
+
+julia&gt; bitsarray = rand(Bool, 2, 128, 200000);
+
+julia&gt; _packbits(bitsarray)
+32×200000 Matrix{UInt8}:
+ 0x2e  0x93  0x5a  0xbd  0xd1  0x89  0x2c  0x39  0x6a  …  0xed  0xdb  0x45  0x95  0xf8  0x64  0x57  0x5b  0x06
+ 0x3f  0x45  0x0c  0x2a  0x14  0xdb  0x16  0x2b  0x00     0x70  0xba  0x3c  0x40  0x56  0xa6  0xbe  0x33  0x3d
+ 0xbd  0x61  0xa3  0xa7  0xb4  0xe7  0x1e  0xf8  0xa7     0xf0  0x70  0xaf  0xc0  0xeb  0xa3  0x34  0x6d  0x81
+ 0x15  0x9d  0x02  0xa5  0x7b  0x84  0xde  0x2f  0x28     0xa7  0xf2  0x51  0xb3  0xe7  0x01  0xbf  0x6f  0x5a
+ 0xaf  0x76  0x8f  0x55  0x81  0x2f  0xa5  0xcc  0x03     0xe7  0xea  0x17  0xf2  0x07  0x45  0x40  0x40  0xd8
+ 0xd2  0xd4  0x25  0xcc  0x41  0xc6  0x87  0x7e  0xfd  …  0x5a  0xe6  0xed  0x28  0x26  0x8b  0x39  0x3b  0x4b
+ 0xb3  0xbe  0x08  0xdb  0x73  0x3d  0x58  0x04  0xda     0x7b  0xf7  0xab  0x1f  0x2d  0x7b  0x71  0x12  0xdf
+ 0x6f  0x86  0x20  0x90  0xa5  0x0f  0xc7  0xeb  0x79     0x19  0x92  0x74  0x59  0x4b  0xfe  0xe2  0xb9  0xef
+ 0x4b  0x93  0x7c  0x02  0x4f  0x40  0xad  0xe3  0x4f     0x9c  0x9c  0x69  0xd1  0xf8  0xd9  0x9e  0x00  0x70
+ 0x77  0x5d  0x05  0xa6  0x2c  0xaa  0x9d  0xf6  0x8d     0xa9  0x4e  0x46  0x70  0xd9  0x47  0x80  0x06  0x7e
+ 0x6e  0x7e  0x0f  0x3c  0xe7  0xaf  0x12  0xbf  0x0a  …  0x3f  0xaf  0xe8  0x57  0x26  0x4b  0x2c  0x3f  0x01
+ 0x72  0xb1  0xea  0xde  0x97  0x1d  0xf4  0x4c  0x89     0x47  0x98  0xc5  0xb6  0x47  0xaf  0x95  0xb1  0x74
+ 0xc6  0x2b  0x51  0x95  0x30  0xab  0xdc  0x29  0x79     0x5c  0x7b  0xc3  0xf4  0x6a  0xa6  0x09  0x39  0x96
+ 0xeb  0xef  0x6f  0x70  0x8d  0x1f  0xb9  0x95  0x4e     0xd0  0xf5  0x68  0x0a  0x04  0x63  0x5b  0x45  0xf5
+ 0xef  0xca  0xb7  0xd4  0x31  0x14  0x34  0x96  0x0c     0x1e  0x6a  0xce  0xf2  0xa3  0xa0  0xbe  0x92  0x9c
+ 0xda  0x91  0x53  0xd1  0x43  0xfa  0x59  0x7a  0x0c  …  0x0f  0x7a  0xa0  0x4a  0x19  0xc6  0xd3  0xbb  0x7a
+ 0x9a  0x81  0xdb  0xee  0xce  0x7e  0x4a  0xb5  0x2a     0x3c  0x3e  0xaa  0xdc  0xa6  0xd5  0xae  0x23  0xb2
+ 0x82  0x2b  0xab  0x06  0xfd  0x8a  0x4a  0xba  0x80     0xb6  0x1a  0x62  0xa0  0x29  0x97  0x61  0x6e  0xf7
+ 0xb8  0xe6  0x0d  0x21  0x38  0x3a  0x97  0x55  0x58     0x46  0x01  0xe1  0x82  0x34  0xa3  0xfa  0x54  0xb3
+ 0x09  0xc7  0x2f  0x7b  0x82  0x0c  0x26  0x4d  0xa4     0x1e  0x64  0xc2  0x55  0x41  0x6b  0x14  0x5c  0x0b
+ 0xf1  0x2c  0x3c  0x0a  0xf1  0x76  0xd4  0x57  0x42  …  0x44  0xb1  0xac  0xb4  0xa2  0x40  0x1e  0xbb  0x44
+ 0xf8  0x0d  0x6d  0x09  0xb0  0x80  0xe3  0x5e  0x18     0xb3  0x43  0x22  0x82  0x0e  0x50  0xfb  0xf6  0x7b
+ 0xf0  0x32  0x02  0x28  0x36  0x00  0x4f  0x84  0x2b     0xe8  0xcc  0x89  0x07  0x2f  0xf4  0xcb  0x41  0x53
+ 0x53  0x9b  0x01  0xf3  0xb2  0x13  0x6a  0x43  0x88     0x22  0xd8  0x33  0xa2  0xab  0xaf  0xe1  0x02  0xf7
+ 0x59  0x60  0x4a  0x1a  0x9c  0x29  0xb1  0x1b  0xea     0xe9  0xd6  0x07  0x78  0xc6  0xdf  0x16  0xff  0x87
+ 0xba  0x98  0xff  0x98  0xc3  0xa3  0x7d  0x7c  0x75  …  0xfe  0x75  0x4d  0x43  0x8e  0x5e  0x32  0xb0  0x97
+ 0x7b  0xc9  0xcf  0x4c  0x99  0xad  0xf1  0x0e  0x0d     0x9f  0xf2  0x92  0x75  0x86  0xd6  0x08  0x74  0x8d
+ 0x7c  0xd4  0xe7  0x53  0xd3  0x23  0x25  0xce  0x3a     0x19  0xdb  0x14  0xa2  0xf1  0x01  0xd4  0x27  0x20
+ 0x2a  0x63  0x51  0xcd  0xab  0xc3  0xb5  0xc1  0x74     0xa5  0xa4  0xe1  0xfa  0x13  0xab  0x1f  0x8f  0x9a
+ 0x93  0xbe  0xf4  0x54  0x2b  0xb9  0x41  0x9d  0xa8     0xbf  0xb7  0x2b  0x1c  0x09  0x36  0xa5  0x7b  0xdc
+ 0xdc  0x93  0x23  0xf8  0x90  0xaf  0xfb  0xd1  0xcc  …  0x54  0x09  0x8c  0x14  0xfe  0xa7  0x5d  0xd7  0x6d
+ 0xaf  0x93  0xa2  0x29  0xf9  0x5b  0x24  0xd5  0x2a     0xf1  0x7f  0x3a  0xf5  0x8f  0xd4  0x6e  0x67  0x5b</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/codecs/residual.jl#L353-L399">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._sample_embeddings-Tuple{Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, Transformers.TextEncoders.AbstractTransformerTextEncoder, Int64, Int64, String, Vector{Int64}, Vector{String}}" href="#ColBERT._sample_embeddings-Tuple{Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, Transformers.TextEncoders.AbstractTransformerTextEncoder, Int64, Int64, String, Vector{Int64}, Vector{String}}"><code>ColBERT._sample_embeddings</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">_sample_embeddings(bert::HF.HGFBertModel, linear::Layers.Dense,
+    tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+    dim::Int, index_bsize::Int, doc_token::String,
+    skiplist::Vector{Int}, collection::Vector{String})</code></pre><p>Compute embeddings for the PIDs sampled by <a href="#ColBERT._sample_pids-Tuple{Int64}"><code>_sample_pids</code></a>.</p><p>The embedding array has shape <code>(D, N)</code>, where <code>D</code> is the embedding dimension (<code>128</code>, after applying the linear layer of the ColBERT model) and <code>N</code> is the total number of embeddings over all documents.</p><p><strong>Arguments</strong></p><ul><li><code>bert</code>: The pre-trained BERT component of ColBERT.</li><li><code>linear</code>: The pre-trained linear component of ColBERT.</li><li><code>tokenizer</code>: The tokenizer to be used.</li><li><code>dim</code>: The embedding dimension.</li><li><code>index_bsize</code>: The batch size to be used to run the transformer. See <a href="#ColBERT.ColBERTConfig"><code>ColBERTConfig</code></a>.</li><li><code>doc_token</code>: The document token. See <a href="#ColBERT.ColBERTConfig"><code>ColBERTConfig</code></a>.</li><li><code>skiplist</code>: List of tokens to skip.</li><li><code>collection</code>: The underlying collection of passages to get the samples from.</li></ul><p><strong>Returns</strong></p><p>A tuple containing the average document length (i.e number of attended tokens) computed from the sampled documents, and the embedding matrix for the local samples. The matrix has shape <code>(D, N)</code>, where <code>D</code> is the embedding dimension (<code>128</code>) and <code>N</code> is the total number of embeddings over all the sampled passages.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/collection_indexer.jl#L26-L55">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._sample_pids-Tuple{Int64}" href="#ColBERT._sample_pids-Tuple{Int64}"><code>ColBERT._sample_pids</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">_sample_pids(num_documents::Int)</code></pre><p>Sample PIDs from the collection to be used to compute clusters using a <span>$k$</span>-means clustering algorithm.</p><p><strong>Arguments</strong></p><ul><li><code>num_documents</code>: The total number of documents in the collection. It is assumed that each document has an ID (aka PID) in the range of integers between <code>1</code> and <code>num_documents</code> (both inclusive).</li></ul><p><strong>Returns</strong></p><p>A <code>Set</code> of <code>Int</code>s containing the sampled PIDs.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/collection_indexer.jl#L1-L16">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._unbinarize-Tuple{AbstractArray{Bool, 3}}" href="#ColBERT._unbinarize-Tuple{AbstractArray{Bool, 3}}"><code>ColBERT._unbinarize</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: _binarize, _unbinarize;
+
+julia&gt; using Flux, CUDA, Random;
+
+julia&gt; Random.seed!(0);
+
+julia&gt; nbits = 5;
+
+julia&gt; data = rand(0:2^nbits - 1, 100, 200000) |&gt; Flux.gpu
+
+julia&gt; binarized_data = _binarize(data, nbits);
+
+julia&gt; unbinarized_data = _unbinarize(binarized_data);
+
+julia&gt; isequal(unbinarized_data, data)
+true</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/codecs/residual.jl#L210-L232">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT._unpackbits-Tuple{AbstractMatrix{UInt8}, Int64}" href="#ColBERT._unpackbits-Tuple{AbstractMatrix{UInt8}, Int64}"><code>ColBERT._unpackbits</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: _unpackbits;
+
+julia&gt; using Random; Random.seed!(0);
+
+julia&gt; dim, nbits = 128, 2;
+
+julia&gt; bitsarray = rand(Bool, nbits, dim, 200000);
+
+julia&gt; packedbits = _packbits(bitsarray);
+
+julia&gt; unpackedarray = _unpackbits(packedbits, nbits);
+
+julia&gt; isequal(bitsarray, unpackedarray)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/codecs/residual.jl#L409-L427">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.binarize-Tuple{Int64, Int64, Vector{Float32}, AbstractMatrix{Float32}}" href="#ColBERT.binarize-Tuple{Int64, Int64, Vector{Float32}, AbstractMatrix{Float32}}"><code>ColBERT.binarize</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">binarize(dim::Int, nbits::Int, bucket_cutoffs::Vector{Float32},
+    residuals::AbstractMatrix{Float32})</code></pre><p>Convert a matrix of residual vectors into a matrix of integer residual vector using <code>nbits</code> bits.</p><p><strong>Arguments</strong></p><ul><li><code>dim</code>: The embedding dimension (see <a href="#ColBERT.ColBERTConfig"><code>ColBERTConfig</code></a>).</li><li><code>nbits</code>: Number of bits to compress the residuals into.</li><li><code>bucket_cutoffs</code>: Cutoffs used to determine residual buckets.</li><li><code>residuals</code>: The matrix of residuals ot be compressed.</li></ul><p><strong>Returns</strong></p><p>A <code>AbstractMatrix{UInt8}</code> of compressed integer residual vectors.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: binarize;
+
+julia&gt; using Statistics, Random;
+
+julia&gt; Random.seed!(0);
+
+julia&gt; dim, nbits = 128, 2;           # encode residuals in 2 bits
+
+julia&gt; residuals = rand(Float32, dim, 200000);
+
+julia&gt; quantiles = collect(0:(2^nbits - 1)) / 2^nbits;
+
+julia&gt; bucket_cutoffs = Float32.(quantile(residuals, quantiles[2:end]))
+3-element Vector{Float32}:
+ 0.2502231
+ 0.5001043
+ 0.75005275
+
+julia&gt; binarize(dim, nbits, bucket_cutoffs, residuals)
+32×200000 Matrix{UInt8}:
+ 0xb4  0xa2  0x0f  0xd5  0xe2  0xd3  0x03  0xbe  0xe3  …  0x44  0xf5  0x8c  0x62  0x59  0xdc  0xc9  0x9e  0x57
+ 0xce  0x7e  0x23  0xd8  0xea  0x96  0x23  0x3e  0xe1     0xfb  0x29  0xa5  0xab  0x28  0xc3  0xed  0x60  0x90
+ 0xb1  0x3e  0x96  0xc9  0x84  0x73  0x2c  0x28  0x22     0x27  0x6e  0xca  0x19  0xcd  0x9f  0x1a  0xf4  0xe4
+ 0xd8  0x85  0x26  0xe2  0xf8  0xfc  0x59  0xef  0x9a     0x51  0xcf  0x06  0x09  0xec  0x0f  0x96  0x94  0x9d
+ 0xa7  0xfe  0xe2  0x9a  0xa1  0x5e  0xb0  0xd3  0x98     0x41  0x64  0x7b  0x0c  0xa6  0x69  0x26  0x35  0x05
+ 0x12  0x66  0x0c  0x17  0x05  0xff  0xf2  0x35  0xc0  …  0xa6  0xb7  0xda  0x20  0xb4  0xfe  0x33  0xfc  0xa1
+ 0x1b  0xa5  0xbc  0xa0  0xc7  0x1c  0xdc  0x43  0x12     0x38  0x81  0x12  0xb1  0x53  0x52  0x50  0x92  0x41
+ 0x5b  0xea  0xbe  0x84  0x81  0xed  0xf5  0x83  0x7d     0x4a  0xc8  0x7f  0x95  0xab  0x34  0xcb  0x35  0x15
+ 0xd3  0x0a  0x18  0xc8  0xea  0x34  0x31  0xcc  0x79     0x39  0x3c  0xec  0xe2  0x6a  0xb2  0x59  0x62  0x74
+ 0x1b  0x01  0xee  0xe7  0xda  0xa9  0xe4  0xe6  0xc5     0x75  0x10  0xa1  0xe1  0xe5  0x50  0x23  0xfe  0xa3
+ 0xe8  0x38  0x28  0x7c  0x9f  0xd5  0xf7  0x69  0x73  …  0x4e  0xbc  0x52  0xa0  0xca  0x8b  0xe9  0xaf  0xae
+ 0x2a  0xa2  0x12  0x1c  0x03  0x21  0x6a  0x6e  0xdb     0xa3  0xe3  0x62  0xb9  0x69  0xc0  0x39  0x48  0x9a
+ 0x76  0x44  0xce  0xd7  0xf7  0x02  0xbd  0xa1  0x7f     0xee  0x5d  0xea  0x9e  0xbe  0x78  0x51  0xbc  0xa3
+ 0xb2  0xe6  0x09  0x33  0x5b  0xd1  0xad  0x1e  0x9e     0x2c  0x36  0x09  0xd3  0x60  0x81  0x0f  0xe0  0x9e
+ 0xb8  0x18  0x94  0x0a  0x83  0xd0  0x01  0xe1  0x0f     0x76  0x35  0x6d  0x87  0xfe  0x9e  0x9c  0x69  0xe8
+ 0x8c  0x6c  0x24  0xf5  0xa9  0xe2  0xbd  0x21  0x83  …  0x1d  0x77  0x11  0xea  0xc1  0xc8  0x09  0xd7  0x4b
+ 0x97  0x23  0x9f  0x7a  0x8a  0xd1  0x34  0xc6  0xe7     0xe2  0xd0  0x46  0xab  0xbe  0xb3  0x92  0xeb  0xd8
+ 0x10  0x6f  0xce  0x60  0x17  0x2a  0x4f  0x4a  0xb3     0xde  0x79  0xea  0x28  0xa7  0x08  0x68  0x81  0x9c
+ 0xae  0xc9  0xc8  0xbf  0x48  0x33  0xa3  0xca  0x8d     0x78  0x4e  0x0e  0xe2  0xe2  0x23  0x08  0x47  0xe6
+ 0x41  0x29  0x8e  0xff  0x66  0xcc  0xd8  0x58  0x59     0x92  0xd8  0xef  0x9c  0x3c  0x51  0xd4  0x65  0x64
+ 0xb5  0xc4  0x2d  0x30  0x14  0x54  0xd4  0x79  0x62  …  0xff  0xc1  0xed  0xe4  0x62  0xa4  0x12  0xb7  0x47
+ 0xcf  0x9a  0x9a  0xd7  0x6f  0xdf  0xad  0x3a  0xf8     0xe5  0x63  0x85  0x0f  0xaf  0x62  0xab  0x67  0x86
+ 0x3e  0xc7  0x92  0x54  0x8d  0xef  0x0b  0xd5  0xbb     0x64  0x5a  0x4d  0x10  0x2e  0x8f  0xd4  0xb0  0x68
+ 0x7e  0x56  0x3c  0xb5  0xbd  0x63  0x4b  0xf4  0x8a     0x66  0xc7  0x1a  0x39  0x20  0xa4  0x50  0xac  0xed
+ 0x3c  0xbc  0x81  0x67  0xb8  0xaf  0x84  0x38  0x8e     0x6e  0x8f  0x3b  0xaf  0xae  0x03  0x0a  0x53  0x55
+ 0x3d  0x45  0x76  0x98  0x7f  0x34  0x7d  0x23  0x29  …  0x24  0x3a  0x6b  0x8a  0xb4  0x3c  0x2d  0xe2  0x3a
+ 0xed  0x41  0xe6  0x86  0xf3  0x61  0x12  0xc5  0xde     0xd1  0x26  0x11  0x36  0x57  0x6c  0x35  0x38  0xe2
+ 0x11  0x57  0x82  0x9b  0x19  0x1f  0x56  0xd7  0x06     0x1e  0x2b  0xd9  0x76  0xa1  0x68  0x27  0xb1  0xde
+ 0x89  0xb3  0xeb  0x86  0xbb  0x57  0xda  0xd3  0x5b     0x0e  0x79  0x4c  0x8c  0x57  0x3d  0xf0  0x98  0xb7
+ 0xbf  0xc2  0xac  0xf0  0xed  0x69  0x0e  0x19  0x12     0xfe  0xab  0xcd  0xfc  0x72  0x76  0x5c  0x58  0x8b
+ 0xe9  0x7b  0xf6  0x22  0xa0  0x60  0x23  0xc9  0x33  …  0x77  0xc7  0xdf  0x8a  0xb9  0xef  0xe3  0x03  0x8a
+ 0x6b  0x26  0x08  0x53  0xc3  0x17  0xc4  0x33  0x2e     0xc6  0xb8  0x1e  0x54  0xcd  0xeb  0xb9  0x5f  0x38</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/codecs/residual.jl#L443-L517">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.compress-Tuple{Matrix{Float32}, Vector{Float32}, Int64, Int64, AbstractMatrix{Float32}}" href="#ColBERT.compress-Tuple{Matrix{Float32}, Vector{Float32}, Int64, Int64, AbstractMatrix{Float32}}"><code>ColBERT.compress</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">compress(centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32},
+    dim::Int, nbits::Int, embs::AbstractMatrix{Float32})</code></pre><p>Compress a matrix of embeddings into a compact representation.</p><p>All embeddings are compressed to their nearest centroid IDs and their quantized residual vectors (where the quantization is done in <code>nbits</code> bits). If <code>emb</code> denotes an embedding and <code>centroid</code> is is nearest centroid, the residual vector is defined to be <code>emb - centroid</code>.</p><p><strong>Arguments</strong></p><ul><li><code>centroids</code>: The matrix of centroids.</li><li><code>bucket_cutoffs</code>: Cutoffs used to determine residual buckets.</li><li><code>dim</code>: The embedding dimension (see <a href="#ColBERT.ColBERTConfig"><code>ColBERTConfig</code></a>).</li><li><code>nbits</code>: Number of bits to compress the residuals into.</li><li><code>embs</code>: The input embeddings to be compressed.</li></ul><p><strong>Returns</strong></p><p>A tuple containing a vector of codes and the compressed residuals matrix.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: compress;
+
+julia&gt; using Random; Random.seed!(0);
+
+julia&gt; nbits, dim = 2, 128;
+
+julia&gt; embs = rand(Float32, dim, 100000);
+
+julia&gt; centroids = embs[:, randperm(size(embs, 2))[1:10000]];
+
+julia&gt; bucket_cutoffs = Float32.(sort(rand(2^nbits - 1)));
+3-element Vector{Float32}:
+ 0.08594067
+ 0.0968812
+ 0.44113323
+
+julia&gt; @time codes, compressed_residuals = compress(
+    centroids, bucket_cutoffs, dim, nbits, embs);
+  4.277926 seconds (1.57 k allocations: 4.238 GiB, 6.46% gc time)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/codecs/residual.jl#L538-L585">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.compress_into_codes!-Tuple{AbstractVector{UInt32}, AbstractMatrix{Float32}, AbstractMatrix{Float32}}" href="#ColBERT.compress_into_codes!-Tuple{AbstractVector{UInt32}, AbstractMatrix{Float32}, AbstractMatrix{Float32}}"><code>ColBERT.compress_into_codes!</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">compress_into_codes(
+    centroids::AbstractMatrix{Float32}, embs::AbstractMatrix{Float32})</code></pre><p>Compresses a matrix of embeddings into a vector of codes using the given <code>centroids</code>, where the code for each embedding is its nearest centroid ID.</p><p><strong>Arguments</strong></p><ul><li><code>centroids</code>: The matrix of centroids.</li><li><code>embs</code>: The matrix of embeddings to be compressed.</li></ul><p><strong>Returns</strong></p><p>A <code>Vector{UInt32}</code> of codes, where each code corresponds to the nearest centroid ID for the embedding.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: compress_into_codes;
+
+julia&gt; using Flux, CUDA, Random;
+
+julia&gt; Random.seed!(0);
+
+julia&gt; centroids = rand(Float32, 128, 500) |&gt; Flux.gpu;
+
+julia&gt; embs = rand(Float32, 128, 10000) |&gt; Flux.gpu;
+
+julia&gt; codes = zeros(UInt32, size(embs, 2)) |&gt; Flux.gpu;
+
+julia&gt; @time compress_into_codes!(codes, centroids, embs);
+  0.003489 seconds (4.51 k allocations: 117.117 KiB)
+
+julia&gt; codes
+10000-element CuArray{UInt32, 1, CUDA.DeviceMemory}:
+ 0x00000194
+ 0x00000194
+ 0x0000000b
+ 0x000001d9
+ 0x0000011f
+ 0x00000098
+ 0x0000014e
+ 0x00000012
+ 0x000000a0
+ 0x00000098
+ 0x000001a7
+ 0x00000098
+ 0x000001a7
+ 0x00000194
+          ⋮
+ 0x00000199
+ 0x000001a7
+ 0x0000014e
+ 0x000001a7
+ 0x000001a7
+ 0x000001a7
+ 0x000000ec
+ 0x00000098
+ 0x000001d9
+ 0x00000098
+ 0x000001d9
+ 0x000001d9
+ 0x00000012</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/codecs/residual.jl#L1-L66">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.decompress-Tuple{Int64, Int64, Matrix{Float32}, Vector{Float32}, Vector{UInt32}, AbstractMatrix{UInt8}}" href="#ColBERT.decompress-Tuple{Int64, Int64, Matrix{Float32}, Vector{Float32}, Vector{UInt32}, AbstractMatrix{UInt8}}"><code>ColBERT.decompress</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: compress, decompress;
+
+julia&gt; using Random; Random.seed!(0);
+
+julia&gt; nbits, dim = 2, 128;
+
+julia&gt; embs = rand(Float32, dim, 100000);
+
+julia&gt; centroids = embs[:, randperm(size(embs, 2))[1:10000]];
+
+julia&gt; bucket_cutoffs = Float32.(sort(rand(2^nbits - 1)))
+3-element Vector{Float32}:
+ 0.08594067
+ 0.0968812
+ 0.44113323
+
+julia&gt; bucket_weights = Float32.(sort(rand(2^nbits)));
+4-element Vector{Float32}:
+ 0.10379179
+ 0.25756857
+ 0.27798286
+ 0.47973529
+
+julia&gt; @time codes, compressed_residuals = compress(
+    centroids, bucket_cutoffs, dim, nbits, embs);
+  4.277926 seconds (1.57 k allocations: 4.238 GiB, 6.46% gc time)
+
+julia&gt; @time decompressed_embeddings = decompress(
+    dim, nbits, centroids, bucket_weights, codes, compressed_residuals);
+0.237170 seconds (276.40 k allocations: 563.049 MiB, 50.93% compilation time)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/codecs/residual.jl#L723-L758">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.decompress_residuals-Tuple{Int64, Int64, Vector{Float32}, AbstractMatrix{UInt8}}" href="#ColBERT.decompress_residuals-Tuple{Int64, Int64, Vector{Float32}, AbstractMatrix{UInt8}}"><code>ColBERT.decompress_residuals</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: binarize, decompress_residuals;
+
+julia&gt; using Statistics, Flux, CUDA, Random;
+
+julia&gt; Random.seed!(0);
+
+julia&gt; dim, nbits = 128, 2;           # encode residuals in 5 bits
+
+julia&gt; residuals = rand(Float32, dim, 200000);
+
+julia&gt; quantiles = collect(0:(2^nbits - 1)) / 2^nbits;
+
+julia&gt; bucket_cutoffs = Float32.(quantile(residuals, quantiles[2:end]))
+3-element Vector{Float32}:
+ 0.2502231
+ 0.5001043
+ 0.75005275
+
+julia&gt; bucket_weights = Float32.(quantile(residuals, quantiles .+ 0.5 / 2^nbits))
+4-element Vector{Float32}:
+ 0.1250611
+ 0.37511465
+ 0.62501323
+ 0.87501866
+
+julia&gt; binary_residuals = binarize(dim, nbits, bucket_cutoffs, residuals);
+
+julia&gt; decompressed_residuals = decompress_residuals(
+    dim, nbits, bucket_weights, binary_residuals)
+128×200000 Matrix{Float32}:
+ 0.125061  0.625013  0.875019  0.375115  0.625013  0.875019  …  0.375115  0.125061  0.375115  0.625013  0.875019
+ 0.375115  0.125061  0.875019  0.375115  0.125061  0.125061     0.625013  0.875019  0.625013  0.875019  0.375115
+ 0.875019  0.625013  0.125061  0.375115  0.625013  0.375115     0.375115  0.375115  0.125061  0.375115  0.375115
+ 0.625013  0.625013  0.125061  0.875019  0.875019  0.875019     0.375115  0.875019  0.875019  0.625013  0.375115
+ 0.625013  0.625013  0.875019  0.125061  0.625013  0.625013     0.125061  0.875019  0.375115  0.125061  0.125061
+ 0.875019  0.875019  0.125061  0.625013  0.625013  0.375115  …  0.625013  0.125061  0.875019  0.125061  0.125061
+ 0.125061  0.875019  0.625013  0.375115  0.625013  0.375115     0.625013  0.125061  0.625013  0.625013  0.375115
+ 0.875019  0.375115  0.125061  0.875019  0.875019  0.625013     0.125061  0.875019  0.875019  0.375115  0.625013
+ 0.375115  0.625013  0.625013  0.375115  0.125061  0.875019     0.375115  0.875019  0.625013  0.125061  0.125061
+ 0.125061  0.875019  0.375115  0.625013  0.375115  0.125061     0.875019  0.875019  0.625013  0.375115  0.375115
+ 0.875019  0.875019  0.375115  0.125061  0.125061  0.875019  …  0.125061  0.375115  0.375115  0.875019  0.625013
+ 0.625013  0.125061  0.625013  0.875019  0.625013  0.375115     0.875019  0.625013  0.125061  0.875019  0.875019
+ 0.125061  0.375115  0.625013  0.625013  0.125061  0.125061     0.125061  0.875019  0.625013  0.125061  0.375115
+ 0.625013  0.375115  0.375115  0.125061  0.625013  0.875019     0.875019  0.875019  0.375115  0.375115  0.875019
+ 0.375115  0.125061  0.625013  0.625013  0.875019  0.875019     0.625013  0.125061  0.375115  0.375115  0.375115
+ 0.875019  0.625013  0.125061  0.875019  0.875019  0.875019  …  0.875019  0.125061  0.625013  0.625013  0.625013
+ 0.875019  0.625013  0.625013  0.625013  0.375115  0.625013     0.625013  0.375115  0.625013  0.375115  0.375115
+ 0.375115  0.875019  0.125061  0.625013  0.125061  0.875019     0.375115  0.625013  0.375115  0.375115  0.375115
+ 0.625013  0.875019  0.625013  0.375115  0.625013  0.375115     0.625013  0.625013  0.625013  0.875019  0.125061
+ 0.625013  0.875019  0.875019  0.625013  0.625013  0.375115     0.625013  0.375115  0.125061  0.125061  0.125061
+ 0.625013  0.625013  0.125061  0.875019  0.375115  0.875019  …  0.125061  0.625013  0.875019  0.125061  0.375115
+ 0.125061  0.375115  0.875019  0.375115  0.375115  0.875019     0.375115  0.875019  0.125061  0.875019  0.125061
+ 0.375115  0.625013  0.125061  0.375115  0.125061  0.875019     0.875019  0.875019  0.875019  0.875019  0.625013
+ 0.125061  0.375115  0.125061  0.125061  0.125061  0.875019     0.625013  0.875019  0.125061  0.875019  0.625013
+ 0.875019  0.375115  0.125061  0.125061  0.875019  0.125061     0.875019  0.625013  0.125061  0.625013  0.375115
+ 0.625013  0.375115  0.875019  0.125061  0.375115  0.875019  …  0.125061  0.125061  0.125061  0.125061  0.125061
+ 0.375115  0.625013  0.875019  0.625013  0.125061  0.375115     0.375115  0.375115  0.375115  0.375115  0.125061
+ ⋮                                                 ⋮         ⋱  ⋮
+ 0.875019  0.375115  0.375115  0.625013  0.875019  0.375115     0.375115  0.875019  0.875019  0.125061  0.625013
+ 0.875019  0.125061  0.875019  0.375115  0.875019  0.875019     0.875019  0.875019  0.625013  0.625013  0.875019
+ 0.125061  0.375115  0.375115  0.625013  0.375115  0.125061     0.625013  0.125061  0.125061  0.875019  0.125061
+ 0.375115  0.375115  0.625013  0.625013  0.875019  0.375115     0.875019  0.125061  0.375115  0.125061  0.625013
+ 0.875019  0.125061  0.375115  0.375115  0.125061  0.125061  …  0.375115  0.875019  0.375115  0.625013  0.125061
+ 0.625013  0.125061  0.625013  0.125061  0.875019  0.625013     0.375115  0.625013  0.875019  0.875019  0.625013
+ 0.875019  0.375115  0.875019  0.625013  0.875019  0.375115     0.375115  0.375115  0.125061  0.125061  0.875019
+ 0.375115  0.875019  0.625013  0.875019  0.375115  0.875019     0.375115  0.125061  0.875019  0.375115  0.625013
+ 0.125061  0.375115  0.125061  0.625013  0.625013  0.875019     0.125061  0.625013  0.375115  0.125061  0.875019
+ 0.375115  0.375115  0.125061  0.375115  0.375115  0.375115  …  0.625013  0.625013  0.625013  0.875019  0.375115
+ 0.125061  0.375115  0.625013  0.625013  0.125061  0.125061     0.625013  0.375115  0.125061  0.625013  0.875019
+ 0.375115  0.875019  0.875019  0.625013  0.875019  0.875019     0.875019  0.375115  0.125061  0.125061  0.875019
+ 0.625013  0.125061  0.625013  0.375115  0.625013  0.375115     0.375115  0.875019  0.125061  0.625013  0.375115
+ 0.125061  0.875019  0.625013  0.125061  0.875019  0.375115     0.375115  0.875019  0.875019  0.375115  0.875019
+ 0.625013  0.625013  0.875019  0.625013  0.625013  0.375115  …  0.375115  0.125061  0.875019  0.625013  0.625013
+ 0.875019  0.625013  0.125061  0.125061  0.375115  0.375115     0.625013  0.625013  0.125061  0.125061  0.875019
+ 0.875019  0.125061  0.875019  0.125061  0.875019  0.625013     0.125061  0.375115  0.875019  0.625013  0.625013
+ 0.875019  0.125061  0.625013  0.875019  0.625013  0.625013     0.875019  0.875019  0.375115  0.375115  0.125061
+ 0.625013  0.875019  0.625013  0.875019  0.875019  0.375115     0.375115  0.375115  0.375115  0.375115  0.625013
+ 0.375115  0.875019  0.625013  0.625013  0.125061  0.125061  …  0.375115  0.875019  0.875019  0.875019  0.625013
+ 0.625013  0.625013  0.375115  0.125061  0.125061  0.125061     0.625013  0.875019  0.125061  0.125061  0.625013
+ 0.625013  0.875019  0.875019  0.625013  0.625013  0.625013     0.875019  0.625013  0.625013  0.125061  0.125061
+ 0.875019  0.375115  0.875019  0.125061  0.625013  0.375115     0.625013  0.875019  0.875019  0.125061  0.625013
+ 0.875019  0.625013  0.125061  0.875019  0.875019  0.875019     0.375115  0.875019  0.375115  0.875019  0.125061
+ 0.625013  0.375115  0.625013  0.125061  0.125061  0.375115  …  0.875019  0.625013  0.625013  0.875019  0.625013
+ 0.625013  0.625013  0.125061  0.375115  0.125061  0.375115     0.125061  0.625013  0.875019  0.375115  0.875019
+ 0.375115  0.125061  0.125061  0.375115  0.875019  0.125061     0.875019  0.875019  0.625013  0.375115  0.125061</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/codecs/residual.jl#L606-L697">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.doc-Tuple{Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, AbstractMatrix{Int32}, AbstractMatrix{Bool}}" href="#ColBERT.doc-Tuple{Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, AbstractMatrix{Int32}, AbstractMatrix{Bool}}"><code>ColBERT.doc</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">doc(bert::HF.HGFBertModel, linear::Layers.Dense,
+    integer_ids::AbstractMatrix{Int32}, bitmask::AbstractMatrix{Bool})</code></pre><p>Compute the hidden state of the BERT and linear layers of ColBERT for documents.</p><p><strong>Arguments</strong></p><ul><li><code>bert</code>: The pre-trained BERT component of the ColBERT model. </li><li><code>linear</code>: The pre-trained linear component of the ColBERT model. </li><li><code>integer_ids</code>: An array of token IDs to be fed into the BERT model.</li><li><code>integer_mask</code>: An array of corresponding attention masks. Should have the same shape as <code>integer_ids</code>.</li></ul><p><strong>Returns</strong></p><p>An array <code>D</code> containing the normalized embeddings for each token in each document. It has shape <code>(D, L, N)</code>, where <code>D</code> is the embedding dimension (<code>128</code> for the linear layer of ColBERT), and <code>(L, N)</code> is the shape of <code>integer_ids</code>, i.e <code>L</code> is the maximum length of any document and <code>N</code> is the total number of documents.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/modelling/checkpoint.jl#L1-L20">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.encode_passages-Tuple{Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, Transformers.TextEncoders.AbstractTransformerTextEncoder, Vector{String}, Int64, Int64, String, Vector{Int64}}" href="#ColBERT.encode_passages-Tuple{Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, Transformers.TextEncoders.AbstractTransformerTextEncoder, Vector{String}, Int64, Int64, String, Vector{Int64}}"><code>ColBERT.encode_passages</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">encode_passages(bert::HF.HGFBertModel, linear::Layers.Dense,
+    tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+    passages::Vector{String}, dim::Int, index_bsize::Int,
+    doc_token::String, skiplist::Vector{Int})</code></pre><p>Encode a list of document passages.</p><p>The given <code>passages</code> are run through the underlying BERT model and the linear layer to generate the embeddings, after doing relevant document-specific preprocessing.</p><p><strong>Arguments</strong></p><ul><li><code>bert</code>: The pre-trained BERT component of the ColBERT model. </li><li><code>linear</code>: The pre-trained linear component of the ColBERT model. </li><li><code>tokenizer</code>: The tokenizer to be used. </li><li><code>passages</code>: A list of strings representing the passages to be encoded.</li><li><code>dim</code>: The embedding dimension. </li><li><code>index_bsize</code>: The batch size to be used for running the transformer. </li><li><code>doc_token</code>: The document token. </li><li><code>skiplist</code>: A list of tokens to skip. </li></ul><p><strong>Returns</strong></p><p>A tuple <code>embs, doclens</code> where:</p><ul><li><code>embs::AbstractMatrix{Float32}</code>: The full embedding matrix. Of shape <code>(D, N)</code>, where <code>D</code> is the embedding dimension and <code>N</code> is the total number of embeddings across all the passages.</li><li><code>doclens::AbstractVector{Int}</code>: A vector of document lengths for each passage, i.e the total number of attended tokens for each document passage.</li></ul><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: load_hgf_pretrained_local, ColBERTConfig, encode_passages;
+
+julia&gt; using CUDA, Flux, Transformers, TextEncodeBase;
+
+julia&gt; config = ColBERTConfig();
+
+julia&gt; dim = config.dim
+128
+
+julia&gt; index_bsize = 128;                       # this is the batch size to be fed in the transformer
+
+julia&gt; doc_maxlen = config.doc_maxlen
+300
+
+julia&gt; doc_token = config.doc_token_id
+&quot;[unused1]&quot;
+
+julia&gt; tokenizer, bert, linear = load_hgf_pretrained_local(&quot;/home/codetalker7/models/colbertv2.0/&quot;);
+
+julia&gt; process = tokenizer.process;
+
+julia&gt; truncpad_pipe = Pipeline{:token}(
+           TextEncodeBase.trunc_and_pad(doc_maxlen - 1, &quot;[PAD]&quot;, :tail, :tail),
+           :token);
+
+julia&gt; process = process[1:4] |&gt; truncpad_pipe |&gt; process[6:end];
+
+julia&gt; tokenizer = TextEncoders.BertTextEncoder(
+           tokenizer.tokenizer, tokenizer.vocab, process; startsym = tokenizer.startsym,
+           endsym = tokenizer.endsym, padsym = tokenizer.padsym, trunc = tokenizer.trunc);
+
+julia&gt; bert = bert |&gt; Flux.gpu;
+
+julia&gt; linear = linear |&gt; Flux.gpu;
+
+julia&gt; passages = readlines(&quot;./downloads/lotte/lifestyle/dev/collection.tsv&quot;)[1:1000];
+
+julia&gt; punctuations_and_padsym = [string.(collect(&quot;!&quot;#$%&amp;&#39;()*+,-./:;&lt;=&gt;?@[\]^_`{|}~&quot;));
+                                   tokenizer.padsym];
+
+julia&gt; skiplist = [lookup(tokenizer.vocab, sym)
+                    for sym in punctuations_and_padsym];
+
+julia&gt; @time embs, doclens = encode_passages(
+    bert, linear, tokenizer, passages, dim, index_bsize, doc_token, skiplist)      # second run stats
+[ Info: Encoding 1000 passages.
+ 25.247094 seconds (29.65 M allocations: 1.189 GiB, 37.26% gc time, 0.00% compilation time)
+(Float32[-0.08001435 -0.10785186 … -0.08651956 -0.12118215; 0.07319974 0.06629379 … 0.0929825 0.13665271; … ; -0.037957724 -0.039623592 … 0.031274226 0.063107446; 0.15484622 0.16779025 … 0.11533891 0.11508792], [279, 117, 251, 105, 133, 170, 181, 115, 190, 132  …  76, 204, 199, 244, 256, 125, 251, 261, 262, 263])
+</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/modelling/checkpoint.jl#L73-L158">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.encode_queries-Tuple{Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, Transformers.TextEncoders.AbstractTransformerTextEncoder, Vector{String}, Int64, Int64, String, Bool, Vector{Int64}}" href="#ColBERT.encode_queries-Tuple{Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, Transformers.TextEncoders.AbstractTransformerTextEncoder, Vector{String}, Int64, Int64, String, Bool, Vector{Int64}}"><code>ColBERT.encode_queries</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">encode_queries(bert::HF.HGFBertModel, linear::Layers.Dense,
+    tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+    queries::Vector{String}, dim::Int,
+    index_bsize::Int, query_token::String, attend_to_mask_tokens::Bool,
+    skiplist::Vector{Int})</code></pre><p>Encode a list of query passages.</p><p><strong>Arguments</strong></p><ul><li><code>bert</code>: The pre-trained BERT component of the ColBERT model. </li><li><code>linear</code>: The pre-trained linear component of the ColBERT model. </li><li><code>tokenizer</code>: The tokenizer to be used. </li><li><code>queries</code>: A list of strings representing the queries to be encoded.</li><li><code>dim</code>: The embedding dimension. </li><li><code>index_bsize</code>: The batch size to be used for running the transformer. </li><li><code>query_token</code>: The query token. </li><li><code>attend_to_mask_tokens</code>: Whether to attend to <code>&quot;[MASK]&quot;</code> tokens. </li><li><code>skiplist</code>: A list of tokens to skip. </li></ul><p><strong>Returns</strong></p><p>An array containing the embeddings for each token in the query.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: load_hgf_pretrained_local, ColBERTConfig, encode_queries;
+
+julia&gt; using CUDA, Flux, Transformers, TextEncodeBase;
+
+julia&gt; config = ColBERTConfig();
+
+julia&gt; dim = config.dim
+128
+
+julia&gt; index_bsize = 128;                       # this is the batch size to be fed in the transformer
+
+julia&gt; query_maxlen = config.query_maxlen
+300
+
+julia&gt; query_token = config.query_token_id
+&quot;[unused1]&quot;
+
+julia&gt; tokenizer, bert, linear = load_hgf_pretrained_local(&quot;/home/codetalker7/models/colbertv2.0/&quot;);
+
+julia&gt; process = tokenizer.process;
+
+julia&gt; truncpad_pipe = Pipeline{:token}(
+           TextEncodeBase.trunc_or_pad(query_maxlen - 1, &quot;[PAD]&quot;, :tail, :tail),
+           :token);
+
+julia&gt; process = process[1:4] |&gt; truncpad_pipe |&gt; process[6:end];
+
+julia&gt; tokenizer = TextEncoders.BertTextEncoder(
+           tokenizer.tokenizer, tokenizer.vocab, process; startsym = tokenizer.startsym,
+           endsym = tokenizer.endsym, padsym = tokenizer.padsym, trunc = tokenizer.trunc);
+
+julia&gt; bert = bert |&gt; Flux.gpu;
+
+julia&gt; linear = linear |&gt; Flux.gpu;
+
+julia&gt; skiplist = [lookup(tokenizer.vocab, tokenizer.padsym)]
+1-element Vector{Int64}:
+ 1
+
+julia&gt; attend_to_mask_tokens = config.attend_to_mask_tokens
+
+julia&gt; queries = [
+    &quot;what are white spots on raspberries?&quot;,
+    &quot;here is another query!&quot;,
+];
+
+julia&gt; @time encode_queries(bert, linear, tokenizer, queries, dim, index_bsize,
+    query_token, attend_to_mask_tokens, skiplist);
+[ Info: Encoding 2 queries.
+  0.029858 seconds (27.58 k allocations: 781.727 KiB, 0.00% compilation time)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/modelling/checkpoint.jl#L191-L270">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.extract_tokenizer_type-Tuple{AbstractString}" href="#ColBERT.extract_tokenizer_type-Tuple{AbstractString}"><code>ColBERT.extract_tokenizer_type</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">extract_tokenizer_type(tkr_type::AbstractString)</code></pre><p>Extract tokenizer type from config.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/local_loading.jl#L11-L15">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.index-Tuple{Indexer}" href="#ColBERT.index-Tuple{Indexer}"><code>ColBERT.index</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">index(indexer::Indexer)</code></pre><p>Build an index given the configuration stored in <code>indexer</code>.</p><p><strong>Arguments</strong></p><ul><li><code>indexer</code>: An <code>Indexer</code> which is used to build the index on disk.</li></ul></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing.jl#L54-L62">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.index-Tuple{String, Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, Transformers.TextEncoders.AbstractTransformerTextEncoder, Vector{String}, Int64, Int64, String, Vector{Int64}, Int64, Int64, AbstractMatrix{Float32}, AbstractVector{Float32}, Int64}" href="#ColBERT.index-Tuple{String, Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, Transformers.TextEncoders.AbstractTransformerTextEncoder, Vector{String}, Int64, Int64, String, Vector{Int64}, Int64, Int64, AbstractMatrix{Float32}, AbstractVector{Float32}, Int64}"><code>ColBERT.index</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">index(index_path::String, bert::HF.HGFBertModel, linear::Layers.Dense,
+    tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+    collection::Vector{String}, dim::Int, index_bsize::Int,
+    doc_token::String, skiplist::Vector{Int}, num_chunks::Int,
+    chunksize::Int, centroids::AbstractMatrix{Float32},
+    bucket_cutoffs::AbstractVector{Float32}, nbits::Int)</code></pre><p>Build the index using for the <code>collection</code>.</p><p>The documents are processed in batches of size <code>chunksize</code> (see <a href="#ColBERT.setup-Tuple{Vector{String}, Float32, Int64, Union{Missing, Int64}, Int64}"><code>setup</code></a>). Embeddings and document lengths are computed for each batch (see <a href="#ColBERT.encode_passages-Tuple{Transformers.HuggingFace.HGFBertModel, Transformers.Layers.Dense, Transformers.TextEncoders.AbstractTransformerTextEncoder, Vector{String}, Int64, Int64, String, Vector{Int64}}"><code>encode_passages</code></a>), and they are saved to disk along with relevant metadata (see <a href="#ColBERT.save_chunk-Tuple{String, AbstractVector{UInt32}, AbstractMatrix{UInt8}, Int64, Int64, AbstractVector{Int64}}"><code>save_chunk</code></a>).</p><p><strong>Arguments</strong></p><ul><li><code>index_path</code>: Path where the index is to be saved. </li><li><code>bert</code>: The pre-trained BERT component of the ColBERT model. </li><li><code>linear</code>: The pre-trained linear component of the ColBERT model. </li><li><code>tokenizer</code>: Tokenizer to be used. </li><li><code>collection</code>: The collection to index.</li><li><code>dim</code>: The embedding dimension.</li><li><code>index_bsize</code>: The batch size used for running the transformer. </li><li><code>doc_token</code>: The document token.</li><li><code>skiplist</code>: List of tokens to skip. </li><li><code>num_chunks</code>: Total number of chunks. </li><li><code>chunksize</code>: The maximum size of a chunk. </li><li><code>centroids</code>: Centroids used to compute the compressed representations. </li><li><code>bucket_cutoffs</code>: Cutoffs used to compute the residuals. </li><li><code>nbits</code>: Number of bits to encode the residuals in. </li></ul></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/collection_indexer.jl#L239-L270">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.kmeans_gpu_onehot!-Tuple{AbstractMatrix{Float32}, AbstractMatrix{Float32}, Int64}" href="#ColBERT.kmeans_gpu_onehot!-Tuple{AbstractMatrix{Float32}, AbstractMatrix{Float32}, Int64}"><code>ColBERT.kmeans_gpu_onehot!</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT, Flux, CUDA, Random;
+
+julia&gt; d, n, k = 100, 2000000, 50000 # dimensions, number of points, number of clusters
+(100, 2000000, 50000)
+
+julia&gt; data = rand(Float32, d, n) |&gt; Flux.gpu;           # around 800MB
+
+julia&gt; centroids = data[:, randperm(n)[1:k]];
+
+julia&gt; point_bsize = 1000;         # adjust according to your GPU/CPU memory
+
+julia&gt; @time assignments = ColBERT.kmeans_gpu_onehot!(
+           data, centroids, k; max_iters = 2, point_bsize = point_bsize)
+[ Info: Iteration 1/2, max delta: 0.6814487
+[ Info: Iteration 2/2, max delta: 0.28856403
+ 76.381827 seconds (5.76 M allocations: 606.426 MiB, 4.25% gc time, 0.11% compilation time)
+2000000-element Vector{Int32}:
+ 24360
+ 10954
+ 29993
+ 22113
+ 19024
+ 32192
+ 33033
+ 32738
+ 19901
+  5142
+ 23567
+ 12686
+ 18894
+ 23919
+  7325
+ 29809
+ 27885
+ 31122
+  1457
+  9823
+ 41315
+ 14311
+ 21975
+ 48753
+ 16162
+  7809
+ 33018
+ 22410
+ 26646
+  2607
+ 34833
+     ⋮
+ 15216
+ 26424
+ 21939
+  9252
+  5071
+ 14570
+ 22467
+ 37881
+ 28239
+  8775
+ 31290
+  4625
+  7561
+  7645
+  7277
+ 36069
+ 49799
+ 39307
+ 10595
+  7639
+ 18879
+ 12754
+  1233
+ 29389
+ 24772
+ 47907
+ 29380
+  1345
+  4781
+ 35313
+ 30000
+
+julia&gt; centroids
+100×50000 CuArray{Float32, 2, CUDA.DeviceMemory}:
+ 0.573378  0.509291  0.40079   0.614619  0.593501  0.532985  0.79016    0.573517  …  0.544782  0.666605  0.537127  0.490516  0.74021   0.345155  0.613033
+ 0.710199  0.301702  0.570302  0.302831  0.378944  0.28444   0.577703   0.327737     0.27379   0.352727  0.413396  0.49565   0.685949  0.534816  0.540361
+ 0.379057  0.424286  0.771943  0.411402  0.319783  0.550557  0.64573    0.679135     0.702826  0.846835  0.608924  0.376951  0.431148  0.642033  0.697345
+ 0.694464  0.435644  0.422319  0.532234  0.521483  0.627431  0.501389   0.359163     0.328353  0.350925  0.485843  0.437292  0.354213  0.185923  0.427814
+ 0.221736  0.506781  0.352585  0.678622  0.333673  0.50622   0.463275   0.591525     0.572961  0.473792  0.369353  0.400138  0.733724  0.477619  0.254028
+ 0.619385  0.51777   0.40583   0.445265  0.224872  0.677207  0.713577   0.620289  …  0.389378  0.487728  0.675865  0.250588  0.614895  0.668617  0.235178
+ 0.591426  0.395195  0.538931  0.744411  0.533349  0.338823  0.345266   0.327421     0.373282  0.36309   0.681582  0.646208  0.404389  0.251627  0.341416
+ 0.583477  0.423426  0.247412  0.446173  0.280856  0.614167  0.533047   0.573224     0.45711   0.445103  0.697702  0.474529  0.616773  0.460811  0.286667
+ 0.49608   0.685452  0.424273  0.683325  0.581213  0.684903  0.382428   0.529762     0.734883  0.71177   0.414117  0.417863  0.543535  0.610839  0.488656
+ 0.626167  0.540865  0.677231  0.596885  0.378552  0.398865  0.518733   0.497296     0.661245  0.594468  0.288819  0.29435   0.467833  0.722748  0.663824
+ 0.619386  0.579229  0.441548  0.386045  0.564118  0.646701  0.632154   0.612795  …  0.617854  0.597241  0.490215  0.308035  0.349091  0.486332  0.32071
+ 0.315375  0.457891  0.642345  0.361314  0.410211  0.380876  0.844302   0.496581     0.726295  0.21279   0.555863  0.468077  0.448128  0.497228  0.688524
+ 0.302116  0.55576   0.22489   0.50484   0.561481  0.461971  0.605235   0.627733     0.570166  0.536869  0.647504  0.458224  0.27462   0.553473  0.268046
+ 0.745733  0.403701  0.468518  0.418122  0.533233  0.579005  0.837422   0.538135     0.704916  0.666066  0.571446  0.500032  0.585166  0.555079  0.39484
+ 0.576735  0.590597  0.312162  0.330425  0.45483   0.279067  0.577954   0.539739     0.644922  0.185377  0.681872  0.36546   0.619736  0.755231  0.818024
+ 0.548489  0.695465  0.835756  0.478009  0.412736  0.416005  0.118124   0.626901  …  0.313572  0.754964  0.659507  0.677611  0.479118  0.3991    0.622777
+ 0.285406  0.381637  0.338189  0.544162  0.477955  0.546904  0.309153   0.439008     0.563208  0.346864  0.448714  0.383776  0.55155   0.3148    0.467101
+ 0.823076  0.652229  0.504614  0.400098  0.357104  0.448227  0.24265    0.696984     0.485136  0.637487  0.643558  0.705938  0.632451  0.424837  0.766686
+ 0.421668  0.343106  0.530787  0.528398  0.24584   0.699929  0.214073   0.419076     0.331078  0.35033   0.354848  0.46255   0.475431  0.715539  0.688314
+ 0.779925  0.724435  0.638462  0.482254  0.521571  0.715278  0.621099   0.556042     0.308391  0.492443  0.36217   0.408848  0.73595   0.540198  0.698907
+ 0.356398  0.544033  0.543013  0.462401  0.402219  0.387093  0.323547   0.373834  …  0.645622  0.674534  0.723415  0.353287  0.613711  0.38006   0.554985
+ 0.658572  0.401115  0.25994   0.483548  0.52677   0.712259  0.774561   0.438474     0.376936  0.297307  0.455176  0.23899   0.608517  0.76084   0.382525
+ 0.525316  0.362833  0.361821  0.383153  0.248305  0.401027  0.554528   0.278677     0.415318  0.512563  0.401782  0.674682  0.666895  0.663432  0.378345
+ 0.580109  0.489022  0.255441  0.590038  0.488305  0.51133   0.508364   0.416333     0.262037  0.348079  0.564498  0.360297  0.702012  0.324764  0.249475
+ 0.723813  0.548868  0.550225  0.438456  0.455546  0.714484  0.0994013  0.465583     0.590603  0.414145  0.583897  0.41563   0.411714  0.271341  0.440918
+ 0.62465   0.664534  0.342419  0.648037  0.719117  0.665314  0.256789   0.325002  …  0.636772  0.235229  0.472394  0.656942  0.414241  0.216398  0.799625
+ 0.409948  0.493941  0.522245  0.38117   0.235328  0.310665  0.557497   0.621436     0.413982  0.577326  0.645292  0.225434  0.430032  0.450371  0.375822
+ 0.372894  0.635165  0.494829  0.440398  0.380812  0.755357  0.473521   0.487604     0.349699  0.659922  0.626307  0.437899  0.488775  0.404058  0.64511
+ 0.288256  0.491838  0.338052  0.466105  0.363578  0.456235  0.425795   0.453427     0.226024  0.429285  0.604995  0.403821  0.33844   0.254136  0.42694
+ 0.314443  0.319862  0.56776   0.652814  0.626939  0.234881  0.274685   0.531139     0.270967  0.547521  0.664938  0.451628  0.531532  0.592488  0.525191
+ 0.493068  0.306231  0.562287  0.454218  0.199483  0.57302   0.238318   0.567198  …  0.297332  0.460382  0.285109  0.411792  0.356838  0.340022  0.414451
+ 0.53873   0.258357  0.402785  0.269083  0.594396  0.505856  0.690911   0.738276     0.737582  0.369145  0.409122  0.336054  0.358317  0.392364  0.561769
+ 0.617347  0.639471  0.333155  0.370546  0.526723  0.293309  0.247984   0.660384     0.647745  0.286011  0.681676  0.624425  0.580846  0.402701  0.297121
+ 0.496282  0.378267  0.270501  0.475257  0.516464  0.356405  0.175957   0.539904     0.236559  0.58985   0.578107  0.543669  0.563102  0.71473   0.43457
+ 0.297402  0.476382  0.426692  0.283131  0.626477  0.220255  0.372191   0.615784     0.374197  0.55345   0.495846  0.331621  0.645283  0.578616  0.389071
+ 0.734077  0.371284  0.826699  0.684061  0.272948  0.693993  0.528874   0.304462  …  0.525932  0.395874  0.500069  0.559787  0.460612  0.798967  0.580689
+ ⋮                                                 ⋮                              ⋱                      ⋮
+ 0.295452  0.589387  0.339522  0.383816  0.63141   0.505792  0.66544    0.479078     0.448193  0.774786  0.607631  0.349403  0.689084  0.619     0.251087
+ 0.342872  0.684608  0.66651   0.402659  0.424726  0.591997  0.391954   0.667982  …  0.459421  0.376128  0.301928  0.538294  0.530345  0.458879  0.59855
+ 0.449909  0.409996  0.149798  0.576651  0.290799  0.635566  0.437937   0.511792     0.648198  0.661462  0.61996   0.644484  0.636402  0.527594  0.407358
+ 0.782475  0.421017  0.69657   0.691838  0.382575  0.805573  0.364693   0.597721     0.652466  0.666937  0.693412  0.490323  0.514455  0.380534  0.427285
+ 0.314463  0.420641  0.364206  0.348991  0.59921   0.746625  0.617284   0.697596     0.342617  0.45338   0.363351  0.660113  0.674676  0.376416  0.721194
+ 0.402126  0.588711  0.323173  0.388439  0.34814   0.491494  0.545984   0.648734     0.430481  0.378938  0.309212  0.382807  0.632475  0.367792  0.376823
+ 0.555737  0.668767  0.490702  0.663971  0.250589  0.445352  0.172075   0.673576  …  0.322794  0.644713  0.394593  0.572583  0.687199  0.662051  0.3559
+ 0.793682  0.698499  0.67152   0.46898   0.656144  0.353421  0.803591   0.633019     0.803097  0.640827  0.365467  0.679615  0.642185  0.685466  0.296224
+ 0.428538  0.528681  0.438861  0.625715  0.591183  0.629757  0.456717   0.50485      0.405746  0.437458  0.368839  0.446011  0.488281  0.471933  0.514202
+ 0.485429  0.738783  0.287516  0.463954  0.188286  0.544762  0.37223    0.58192      0.585194  0.489835  0.506583  0.464377  0.645507  0.804297  0.786932
+ 0.29249   0.586557  0.608833  0.663233  0.576919  0.267828  0.308029   0.712437     0.533969  0.421972  0.476979  0.530931  0.47962   0.528001  0.621458
+ 0.279038  0.445135  0.177712  0.515837  0.300508  0.281383  0.400402   0.651     …  0.58635   0.443282  0.657886  0.697657  0.552504  0.329047  0.399654
+ 0.832609  0.485713  0.600559  0.699044  0.714713  0.606326  0.273329   0.440225     0.623437  0.667127  0.41734   0.767461  0.702767  0.601694  0.506635
+ 0.297328  0.287248  0.36852   0.657753  0.698171  0.719895  0.238376   0.638514     0.343874  0.373995  0.511818  0.377467  0.389039  0.522639  0.686664
+ 0.301796  0.737757  0.635025  0.666437  0.393605  0.346305  0.547774   0.689093     0.519264  0.361948  0.718109  0.475808  0.573496  0.514178  0.598478
+ 0.549563  0.248966  0.364826  0.57668   0.590149  0.533822  0.664503   0.553704     0.284555  0.591084  0.316526  0.660029  0.516786  0.824489  0.689313
+ 0.247931  0.238425  0.23728   0.516849  0.732181  0.405793  0.724634   0.5149    …  0.380765  0.696078  0.41157   0.642839  0.384414  0.493493  0.552407
+ 0.606629  0.601705  0.319954  0.533014  0.382539  0.410641  0.29247    0.506377     0.615707  0.501867  0.475531  0.405969  0.333115  0.358202  0.502586
+ 0.583896  0.619858  0.593031  0.451623  0.58986   0.349512  0.536081   0.298436     0.396871  0.239656  0.406909  0.541055  0.416507  0.547856  0.424243
+ 0.691322  0.50077   0.323869  0.500225  0.420282  0.436531  0.703267   0.541637     0.539365  0.725134  0.693945  0.676646  0.556313  0.374397  0.583554
+ 0.701328  0.488743  0.35439   0.613276  0.493706  0.399695  0.728355   0.467517     0.261417  0.575774  0.37854   0.490462  0.461564  0.556492  0.424225
+ 0.718797  0.550606  0.565344  0.561342  0.355202  0.578364  0.786034   0.562179  …  0.289592  0.183233  0.524043  0.335948  0.333167  0.476679  0.65326
+ 0.701058  0.380252  0.444291  0.532477  0.540552  0.696061  0.403728   0.58757      0.520714  0.510013  0.547041  0.564867  0.532286  0.501574  0.595203
+ 0.365637  0.531816  0.565021  0.602144  0.548403  0.764079  0.365481   0.613074     0.360902  0.527056  0.375336  0.544605  0.689852  0.837963  0.459323
+ 0.288392  0.268179  0.332016  0.689326  0.234238  0.23735   0.756387   0.532537     0.403286  0.471491  0.602447  0.429769  0.293544  0.437438  0.349532
+ 0.664517  0.31624   0.59785   0.230114  0.376591  0.773395  0.752942   0.636399     0.326092  0.72005   0.333086  0.339832  0.325618  0.461294  0.524966
+ 0.222333  0.305546  0.673752  0.762977  0.307967  0.312146  0.663083   0.58212   …  0.69865   0.643548  0.640484  0.755733  0.496422  0.649607  0.720769
+ 0.411979  0.370252  0.237112  0.311196  0.610508  0.447023  0.506591   0.213862     0.721287  0.373431  0.594912  0.621447  0.43674   0.258687  0.560904
+ 0.617416  0.641325  0.560164  0.313925  0.490977  0.337085  0.714373   0.506699     0.253813  0.470016  0.584523  0.447376  0.51011   0.270167  0.484992
+ 0.623836  0.324357  0.734953  0.790519  0.455406  0.52695   0.403097   0.446101     0.633619  0.403004  0.694153  0.717927  0.47924   0.576069  0.253169
+ 0.73859   0.344694  0.183747  0.69547   0.458342  0.481904  0.737565   0.720339     0.447743  0.619669  0.367867  0.34662   0.607812  0.251007  0.509758
+ 0.530767  0.332264  0.550998  0.364326  0.722955  0.580428  0.490779   0.426905  …  0.793421  0.713281  0.779156  0.54861   0.674266  0.21644   0.493613
+ 0.343766  0.379023  0.630344  0.744247  0.567047  0.377182  0.73119    0.615484     0.761156  0.264631  0.510148  0.481783  0.453394  0.410757  0.335559
+ 0.568994  0.332011  0.631839  0.455666  0.631383  0.453398  0.654253   0.276721     0.268318  0.658483  0.523244  0.549092  0.485578  0.342858  0.436086
+ 0.686312  0.268361  0.414777  0.437959  0.617892  0.582933  0.649577   0.342277     0.70994   0.435503  0.24157   0.668377  0.412632  0.667489  0.544822
+ 0.446142  0.527333  0.160024  0.325712  0.330222  0.368513  0.661516   0.431168     0.44104   0.665175  0.286649  0.534375  0.67307   0.571995  0.3261</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/utils.jl#L91-L252">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.load_codec-Tuple{String}" href="#ColBERT.load_codec-Tuple{String}"><code>ColBERT.load_codec</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">load_codec(index_path::String)</code></pre><p>Load compression/decompression information from the index path.</p><p><strong>Arguments</strong></p><ul><li><code>index_path</code>: The path of the index.</li></ul></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/loaders.jl#L1-L9">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.load_config-Tuple{String}" href="#ColBERT.load_config-Tuple{String}"><code>ColBERT.load_config</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">load_config(index_path::String)</code></pre><p>Load a <a href="#ColBERT.ColBERTConfig"><code>ColBERTConfig</code></a> from disk.</p><p><strong>Arguments</strong></p><ul><li><code>index_path</code>: The path of the directory where the config resides.</li></ul><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT;
+
+julia&gt; config = ColBERTConfig(
+           use_gpu = true,
+           collection = &quot;/home/codetalker7/documents&quot;,
+           index_path = &quot;./local_index&quot;
+       );
+
+julia&gt; ColBERT.save(config);
+
+julia&gt; ColBERT.load_config(&quot;./local_index&quot;)
+ColBERTConfig(true, 0, 1, &quot;[unused0]&quot;, &quot;[unused1]&quot;, &quot;[Q]&quot;, &quot;[D]&quot;, &quot;colbert-ir/colbertv2.0&quot;, &quot;/home/codetalker7/documents&quot;, 128, 220, true, 32, false, &quot;./local_index&quot;, 64, 2, 20, 2, 8192)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/loaders.jl#L40-L65">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.load_hgf_pretrained_local-Tuple{AbstractString}" href="#ColBERT.load_hgf_pretrained_local-Tuple{AbstractString}"><code>ColBERT.load_hgf_pretrained_local</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">load_hgf_pretrained_local(dir_spec::AbstractString;
+    path_config::Union{Nothing, AbstractString} = nothing,
+    path_tokenizer_config::Union{Nothing, AbstractString} = nothing,
+    path_special_tokens_map::Union{Nothing, AbstractString} = nothing,
+    path_tokenizer::Union{Nothing, AbstractString} = nothing,
+    path_model::Union{Nothing, AbstractString} = nothing,
+    kwargs...</code></pre><p>)</p><p>Local model loader. Honors the <code>load_hgf_pretrained</code> interface, where you can request specific files to be loaded, eg, <code>my/dir/to/model:tokenizer</code> or <code>my/dir/to/model:config</code>.</p><p><strong>Arguments</strong></p><ul><li><code>dir_spec::AbstractString</code>: Directory specification (item specific after the colon is optional), eg, <code>my/dir/to/model</code> or <code>my/dir/to/model:tokenizer</code>.</li><li><code>path_config::Union{Nothing, AbstractString}</code>: Path to config file.</li><li><code>path_tokenizer_config::Union{Nothing, AbstractString}</code>: Path to tokenizer config file.</li><li><code>path_special_tokens_map::Union{Nothing, AbstractString}</code>: Path to special tokens map file.</li><li><code>path_tokenizer::Union{Nothing, AbstractString}</code>: Path to tokenizer file.</li><li><code>path_model::Union{Nothing, AbstractString}</code>: Path to model file.</li><li><code>kwargs...</code>: Additional keyword arguments for <code>_load_model</code> function like <code>mmap</code>, <code>lazy</code>, <code>trainmode</code>.</li></ul><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT, CUDA;
+
+julia&gt; dir_spec = &quot;/home/codetalker7/models/colbertv2.0/&quot;;
+
+julia&gt; tokenizer, model, linear = load_hgf_pretrained_local(dir_spec);</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/local_loading.jl#L106-L138">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.mask_skiplist!-Tuple{AbstractMatrix{Bool}, AbstractMatrix{Int32}, Vector{Int64}}" href="#ColBERT.mask_skiplist!-Tuple{AbstractMatrix{Bool}, AbstractMatrix{Int32}, Vector{Int64}}"><code>ColBERT.mask_skiplist!</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">mask_skiplist(tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+    integer_ids::AbstractMatrix{Int32}, skiplist::Union{Missing, Vector{Int64}})</code></pre><p>Create a mask for the given <code>integer_ids</code>, based on the provided <code>skiplist</code>. If the <code>skiplist</code> is not missing, then any token IDs in the list will be filtered out along with the padding token. Otherwise, all tokens are included in the mask.</p><p><strong>Arguments</strong></p><ul><li><code>tokenizer</code>: The underlying tokenizer.</li><li><code>integer_ids</code>: An <code>Array</code> of token IDs for the documents.</li><li><code>skiplist</code>: A list of token IDs to skip in the mask.</li></ul><p><strong>Returns</strong></p><p>An array of booleans indicating whether the corresponding token ID is included in the mask or not. The array has the same shape as <code>integer_ids</code>, i.e <code>(L, N)</code>, where <code>L</code> is the maximum length of any document in <code>integer_ids</code> and <code>N</code> is the number of documents.</p><p><strong>Examples</strong></p><p>In this example, we&#39;ll mask out all punctuations as well as the pad symbol of a tokenizer.</p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: mask_skiplist;
+
+julia&gt; using TextEncodeBase
+
+julia&gt; tokenizer = load_hgf_pretrained_local(&quot;/home/codetalker7/models/colbertv2.0/:tokenizer&quot;);
+
+julia&gt; punctuations_and_padsym = [string.(collect(&quot;!&quot;#$%&amp;&#39;()*+,-./:;&lt;=&gt;?@[\]^_`{|}~&quot;));
+                                   tokenizer.padsym];
+
+julia&gt; skiplist = [lookup(tokenizer.vocab, sym)
+                    for sym in punctuations_and_padsym]
+33-element Vector{Int64}:
+ 1000
+ 1001
+ 1002
+ 1003
+ 1004
+ 1005
+ 1006
+ 1007
+ 1008
+ 1009
+ 1010
+ 1011
+ 1012
+ 1013
+ 1014
+ 1025
+ 1026
+ 1027
+ 1028
+ 1029
+ 1030
+ 1031
+ 1032
+ 1033
+ 1034
+ 1035
+ 1036
+ 1037
+ 1064
+ 1065
+ 1066
+ 1067
+    1
+
+julia&gt;  batch_text = [
+    &quot;no punctuation text&quot;,
+    &quot;this, batch,! of text contains puncts! but is larger so that? the other text contains pad symbol;&quot;
+];
+
+julia&gt; integer_ids, _ = tensorize_docs(&quot;[unused1]&quot;, tokenizer, batch_text)
+
+julia&gt; integer_ids
+27×2 Matrix{Int32}:
+   102    102
+     3      3
+  2054   2024
+ 26137   1011
+  6594  14109
+ 14506   1011
+  3794   1000
+   103   1998
+     1   3794
+     1   3398
+     1  26137
+     1  16650
+     1   1000
+     1   2022
+     1   2004
+     1   3470
+     1   2062
+     1   2009
+     1   1030
+     1   1997
+     1   2061
+     1   3794
+     1   3398
+     1  11688
+     1   6455
+     1   1026
+     1    103
+
+julia&gt; decode(tokenizer, integer_ids)
+27×2 Matrix{String}:
+ &quot; [CLS]&quot;      &quot; [CLS]&quot;
+ &quot; [unused1]&quot;  &quot; [unused1]&quot;
+ &quot; no&quot;         &quot; this&quot;
+ &quot; pun&quot;        &quot; ,&quot;
+ &quot;ct&quot;          &quot; batch&quot;
+ &quot;uation&quot;      &quot; ,&quot;
+ &quot; text&quot;       &quot; !&quot;
+ &quot; [SEP]&quot;      &quot; of&quot;
+ &quot; [PAD]&quot;      &quot; text&quot;
+ &quot; [PAD]&quot;      &quot; contains&quot;
+ &quot; [PAD]&quot;      &quot; pun&quot;
+ &quot; [PAD]&quot;      &quot;cts&quot;
+ &quot; [PAD]&quot;      &quot; !&quot;
+ &quot; [PAD]&quot;      &quot; but&quot;
+ &quot; [PAD]&quot;      &quot; is&quot;
+ &quot; [PAD]&quot;      &quot; larger&quot;
+ &quot; [PAD]&quot;      &quot; so&quot;
+ &quot; [PAD]&quot;      &quot; that&quot;
+ &quot; [PAD]&quot;      &quot; ?&quot;
+ &quot; [PAD]&quot;      &quot; the&quot;
+ &quot; [PAD]&quot;      &quot; other&quot;
+ &quot; [PAD]&quot;      &quot; text&quot;
+ &quot; [PAD]&quot;      &quot; contains&quot;
+ &quot; [PAD]&quot;      &quot; pad&quot;
+ &quot; [PAD]&quot;      &quot; symbol&quot;
+ &quot; [PAD]&quot;      &quot; ;&quot;
+ &quot; [PAD]&quot;      &quot; [SEP]&quot;
+
+julia&gt; mask_skiplist(integer_ids, skiplist)
+27×2 BitMatrix:
+ 1  1
+ 1  1
+ 1  1
+ 1  0
+ 1  1
+ 1  0
+ 1  0
+ 1  1
+ 0  1
+ 0  1
+ 0  1
+ 0  1
+ 0  0
+ 0  1
+ 0  1
+ 0  1
+ 0  1
+ 0  1
+ 0  0
+ 0  1
+ 0  1
+ 0  1
+ 0  1
+ 0  1
+ 0  1
+ 0  0
+ 0  1</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/modelling/embedding_utils.jl#L1-L171">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.save-Tuple{ColBERTConfig}" href="#ColBERT.save-Tuple{ColBERTConfig}"><code>ColBERT.save</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">save(config::ColBERTConfig)</code></pre><p>Save a <a href="#ColBERT.ColBERTConfig"><code>ColBERTConfig</code></a> to disk in JSON.</p><p><strong>Arguments</strong></p><ul><li><code>config</code>: The <a href="#ColBERT.ColBERTConfig"><code>ColBERTConfig</code></a> to save.</li></ul><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT;
+
+julia&gt; config = ColBERTConfig(
+           use_gpu = true,
+           collection = &quot;/home/codetalker7/documents&quot;,
+           index_path = &quot;./local_index&quot;
+       );
+
+julia&gt; ColBERT.save(config);
+</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/savers.jl#L86-L109">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.save_chunk-Tuple{String, AbstractVector{UInt32}, AbstractMatrix{UInt8}, Int64, Int64, AbstractVector{Int64}}" href="#ColBERT.save_chunk-Tuple{String, AbstractVector{UInt32}, AbstractMatrix{UInt8}, Int64, Int64, AbstractVector{Int64}}"><code>ColBERT.save_chunk</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">save_chunk(
+    index_path::String, codes::AbstractVector{UInt32}, residuals::AbstractMatrix{UInt8},
+    chunk_idx::Int, passage_offset::Int, doclens::AbstractVector{Int})</code></pre><p>Save a single chunk of compressed embeddings and their relevant metadata to disk.</p><p>The codes and compressed residuals for the chunk are saved in files named <code>&lt;chunk_idx&gt;.codes.jld2</code>. and <code>&lt;chunk_idx&gt;.residuals.jld2</code> respectively. The document lengths are saved in a file named <code>doclens.&lt;chunk_idx&gt;.jld2</code>. Relevant metadata, including number of documents in the chunk, number of embeddings and the passage offsets are saved in a file named <code>&lt;chunk_idx&gt;.metadata.json</code>.</p><p><strong>Arguments</strong></p><ul><li><code>index_path</code>: The path of the index. </li><li><code>codes</code>: The codes for the chunk.</li><li><code>residuals</code>: The compressed residuals for the chunk.</li><li><code>chunk_idx</code>: The index of the current chunk being saved.</li><li><code>passage_offset</code>: The index of the first passage in the chunk.</li><li><code>doclens</code>: The document lengths vector for the current chunk.</li></ul></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/savers.jl#L31-L51">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.save_codec-Tuple{String, Matrix{Float32}, Vector{Float32}, Vector{Float32}, Float32}" href="#ColBERT.save_codec-Tuple{String, Matrix{Float32}, Vector{Float32}, Vector{Float32}, Float32}"><code>ColBERT.save_codec</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">save_codec(
+    index_path::String, centroids::Matrix{Float32}, bucket_cutoffs::Vector{Float32},
+    bucket_weights::Vector{Float32}, avg_residual::Float32)</code></pre><p>Save compression/decompression information from the index path.</p><p><strong>Arguments</strong></p><ul><li><code>index_path</code>: The path of the index.</li><li><code>centroids</code>: The matrix of centroids of the index.</li><li><code>bucket_cutoffs</code>: Cutoffs used to determine buckets during residual compression.</li><li><code>bucket_weights</code>: Weights used to determine the decompressed values during decompression.</li><li><code>avg_residual</code>: The average residual value, computed from the heldout set (see <code>_compute_avg_residuals</code>).</li></ul></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/savers.jl#L1-L15">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.setup-Tuple{Vector{String}, Float32, Int64, Union{Missing, Int64}, Int64}" href="#ColBERT.setup-Tuple{Vector{String}, Float32, Int64, Union{Missing, Int64}, Int64}"><code>ColBERT.setup</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">setup(collection::Vector{String}, avg_doclen_est::Float32,
+    num_clustering_embs::Int, chunksize::Union{Missing, Int}, nranks::Int)</code></pre><p>Initialize the index by computing some indexing-specific estimates and the index plan.</p><p>The number of chunks into which the document embeddings will be stored is simply computed using the number of documents and the size of a chunk. The number of clusters to be used for indexing is computed, and is proportional to <span>$16\sqrt{\text{Estimated number of embeddings}}$</span>.</p><p><strong>Arguments</strong></p><ul><li><code>collection</code>: The collection of documents to index.</li><li><code>avg_doclen_est</code>: The collection of documents to index.</li><li><code>num_clustering_embs</code>: The number of embeddings to be used for computing the clusters.</li><li><code>chunksize</code>: The size of a chunk to be used. Can be <code>Missing</code>.</li><li><code>nranks</code>: Number of GPUs. Currently this can only be <code>1</code>.</li></ul><p><strong>Returns</strong></p><p>A <code>Dict</code> containing the indexing plan.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/collection_indexer.jl#L93-L114">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.tensorize_docs-Tuple{String, Transformers.TextEncoders.AbstractTransformerTextEncoder, AbstractArray{String}}" href="#ColBERT.tensorize_docs-Tuple{String, Transformers.TextEncoders.AbstractTransformerTextEncoder, AbstractArray{String}}"><code>ColBERT.tensorize_docs</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">tensorize_docs(doc_token_id::String,
+    tokenizer::TextEncoders.AbstractTransformerTextEncoder,
+    batch_text::Vector{String})</code></pre><p>Convert a collection of documents to tensors in the ColBERT format.</p><p>This function adds the document marker token at the beginning of each document and then converts the text data into integer IDs and masks using the <code>tokenizer</code>.</p><p><strong>Arguments</strong></p><ul><li><code>config</code>: The <code>ColBERTConfig</code> to be used to fetch the document marker token ID.</li><li><code>tokenizer</code>: The tokenizer which is used to convert text data into integer IDs.</li><li><code>batch_text</code>: A document texts that will be converted into tensors of token IDs.</li></ul><p><strong>Returns</strong></p><p>A tuple containing the following is returned:</p><ul><li><code>integer_ids</code>: A <code>Matrix</code> of token IDs of shape <code>(L, N)</code>, where <code>L</code> is the length   of the largest document in <code>batch_text</code>, and <code>N</code> is the number of documents in the batch   being considered.</li><li><code>integer_mask</code>: A <code>Matrix</code> of attention masks, of the same shape as <code>integer_ids</code>.</li></ul><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: tensorize_docs, load_hgf_pretrained_local;
+
+julia&gt; using Transformers, Transformers.TextEncoders, TextEncodeBase;
+
+julia&gt; tokenizer = load_hgf_pretrained_local(&quot;/home/codetalker7/models/colbertv2.0/:tokenizer&quot;)
+
+# configure the tokenizers maxlen and padding/truncation
+julia&gt; doc_maxlen = 20;
+
+julia&gt; process = tokenizer.process
+Pipelines:
+  target[token] := TextEncodeBase.nestedcall(string_getvalue, source)
+  target[token] := Transformers.TextEncoders.grouping_sentence(target.token)
+  target[(token, segment)] := SequenceTemplate{String}([CLS]:&lt;type=1&gt; Input[1]:&lt;type=1&gt; [SEP]:&lt;type=1&gt; (Input[2]:&lt;type=2&gt; [SEP]:&lt;type=2&gt;)...)(target.token)
+  target[attention_mask] := (NeuralAttentionlib.LengthMask ∘ Transformers.TextEncoders.getlengths(512))(target.token)
+  target[token] := TextEncodeBase.trunc_and_pad(512, [PAD], tail, tail)(target.token)
+  target[token] := TextEncodeBase.nested2batch(target.token)
+  target[segment] := TextEncodeBase.trunc_and_pad(512, 1, tail, tail)(target.segment)
+  target[segment] := TextEncodeBase.nested2batch(target.segment)
+  target[sequence_mask] := identity(target.attention_mask)
+  target := (target.token, target.segment, target.attention_mask, target.sequence_mask)
+
+julia&gt; truncpad_pipe = Pipeline{:token}(
+           TextEncodeBase.trunc_and_pad(doc_maxlen - 1, &quot;[PAD]&quot;, :tail, :tail),
+           :token);
+
+julia&gt; process = process[1:4] |&gt; truncpad_pipe |&gt; process[6:end];
+
+julia&gt; tokenizer = TextEncoders.BertTextEncoder(
+           tokenizer.tokenizer, tokenizer.vocab, process; startsym = tokenizer.startsym,
+           endsym = tokenizer.endsym, padsym = tokenizer.padsym, trunc = tokenizer.trunc);
+
+julia&gt; batch_text = [
+    &quot;hello world&quot;,
+    &quot;thank you!&quot;,
+    &quot;a&quot;,
+    &quot;this is some longer text, so length should be longer&quot;,
+    &quot;this is an even longer document. this is some longer text, so length should be longer&quot;,
+];
+
+julia&gt; integer_ids, bitmask = tensorize_docs(
+    &quot;[unused1]&quot;, tokenizer, batch_text)
+(Int32[102 102 … 102 102; 3 3 … 3 3; … ; 1 1 … 1 2023; 1 1 … 1 2937], Bool[1 1 … 1 1; 1 1 … 1 1; … ; 0 0 … 0 1; 0 0 … 0 1])
+
+julia&gt; integer_ids
+20×5 Matrix{Int32}:
+  102   102   102   102   102
+    3     3     3     3     3
+ 7593  4068  1038  2024  2024
+ 2089  2018   103  2004  2004
+  103  1000     1  2071  2020
+    1   103     1  2937  2131
+    1     1     1  3794  2937
+    1     1     1  1011  6255
+    1     1     1  2062  1013
+    1     1     1  3092  2024
+    1     1     1  2324  2004
+    1     1     1  2023  2071
+    1     1     1  2937  2937
+    1     1     1   103  3794
+    1     1     1     1  1011
+    1     1     1     1  2062
+    1     1     1     1  3092
+    1     1     1     1  2324
+    1     1     1     1  2023
+    1     1     1     1  2937
+
+julia&gt; bitmask
+20×5 Matrix{Bool}:
+ 1  1  1  1  1
+ 1  1  1  1  1
+ 1  1  1  1  1
+ 1  1  1  1  1
+ 1  1  0  1  1
+ 0  1  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  1  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+ 0  0  0  0  1
+
+julia&gt; TextEncoders.decode(tokenizer, integer_ids)
+20×5 Matrix{String}:
+ &quot;[CLS]&quot;      &quot;[CLS]&quot;      &quot;[CLS]&quot;      &quot;[CLS]&quot;      &quot;[CLS]&quot;
+ &quot;[unused1]&quot;  &quot;[unused1]&quot;  &quot;[unused1]&quot;  &quot;[unused1]&quot;  &quot;[unused1]&quot;
+ &quot;hello&quot;      &quot;thank&quot;      &quot;a&quot;          &quot;this&quot;       &quot;this&quot;
+ &quot;world&quot;      &quot;you&quot;        &quot;[SEP]&quot;      &quot;is&quot;         &quot;is&quot;
+ &quot;[SEP]&quot;      &quot;!&quot;          &quot;[PAD]&quot;      &quot;some&quot;       &quot;an&quot;
+ &quot;[PAD]&quot;      &quot;[SEP]&quot;      &quot;[PAD]&quot;      &quot;longer&quot;     &quot;even&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;text&quot;       &quot;longer&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;,&quot;          &quot;document&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;so&quot;         &quot;.&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;length&quot;     &quot;this&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;should&quot;     &quot;is&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;be&quot;         &quot;some&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;longer&quot;     &quot;longer&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[SEP]&quot;      &quot;text&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;,&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;so&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;length&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;should&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;be&quot;
+ &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;[PAD]&quot;      &quot;longer&quot;</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/modelling/tokenization/doc_tokenization.jl#L1-L142">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.tensorize_queries-Tuple{String, Bool, Transformers.TextEncoders.AbstractTransformerTextEncoder, Vector{String}}" href="#ColBERT.tensorize_queries-Tuple{String, Bool, Transformers.TextEncoders.AbstractTransformerTextEncoder, Vector{String}}"><code>ColBERT.tensorize_queries</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><p>using TextEncodeBase: tokenize     tensorize<em>queries(query</em>token::String, attend<em>to</em>mask<em>tokens::Bool,         tokenizer::TextEncoders.AbstractTransformerTextEncoder,         batch</em>text::Vector{String})</p><p>Convert a collection of queries to tensors of token IDs and attention masks.</p><p>This function adds the query marker token at the beginning of each query text and then converts the text data into integer IDs and masks using the <code>tokenizer</code>.</p><p><strong>Arguments</strong></p><ul><li><code>config</code>: The <a href="#ColBERT.ColBERTConfig"><code>ColBERTConfig</code></a> to be used to figure out the query marker token ID.</li><li><code>tokenizer</code>: The tokenizer which is used to convert text data into integer IDs.</li><li><code>batch_text</code>: A document texts that will be converted into tensors of token IDs.</li></ul><p><strong>Returns</strong></p><p>A tuple <code>integer_ids</code>, <code>integer_mask</code> containing the token IDs and the attention mask. Each of these two matrices has shape <code>(L, N)</code>, where <code>L</code> is the maximum query length specified by the <code>config</code> (see <a href="#ColBERT.ColBERTConfig"><code>ColBERTConfig</code></a>), and <code>N</code> is the number of queries in <code>batch_text</code>.</p><p><strong>Examples</strong></p><p>In this example, we first fetch the tokenizer from HuggingFace, and then configure the tokenizer to truncate or pad each sequence to the maximum query length specified by the config. Note that, at the time of writing this package, configuring tokenizers in <a href="https://github.com/chengchingwen/Transformers.jl"><code>Transformers.jl</code></a> doesn&#39;t have a clean interface; so, we have to manually configure the tokenizer.</p><pre><code class="language-julia-repl hljs">julia&gt; using ColBERT: tensorize_queries, load_hgf_pretrained_local;
+
+julia&gt; using Transformers, Transformers.TextEncoders, TextEncodeBase;
+
+julia&gt; tokenizer = load_hgf_pretrained_local(&quot;/home/codetalker7/models/colbertv2.0/:tokenizer&quot;);
+
+# configure the tokenizers maxlen and padding/truncation
+julia&gt; query_maxlen = 32;
+
+julia&gt; process = tokenizer.process;
+
+julia&gt; truncpad_pipe = Pipeline{:token}(
+    TextEncodeBase.trunc_or_pad(query_maxlen - 1, &quot;[PAD]&quot;, :tail, :tail),
+    :token);
+
+julia&gt; process = process[1:4] |&gt; truncpad_pipe |&gt; process[6:end];
+
+julia&gt; tokenizer = TextEncoders.BertTextEncoder(
+    tokenizer.tokenizer, tokenizer.vocab, process; startsym = tokenizer.startsym,
+    endsym = tokenizer.endsym, padsym = tokenizer.padsym, trunc = tokenizer.trunc);
+
+julia&gt; batch_text = [
+    &quot;what are white spots on raspberries?&quot;,
+    &quot;what do rabbits eat?&quot;,
+    &quot;this is a really long query. I&#39;m deliberately making this long&quot;*
+    &quot;so that you can actually see that this is really truncated at 32 tokens&quot;*
+    &quot;and that the other two queries are padded to get 32 tokens.&quot;*
+    &quot;this makes this a nice query as an example.&quot;
+];
+
+julia&gt; integer_ids, bitmask = tensorize_queries(
+    &quot;[unused0]&quot;, false, tokenizer, batch_text);
+(Int32[102 102 102; 2 2 2; … ; 104 104 8792; 104 104 2095], Bool[1 1 1; 1 1 1; … ; 0 0 1; 0 0 1])
+
+julia&gt; integer_ids
+32×3 Matrix{Int32}:
+   102    102    102
+     2      2      2
+  2055   2055   2024
+  2025   2080   2004
+  2318  20404   1038
+  7517   4522   2429
+  2007   1030   2147
+ 20711    103  23033
+  2362    104   1013
+ 20969    104   1046
+  1030    104   1006
+   103    104   1050
+   104    104   9970
+   104    104   2438
+   104    104   2024
+   104    104   2147
+   104    104   6500
+   104    104   2009
+   104    104   2018
+   104    104   2065
+   104    104   2942
+   104    104   2157
+   104    104   2009
+   104    104   2024
+   104    104   2004
+   104    104   2429
+   104    104  25450
+   104    104   2013
+   104    104   3591
+   104    104  19205
+   104    104   8792
+   104    104   2095
+
+julia&gt; bitmask 
+32×3 Matrix{Bool}:
+ 1  1  1
+ 1  1  1
+ 1  1  1
+ 1  1  1
+ 1  1  1
+ 1  1  1
+ 1  1  1
+ 1  1  1
+ 1  0  1
+ 1  0  1
+ 1  0  1
+ 1  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+ 0  0  1
+
+julia&gt; TextEncoders.decode(tokenizer, integer_ids)
+32×3 Matrix{String}:
+ &quot;[CLS]&quot;      &quot;[CLS]&quot;      &quot;[CLS]&quot;
+ &quot;[unused0]&quot;  &quot;[unused0]&quot;  &quot;[unused0]&quot;
+ &quot;what&quot;       &quot;what&quot;       &quot;this&quot;
+ &quot;are&quot;        &quot;do&quot;         &quot;is&quot;
+ &quot;white&quot;      &quot;rabbits&quot;    &quot;a&quot;
+ &quot;spots&quot;      &quot;eat&quot;        &quot;really&quot;
+ &quot;on&quot;         &quot;?&quot;          &quot;long&quot;
+ &quot;ras&quot;        &quot;[SEP]&quot;      &quot;query&quot;
+ &quot;##p&quot;        &quot;[MASK]&quot;     &quot;.&quot;
+ &quot;##berries&quot;  &quot;[MASK]&quot;     &quot;i&quot;
+ &quot;?&quot;          &quot;[MASK]&quot;     &quot;&#39;&quot;
+ &quot;[SEP]&quot;      &quot;[MASK]&quot;     &quot;m&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;deliberately&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;making&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;this&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;long&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;##so&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;that&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;you&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;can&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;actually&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;see&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;that&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;this&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;is&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;really&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;truncated&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;at&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;32&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;token&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;##san&quot;
+ &quot;[MASK]&quot;     &quot;[MASK]&quot;     &quot;##d&quot;</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/modelling/tokenization/query_tokenization.jl#L1-L173">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ColBERT.train-Tuple{AbstractMatrix{Float32}, AbstractMatrix{Float32}, Int64, Int64, Int64}" href="#ColBERT.train-Tuple{AbstractMatrix{Float32}, AbstractMatrix{Float32}, Int64, Int64, Int64}"><code>ColBERT.train</code></a> — <span class="docstring-category">Method</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">train(sample::AbstractMatrix{Float32}, heldout::AbstractMatrix{Float32},
+    num_partitions::Int, nbits::Int, kmeans_niters::Int)</code></pre><p>Compute centroids using a <span>$k$</span>-means clustering algorithn, and store the compression information on disk.</p><p>Average residuals and other compression data is computed via the <code>_compute_avg_residuals</code>. function.</p><p><strong>Arguments</strong></p><ul><li><code>sample</code>: The matrix of sampled embeddings used to compute clusters.</li><li><code>heldout</code>: The matrix of sample embeddings used to compute the residual information.</li><li><code>num_partitions</code>: The number of clusters to compute.</li><li><code>nbits</code>: The number of bits used to encode the residuals.</li><li><code>kmeans_niters</code>: The maximum number of iterations in the <span>$k$</span>-means algorithm.</li></ul><p><strong>Returns</strong></p><p>A <code>Dict</code> containing the residual codec, i.e information used to compress/decompress residuals.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaGenAI/ColBERT.jl/blob/4ce359638bb9b1535e3e81be4ab6a3afb72ad38d/src/indexing/collection_indexer.jl#L197-L218">source</a></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Saturday 28 September 2024 10:30">Saturday 28 September 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
