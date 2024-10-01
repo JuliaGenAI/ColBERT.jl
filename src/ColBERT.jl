@@ -27,7 +27,6 @@ include("modelling/tokenization/doc_tokenization.jl")
 include("modelling/tokenization/query_tokenization.jl")
 include("modelling/embedding_utils.jl")
 include("modelling/checkpoint.jl")
-export BaseColBERT, Checkpoint
 
 # indexer
 include("indexing/codecs/residual.jl")
