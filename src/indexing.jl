@@ -145,3 +145,14 @@ function index(indexer::Indexer)
     # check if all relevant files are saved
     _check_all_files_are_saved(indexer.config.index_path)
 end
+
+function Base.show(io::IO, ::MIME"text/plain", indexer::Indexer)
+    print(io, "ColBERT Indexer:\n")
+    print(io, "  collection size: $(length(indexer.collection)) documents\n")
+    print(io, "  checkpoint: $(indexer.config.checkpoint)\n")
+    collection_path = indexer.config.collection
+    if collection_path isa String && !isempty(collection_path)
+        print(io, "  collection path: $(collection_path)\n")
+    end
+    print(io, "  index path: $(indexer.config.index_path)\n")
+end

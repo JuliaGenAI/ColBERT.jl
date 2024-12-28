@@ -126,3 +126,12 @@ function search(searcher::Searcher, query::String, k::Int)
     pids, scores = pids[indices], scores[indices]
     pids[1:k], scores[1:k]
 end
+
+function Base.show(io::IO, ::MIME"text/plain", searcher::Searcher)
+    print(io, "ColBERT Searcher:\n")
+    print(io, "  checkpoint: $(searcher.config.checkpoint)\n")
+    print(io, "  index path: $(searcher.config.index_path)\n")
+    print(io, "  embeddings:\n")
+    print(io, "    total: $(sum(searcher.doclens))\n")
+    print(io, "    centroids: $(size(searcher.centroids,2))\n")
+end

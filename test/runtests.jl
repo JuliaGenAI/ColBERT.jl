@@ -21,13 +21,16 @@ const FLOAT_TYPES = [Float16, Float32, Float64]
 include("indexing/codecs/residual.jl")
 include("indexing/collection_indexer.jl")
 
-# modelling operations 
+# modelling operations
 include("modelling/tokenization/tokenizer_utils.jl")
 include("modelling/embedding_utils.jl")
 
 # search operations
 include("searching.jl")
 include("search/ranking.jl")
+
+# show operations
+include("show_methods.jl")
 
 # utils
 include("utils.jl")
