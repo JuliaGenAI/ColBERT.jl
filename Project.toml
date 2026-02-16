@@ -1,7 +1,7 @@
 name = "ColBERT"
 uuid = "7e8ad7a6-05a9-45be-b784-576440ebc08e"
-authors = ["Siddhant Chaudhary <urssidd@gmail.com> and contributors"]
 version = "0.1.0"
+authors = ["Siddhant Chaudhary <urssidd@gmail.com> and contributors"]
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -17,11 +17,11 @@ TextEncodeBase = "f92c20c0-9f2a-4705-8116-881385faba05"
 Transformers = "21ca0261-441d-5938-ace7-c90938fde4d4"
 
 [compat]
-Flux = "0.14"
-JLD2 = "0.4" 
-JSON = "0.21" 
+Flux = "0.14, 0.16"
+JLD2 = "0.4"
+JSON = "0.21"
 NeuralAttentionlib = "0.3"
 StatsBase = "0.34"
-TextEncodeBase = "0.8" 
+TextEncodeBase = "0.8"
 Transformers = "0.3"
 julia = "1.10"
