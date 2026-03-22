@@ -21,12 +21,32 @@ Type representing an ColBERT indexer.
 An [`Indexer`] wrapping a [`ColBERTConfig`](@ref) along with the trained ColBERT
 model.
 """
+function parse_tsv_line(line::String)
+    parts = split(line, '\t')
+
+    # Skip invalid lines
+    if length(parts) < 2
+        return nothing
+    end
+
+    # Combine title + body + extra fields
+    return strip(join(parts[2:end], " "))
+end
 function Indexer(config::ColBERTConfig)
     tokenizer, bert, linear = load_hgf_pretrained_local(config.checkpoint)
     bert = bert |> Flux.gpu
     linear = linear |> Flux.gpu
-    collection = config.collection isa String ? readlines(config.collection) :
-                 config.collection
+    collection =
+    if config.collection isa String
+        lines = readlines(config.collection)
+
+        [
+            doc for doc in (parse_tsv_line(line) for line in lines)
+            if doc !== nothing
+        ]
+    else
+        config.collection
+    end
     punctuations_and_padsym = [string.(collect("!\"#\$%&\'()*+,-./:;<=>?@[\\]^_`{|}~"));
                                tokenizer.padsym]
     skiplist = config.mask_punctuation ?
